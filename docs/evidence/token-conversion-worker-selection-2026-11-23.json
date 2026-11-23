@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "parentRevision": "69d9bf2a7f56f426105d1590e55763db4377a3f5",
+  "scope": "Private Mainnet conversion recovery worker selection, without runtime provisioning or activation",
+  "sourcePath": [
+    "server/index.mjs calls startApiFinancialWorkerServices without a preparedTokenConversionRuntime",
+    "server/api-financial-workers.mjs accepts only an explicitly injected prepared runtime on Mainnet and returns an inert private worker",
+    "server/token-conversion-bootstrap.mjs mints a nonserializable capability only for an actually prepared recovery-only controller"
+  ],
+  "behavior": [
+    "Current public API startup remains Mainnet read-only and starts no conversion recovery worker.",
+    "A manually selected recovery page rechecks finalized program context and all three role-labelled durable journals before calling the existing recovery-only controller.",
+    "The selected capability exposes tick and status only; no start, request, signer, listener or broadcast entrypoint is returned.",
+    "A missing signer journal refuses the next selected page before any further signer or send callback; a lookalike object, signing-mode runtime or Devnet context is refused."
+  ],
+  "localTests": {
+    "node": "24.22.3",
+    "bootstrap": "30/30 required passed, 0 failed, 0 skipped, 0 TODO",
+    "affectedHttpService": "30/30 required passed, 0 failed, 0 skipped, 0 TODO",
+    "realApiEntrypoint": "5/5 required passed, 0 failed, 0 skipped, 0 TODO"
+  },
+  "limits": [
+    "The checked runtime uses synthetic bank, RPC, finality and signer callbacks, and no production custody or network request.",
+    "The real server does not provision or inject this private capability; operational controller registration, independent custody, journal backup and live proof remain open.",
+    "Separate journal reads are not atomic across three stores; concurrent new signing can fail closed at bootstrap and requires quiescent startup or an explicitly reviewed retry.",
+    "Selection is not Mainnet financial admission, signing approval, deployment or a cap change."
+  ]
+}

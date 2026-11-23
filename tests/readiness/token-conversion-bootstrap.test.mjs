@@ -8,6 +8,7 @@ import {createAutomaticRewardStore} from '../../server/automatic-reward-store.mj
 import {createTokenConversionJournal} from '../../server/token-conversion-journal.mjs';
 import {prepareTokenConversionRuntime,provisionFreshTokenConversionJournals,tokenConversionProvisioningDigest} from '../../server/token-conversion-bootstrap.mjs';
 import {tokenPricePolicyHash} from '../../server/token-conversion-sell-review.mjs';
+import {startApiFinancialWorkerServices} from '../../server/api-financial-workers.mjs';
 import {conversionServiceFixture} from './token-conversion-service-fixture.mjs';
 
 async function setup(t,fixtureOptions={}){
@@ -125,6 +126,39 @@ test('independent pool-supply snapshots may differ while exact signed conversion
     row.intentDigest=tokenPricePolicyHash(row.proofIntent);
   });
   assert.equal((await prepareTokenConversionRuntime(o)).admission.mode,'recovery-only');
+});
+
+test('real API worker selector exposes only explicit reviewed read-only recovery pages',async t=>{
+  const {c,counts,options}=await setup(t,{send:'unknown'});
+  const env={FUNDED_OUTFLOW_ALERTS_ENABLED:'false'};
+  assert.deepEqual(startApiFinancialWorkerServices({solanaCluster:'mainnet-beta',env}),
+    {mode:'mainnet-read-only',started:[]});
+  const prepared=await prepareTokenConversionRuntime(options('controller'));
+  const selected=startApiFinancialWorkerServices({solanaCluster:'mainnet-beta',env,
+    preparedTokenConversionRuntime:prepared});
+  assert.deepEqual({mode:selected.mode,started:selected.started},{mode:'mainnet-read-only',started:[]});
+  assert.equal(typeof selected.privateRecoveryWorker.tick,'function');
+  assert.deepEqual(Object.keys(selected.privateRecoveryWorker),['tick','status']);
+  assert.equal(Object.isFrozen(selected.privateRecoveryWorker),true);
+  assert.equal(selected.privateRecoveryWorker.status().running,false);
+  assert.equal((await selected.privateRecoveryWorker.tick()).attempts.length,0);
+  assert.deepEqual(c.calls,{'price-attestation':0,operator:0,send:0});
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  const page=await selected.privateRecoveryWorker.tick();
+  assert.deepEqual(page.attempts,[{messageHash:c.hash,status:'reconciliation-pending'}]);
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+  const oldPrice=await readFile(c.paths['price-attestation']);
+  await rename(c.paths['price-attestation'],c.paths['price-attestation']+'.missing');
+  await assert.rejects(selected.privateRecoveryWorker.tick(),/Conversion journal reference unavailable/);
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+  await rename(c.paths['price-attestation']+'.missing',c.paths['price-attestation']);
+  assert.deepEqual(await readFile(c.paths['price-attestation']),oldPrice);
+  for(const invalid of [
+    {solanaCluster:'devnet',env,preparedTokenConversionRuntime:prepared},
+    {solanaCluster:'mainnet-beta',env,preparedTokenConversionRuntime:{...prepared}},
+    {solanaCluster:'mainnet-beta',env,preparedTokenConversionRuntime:await prepareTokenConversionRuntime(options('operator','signing'))},
+  ])assert.throws(()=>startApiFinancialWorkerServices(invalid));
+  assert.equal(counts.custody,0);assert.equal(counts.sign,0);
 });
 
 test('resume refuses a corrupt third journal before authentication or custody',async t=>{

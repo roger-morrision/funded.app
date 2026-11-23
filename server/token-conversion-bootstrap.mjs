@@ -14,8 +14,21 @@ import {createTokenConversionSigningService} from './token-conversion-signing-se
 import {conversionServiceOrigin} from './token-conversion-remote-signers.mjs';
 
 const roles=['controller','operator','price-attestation'];
+const preparedRecoveryRuntimes=new WeakMap();
 const reference=value=>typeof value==='string'&&value.trim()===value&&/^[A-Za-z][A-Za-z0-9._:-]{0,127}$/.test(value);
 const disc=createHash('sha256').update('account:BuybackPriceConfig').digest().subarray(0,8);
+
+// Selection is a private, explicit capability. It cannot be reconstructed
+// from a request body, environment string or a lookalike runtime object.
+// Every explicit page rechecks the reviewed program and all three journals.
+export function selectPreparedTokenConversionRecovery(runtime){
+  const selected=runtime&&preparedRecoveryRuntimes.get(runtime);
+  assert(selected,'Reviewed private recovery runtime required.');
+  return Object.freeze({
+    tick:async()=>{await selected.initialize();return selected.tick();},
+    status:()=>selected.status(),
+  });
+}
 
 export function tokenConversionProvisioningDigest({spec,policy,release}){
   requireReviewedTokenSignerPolicy(policy,release);
@@ -141,8 +154,11 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
     }};
     runtime=createTokenConversionSigningService({store,connection,config:policy,release,role:spec.role,signer,token:await authentication(spec.role),now,recoveryOnly});
   }
-  return {...runtime,initialize:async()=>{await verifyContext(!recoveryOnly);return (await verifyJournalSet()).result;},
+  const prepared={...runtime,initialize:async()=>{await verifyContext(!recoveryOnly);return (await verifyJournalSet()).result;},
     recoveryWorker:spec.role==='controller'&&recoveryOnly?createTokenConversionRecoveryWorker({controller:runtime}):undefined,
     admission:{...admission,role:spec.role,mode:recoveryOnly?'recovery-only':'signing'},
     scope:'prepared private runtime; no listener or worker activation, custody is lazy and requires fresh verified context'};
+  if(spec.role==='controller'&&recoveryOnly)preparedRecoveryRuntimes.set(prepared,{initialize:prepared.initialize,
+    tick:prepared.recoveryWorker.tick,status:prepared.recoveryWorker.status});
+  return prepared;
 }
