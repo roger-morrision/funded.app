@@ -3,7 +3,12 @@ import {drainAutomaticRewardTransactions} from './automatic-reward-store.mjs';
 export function installRewardShutdown({server,handle,signals=process,drain=drainAutomaticRewardTransactions,
   exit=code=>process.exit(code),logger=console}) {
   if(typeof handle!=='function'||server.listenerCount('request'))throw new TypeError('Shutdown must own HTTP request admission.');
-  let shuttingDown=false,handlerFailed=false;
+  let shuttingDown=false,handlerFailed=false,connectionsClosed=false;
+  const connections=new Set();
+  server.on('connection',socket=>{
+    if(connectionsClosed){socket.destroy();return;}
+    connections.add(socket);socket.once('close',()=>connections.delete(socket));
+  });
   const handlers=new Set(),writeResponses=new Set();
   const track=(set,pending)=>{
     set.add(pending);
@@ -39,7 +44,11 @@ export function installRewardShutdown({server,handle,signals=process,drain=drain
       // All admitted application logic and mutating responses have finished.
       // Only readonly responses or sockets without admitted work can remain.
       // Close these before awaiting server.close, otherwise a stream can pin it.
-      stage='http-connections';server.closeAllConnections();
+      stage='http-connections';connectionsClosed=true;server.closeAllConnections();
+      // closeAllConnections excludes upgraded sockets. Leaving a live push or
+      // RPC WebSocket open can pin server.close until Docker forcibly stops us.
+      // Only close them after admitted handlers and durable writes have drained.
+      for(const socket of connections)socket.destroy();
       await requestsClosed;
       logger.log(JSON.stringify({event:'reward_ledger_drained',signal}));
       exit(0);

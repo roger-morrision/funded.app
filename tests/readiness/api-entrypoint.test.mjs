@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {apiEntrypointFixture} from './api-entrypoint-fixture.mjs';
+import {once} from 'node:events';
+import {WebSocket} from 'ws';
+
+test('actual live API drains and exits normally with an open browser push connection',async t=>{
+  const f=await apiEntrypointFixture(t,{live:true}),origin=await f.listening();
+  const socket=new WebSocket(origin.replace('http:','ws:')+'/api/live',{origin});
+  t.after(()=>socket.terminate());await once(socket,'open');
+  await f.stop();assert.deepEqual(await f.exit,{code:0,signal:null});
+  assert(f.stdout.includes('reward_ledger_drained'));assert.equal(f.financialRpc,0);
+});
 
 for(const profile of [{name:'Devnet',cluster:'devnet'},{name:'Mainnet read-only',cluster:'mainnet-beta'},
   {name:'Mainnet existing non-program',cluster:'mainnet-beta',nonProgram:true}])test('API entrypoint initializes network before runtime and serves honest '+profile.name+' status',async t=>{

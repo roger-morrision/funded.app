@@ -9,7 +9,7 @@ import {fileURLToPath} from 'node:url';
 // Actual API entrypoint and HTTP stack; only its RPC dependency is a test-owned
 // loopback server returning unavailable. No inherited credentials/local env,
 // production data, wallet keys, provider traffic or financial workers.
-export async function apiEntrypointFixture(t,{cluster='devnet',clientCluster=cluster,nonProgram=false}={}){
+export async function apiEntrypointFixture(t,{cluster='devnet',clientCluster=cluster,nonProgram=false,live=false}={}){
   const base=await realpath(tmpdir()),dir=await mkdtemp(join(base,'funded-entrypoint-'));
   const methods=[];let financialRpc=0,child,exit,stdout='',stderr='';
   const rpc=createServer(async(req,res)=>{
@@ -23,7 +23,7 @@ export async function apiEntrypointFixture(t,{cluster='devnet',clientCluster=clu
   const env={...clean,NODE_ENV:'test',FUNDED_SKIP_LOCAL_ENV:'true',SOLANA_CLUSTER:cluster,VITE_SOLANA_CLUSTER:clientCluster,
     FUNDED_STORE_PATH:join(dir,'store.json'),AUTOMATIC_REWARD_STORE_PATH:join(dir,'rewards.json'),
     SOLANA_RPC_URL:'http://127.0.0.1:'+rpc.address().port,HOST:'127.0.0.1',PORT:'0',DEV_MODE:'false',DEVNET_TEST_MODE:'false',
-    FUNDED_API_ONLY:'true',FUNDED_LIVE_DATA:'false',FUNDED_MAINNET_NON_PROGRAM_WRITES:String(nonProgram),
+    FUNDED_API_ONLY:'true',FUNDED_LIVE_DATA:String(live),FUNDED_MAINNET_NON_PROGRAM_WRITES:String(nonProgram),
     FUNDED_ADMIN_JWT_SECRET:'test-only-nonproduction-entrypoint-session-hmac',FUNDED_BUILD_ID:'entrypoint-offline-fixture'};
   child=spawn(process.execPath,[fileURLToPath(new URL('../../server/index.mjs',import.meta.url))],{cwd:dir,env,stdio:['ignore','pipe','pipe']});
   child.stdout.on('data',b=>{stdout+=b;});child.stderr.on('data',b=>{stderr+=b;});
