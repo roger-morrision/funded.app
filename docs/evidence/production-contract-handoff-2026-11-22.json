@@ -4748,6 +4748,17 @@
     },
     "concurrencyFinding": "The three journal files are read sequentially, without a shared snapshot or quiescent barrier. A concurrent new controller reservation followed by role cache publication after the controller read can appear as a role-only attempt and fail startup. This is fail-closed availability; reviewed quiescence or retry must not weaken rollback checks.",
     "requiredCorrection": "Bind cross-role rollback evidence to immutable transaction/message and cryptographically verified role signatures while retaining each independent review's own market evidence, or enforce and prove a common immutable snapshot before signing. Retest ordinary signed restart, older-role rollback, interleaved valid market snapshots and concurrent startup.",
-    "status": "Source-local false-refusal reproduced; ce5982 bootstrap journal rollback slice is not accepted. Contract ABI/ELF/Loader/quote unchanged; no financial action; Mainnet NO-GO."
+    "correction": {
+      "appSource": "69d9bf2a7f56f426105d1590e55763db4377a3f5",
+      "sourcePins": {
+        "server/token-conversion-bootstrap.mjs": "49468466a82053b989c77ab29c6904f01eb380290dc6a868ee6033a790aa5db5",
+        "tests/readiness/token-conversion-bootstrap.test.mjs": "5aa8014041d4b2645cdb077d1e8bcb8cca526bcdc9e07d7b5f13147d6f902d4f"
+      },
+      "sourceReview": "Cross-role comparison now uses exact canonical unsigned digest and both cached role signatures matching the controller signed wire. Each individual role journal still validates its own intent digest, typed intent, unsigned wire and Ed25519 signature. It permits distinct independently reviewed pool snapshots with identical signed message while still refusing an older role journal that lost the signed attempt.",
+      "contractFocusedRun": "Node26 local 2/2 pass with retained public Gf7 capture, 8f6 production fixture ELF and 3f8 review ELF: original partial-restore negative and new independent pool-supply snapshot positive. No skipped tests. Contract did not repeat the broad owner suites.",
+      "ownerTests": "App reports Node24.22.3 maintained bootstrap29/29 and direct journal16/16 pass; independent E2E exact-revision acceptance remains pending.",
+      "limits": "The three files are still read sequentially and may fail closed during concurrent signing; quiescent startup or reviewed retry remains an operational boundary. Coherent all-three rollback still requires a no-loss backup and chain reconciliation procedure. Synthetic local checks do not establish live financial/restore acceptance."
+    },
+    "status": "Source-local ce false refusal corrected at 69d9 in narrow Contract review; independent E2E and operational three-journal restore remain open. Contract ABI/ELF/Loader/quote unchanged; no financial action; Mainnet NO-GO."
   }
 }
