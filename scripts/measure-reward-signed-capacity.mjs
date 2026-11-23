@@ -8,11 +8,13 @@ import {createAutomaticRewardStore} from '../server/automatic-reward-store.mjs';
 import {selectHolderPayoutPage} from '../server/holder-payout-page.mjs';
 import {recoverSavedRewardPayouts} from '../server/reward-payout-recovery.mjs';
 
-const args=process.argv.slice(2);assert(args.every(a=>/^--(count|assets)=/.test(a))&&new Set(args.map(a=>a.split('=')[0])).size===args.length,'Only count/assets inputs accepted.');
+const args=process.argv.slice(2);assert(args.every(a=>/^--(count|assets|read-mode)=/.test(a))&&new Set(args.map(a=>a.split('=')[0])).size===args.length,'Only count/assets/read-mode inputs accepted.');
 const count=Number(args.find(a=>a.startsWith('--count='))?.slice(8)||33);
 const assets=(args.find(a=>a.startsWith('--assets='))?.slice(9)||'SOL,USDC').split(',');
+const readMode=args.find(a=>a.startsWith('--read-mode='))?.slice(12)||'legacy';
 assert(Number.isSafeInteger(count)&&count>=1&&count<=1001&&assets.length>=1&&assets.length<=3
-  &&new Set(assets).size===assets.length&&assets.every(a=>['SOL','USDC','Token2022'].includes(a)),'Invalid declared offline capacity scope.');
+  &&new Set(assets).size===assets.length&&assets.every(a=>['SOL','USDC','Token2022'].includes(a))
+  &&['legacy','targeted'].includes(readMode),'Invalid declared offline capacity scope.');
 const base=await realpath(tmpdir()),dir=await mkdtemp(join(base,'funded-signed-capacity-'));
 try{
   const cohorts=[];for(const assetName of assets){
@@ -23,7 +25,7 @@ try{
   await store.transaction(s=>{s.schedules=Object.fromEntries(cohorts.map(c=>[c.plan.id,c.plan]));});
   const ledgerBytes=Number((await stat(path)).size),original=cohorts.map(c=>JSON.stringify(c.plan.payoutAttempts));
   let counters;
-  const reset=()=>{counters={reads:0,transactions:0,serializedCandidateBytes:0,ledgerReplacements:0,ledgerWriteBytes:0,
+  const reset=()=>{counters={reads:0,targetedReads:0,transactions:0,serializedCandidateBytes:0,ledgerReplacements:0,ledgerWriteBytes:0,
     mutatorInsideLockMs:0,transactionElapsedMs:0,instrumentationSerializeMs:0};};reset();
   const measured={read:async()=>{counters.reads++;return store.read();},transaction:async mutate=>{
     const before=await stat(path,{bigint:true}),start=performance.now();assert(before.ino>0n);
@@ -32,6 +34,7 @@ try{
       counters.instrumentationSerializeMs+=performance.now()-serialization;return result;});}
     finally{const after=await stat(path,{bigint:true});if(after.ino!==before.ino){counters.ledgerReplacements++;counters.ledgerWriteBytes+=Number(after.size);}
       counters.transactions++;counters.transactionElapsedMs+=performance.now()-start;}}};
+  if(readMode==='targeted')measured.readSchedule=async id=>{counters.targetedReads++;return store.readSchedule(id);};
   let start=performance.now();assert.equal((await selectHolderPayoutPage({store:measured,plan:cohorts[0].plan})).length,Math.min(count,32));
   const fresh={...counters,elapsedMs:performance.now()-start,maxRssKiB:process.resourceUsage().maxRSS};reset();
   const rpcMethods={};for(const c of cohorts)for(const method of ['getGenesisHash','getSignatureStatuses','getTransaction']){
@@ -48,7 +51,7 @@ try{
     assert.deepEqual(reopened.schedules[c.plan.id].payments,{});assert.equal(c.f.sends,count);assert.equal(c.f.latestCalls,count);
   }
   process.stdout.write(JSON.stringify({scope:'offline-canonical-prepared-wires-not-finalized-proof-or-production-capacity',node:process.version,
-    countPerCohort:count,assets,nodeExecArgv:process.execArgv,cohorts:cohorts.map(c=>c.profile),ledgerBytes,fresh,recovery,
+    countPerCohort:count,assets,readMode,nodeExecArgv:process.execArgv,cohorts:cohorts.map(c=>c.profile),ledgerBytes,fresh,recovery,
     memory:{maxRssKiB:process.resourceUsage().maxRSS,...process.memoryUsage(),v8HeapLimitBytes:getHeapStatistics().heap_size_limit},
     networkCalls:0,onChainTransactions:0,additionalSigningOrMockBroadcastsDuringRecovery:0,
     limits:'A Node old-space flag is not a 512MiB container/RSS/CPU limit. No full-app, finalized-proof, whole-worker, Linux durability, live throughput or admission claim.',

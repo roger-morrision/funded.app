@@ -80,6 +80,19 @@ test('public read cache remains correct across no-op changed-state and caller mu
   assert.equal((await f.reopen().read()).schedules.unit.amount,'2');
 });
 
+test('targeted schedule read excludes unrelated signed rows and refreshes after another writer',async t=>{
+  const f=await fixture(t);await f.store.transaction(s=>{
+    s.schedules.a={amount:'1',payoutAttempts:{one:{signature:'original'}}};
+    s.schedules.b={amount:'9',payoutAttempts:{other:{signature:'unrelated'}}};
+  });
+  const first=await f.store.readSchedule('a');assert.equal(first.payoutAttempts.one.signature,'original');
+  assert.equal(first.payoutAttempts.other,undefined);first.amount='caller-only';
+  assert.equal((await f.store.readSchedule('a')).amount,'1');
+  await f.reopen().transaction(s=>{s.schedules.a.amount='2';s.schedules.b.amount='10';});
+  assert.equal((await f.store.readSchedule('a')).amount,'2');
+  assert.equal((await f.store.readSchedule('missing')),undefined);
+});
+
 test('noncanonical persisted JSON is normalized once then exact-byte no-op stays unchanged',async t=>{
   const f=await fixture(t);await writeFile(f.path,JSON.stringify({version:2,schedules:{unit:{amount:'1'}}},null,2)+'\n');
   await f.store.transaction(s=>s.version);const bytes=await readFile(f.path),before=await identity(f.path);assert.equal(bytes.toString(),JSON.stringify(JSON.parse(bytes)));

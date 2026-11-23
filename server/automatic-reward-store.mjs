@@ -18,8 +18,7 @@ export async function drainAutomaticRewardTransactions() {
 // lock needs operator investigation rather than unsafe automatic lock expiration.
 export function createAutomaticRewardStore(path) {
   let publicRead;
-  async function project(keys) {
-    const pick=state=>structuredClone(Object.fromEntries(keys.map(key=>[key,state[key]])));
+  async function projectWith(pick) {
     let identity;
     try {
       const info=await stat(path,{bigint:true}),parts=[info.dev,info.ino,info.size,info.mtimeNs,info.ctimeNs];
@@ -33,6 +32,7 @@ export function createAutomaticRewardStore(path) {
     const state=await publicRead.promise;
     return pick(state);
   }
+  const project=keys=>projectWith(state=>structuredClone(Object.fromEntries(keys.map(key=>[key,state[key]]))));
   async function acquireLock() {
     for (let attempt = 0; attempt < 40; attempt++) {
       try { return await open(`${path}.lock`, 'wx'); }
@@ -89,6 +89,10 @@ export function createAutomaticRewardStore(path) {
     return result;
   }
   return {async read(){return structuredClone(await readState());},
+  // A payout needs one immutable schedule, not a clone of every holder and
+  // signed attempt in the ledger. The inode identity still refreshes after a
+  // competing writer and callers never receive the cached mutable object.
+  readSchedule:id=>projectWith(state=>structuredClone(state.schedules?.[id])),
   async hasPublishedFile(){try{await lstat(path);return true;}catch(error){if(error.code==='ENOENT')return false;throw error;}},
   readFinancialSnapshot:()=>project(['version','programs','schedules','rewardPools','dailyBonusSnapshots']),
   readStatusSnapshot:()=>project(['serviceStatus','schedules']),

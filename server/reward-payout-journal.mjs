@@ -156,7 +156,9 @@ export async function executeRewardPayout({store,plan,leaf,connection,programId,
   expectedProgramDataSha256=String(expectedProgramDataSha256||'').toLowerCase();assert(/^[a-f0-9]{64}$/.test(expectedProgramDataSha256),'Pinned payout program required.');
   const options={connection,plan,leaf,programId,currentAuthority,cluster,expectedProgramDataSha256,release};
   const row=state=>{const r=state.schedules?.[plan.id];assert(r&&payoutIntentHash(r,leaf)===intent,'Saved payout schedule changed.');return r;};
-  const saved=row(await store.read()),prior=saved.payoutAttempts?.[leaf.recipient];
+  const readSaved=async()=>typeof store.readSchedule==='function'
+    ?row({schedules:{[plan.id]:await store.readSchedule(plan.id)}}):row(await store.read());
+  const saved=await readSaved(),prior=saved.payoutAttempts?.[leaf.recipient];
   if(Object.hasOwn(saved,'payoutAttempts'))assert(saved.payoutAttempts&&typeof saved.payoutAttempts==='object'&&!Array.isArray(saved.payoutAttempts),'Corrupt payout attempt container.');
   if(saved.payoutAttempts&&Object.hasOwn(saved.payoutAttempts,leaf.recipient))assert(prior&&typeof prior==='object'&&!Array.isArray(prior),'Corrupt saved payout attempt.');
   const finish=async attempt=>{
@@ -216,6 +218,6 @@ export async function executeRewardPayout({store,plan,leaf,connection,programId,
       await store.transaction(state=>{const r=row(state);r.payoutAttempts||={};assert(!Object.hasOwn(r.payoutAttempts,leaf.recipient),'Another durable payout attempt owns this leaf.');
         r.payoutAttempts[leaf.recipient]=structuredClone(attempt);});
     }});
-  }catch(error){attempt=row(await store.read()).payoutAttempts?.[leaf.recipient];if(!attempt)throw error;}
+  }catch(error){attempt=(await readSaved()).payoutAttempts?.[leaf.recipient];if(!attempt)throw error;}
   assert(attempt,'Payout transport did not persist its signed message.');return finish(attempt);
 }

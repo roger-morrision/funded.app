@@ -31,6 +31,17 @@ for(const asset of PAYOUT_ASSETS){
   });
 }
 
+test('cached payout recovery reads only its schedule while preserving the original proof',async t=>{
+  const f=historicalPayoutFixture(),{store}=await expiryExecutionStore(t,f);
+  const first=await f.chain().submitLeaf(f.plan,f.leaf,{store});assert.equal(first.payoutTransactionVerified,true);
+  let targetedReads=0,fullReads=0;
+  const narrowed={...store,readSchedule:async id=>{targetedReads++;return store.readSchedule(id);},
+    read:async()=>{fullReads++;throw Error('Whole-ledger read forbidden for a single payout.');}};
+  const resumed=await f.chain().submitLeaf(f.plan,f.leaf,{store:narrowed,recoveryOnly:true});
+  assert.equal(resumed.alreadyPaid,true);assert.equal(resumed.signature,first.signature);
+  assert.equal(targetedReads,1);assert.equal(fullReads,0);assert.equal(f.sends,1);
+});
+
 test('disk write rejection prevents payout broadcast',async t=>{
   const f=historicalPayoutFixture(),{store}=await expiryExecutionStore(t,f),fault={read:store.read,transaction:async()=>{throw Error('disk write rejected');}};
   await assert.rejects(f.chain().submitLeaf(f.plan,f.leaf,{store:fault}),/disk write rejected/);assert.equal(f.sends,0);

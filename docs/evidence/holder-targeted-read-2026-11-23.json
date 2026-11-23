@@ -1,0 +1,37 @@
+{
+  "scope": "FQA-MN-001 local signed-attempt payout-read optimization",
+  "baseSource": "f344f16cd43364ad0d432079a2af02f7268addea",
+  "changedBehavior": "Each payout recovery reads an immutable copy of its own schedule through the existing inode-keyed parsed-state cache. Transaction persistence and recovery policy are unchanged.",
+  "focusedTests": {
+    "node": "26.13.1",
+    "storeCases": "16/16 passed",
+    "payoutCases": "23/23 passed",
+    "publicInputs": [
+      "production-usdc-sell-20261122/fixture.json SHA-256 e0a2d89f34bcf94421c225f2d5fe2ae2ab27c2c9fa4b162396a3eb38805e6aa3",
+      "historical production fixture ELF SHA-256 8f6b661e4318be921bc41db86d410d888afc62c851c1e56d60e129ce7bb75bbd",
+      "current review ELF SHA-256 3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50"
+    ]
+  },
+  "signedAttemptComparison": {
+    "method": "Two fresh Windows Node 26.13.1 processes, --max-old-space-size=256, count=1001, SOL and USDC canonical prepared-wire cohorts; same script and fixtures, read-mode changed only. Instrumented transaction time includes candidate byte count and filesystem stats.",
+    "legacy": {
+      "recoveryElapsedMs": 2211.8841,
+      "fullReads": 33,
+      "targetedReads": 0,
+      "maxRssKiB": 285900,
+      "serializedCandidateBytes": 237442549,
+      "stdoutSha256": "0073ba4b0554de8a73877bb54b29d40092b40a941f8746133218cb673b91a4dc",
+      "stderrSha256": "6f7ce37602f445aaee2d5d72b5b08b7293b7225045e525a257ca6ba0ae1b771b"
+    },
+    "targeted": {
+      "recoveryElapsedMs": 1766.1795,
+      "fullReads": 1,
+      "targetedReads": 32,
+      "maxRssKiB": 278264,
+      "serializedCandidateBytes": 237442549,
+      "stdoutSha256": "2d988741acd61032ff49e488525d64a080b337db4ed16ddf1bb61846bc15e156",
+      "stderrSha256": "a9026d1f1ef6d913e7a47e9c8acfe30847e4cc9630ecd74c1433e058a6b5613d"
+    }
+  },
+  "limits": "Local single-run comparison only. Whole-ledger transactions still parse and serialize O(N) state, with identical candidate bytes. This is prepared-wire synthetic recovery, not verified-proof, whole-worker, 512 MiB Linux cgroup, live finality, throughput SLA, or cap-increase evidence. Production holder admission remains capped at 1000."
+}
