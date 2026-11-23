@@ -7,6 +7,10 @@ import {fenceRewardLedgerDirectory,rewardStoreFailure} from './reward-store-dura
 const activeTransactions=new Set();
 const writeQueues=new Map();
 let draining=false;
+// A mutator may return this only when it made no change to the locked state.
+// This avoids encoding the entire ledger for a proven read-only recovery
+// outcome while retaining the lock, cleanup and directory durability fence.
+export const REWARD_LEDGER_UNCHANGED=Symbol('reward-ledger-unchanged');
 export async function drainAutomaticRewardTransactions() {
   draining=true;
   const results=await Promise.allSettled([...activeTransactions]);
@@ -61,20 +65,26 @@ export function createAutomaticRewardStore(path) {
     try {
       const {state,encoded:prior}=await readSnapshot();
       if (![1, 2].includes(state.version)) throw new Error('Unsupported ledger version.');
+      const needsMigration=state.version===1;
       if (state.version === 1) state.version = 2;
       result = await mutator(state,{published:prior!==null});
       // Compare final bytes under the SAME lock. Only an existing, byte-identical
       // ledger can skip publication; bootstrap, migration and every changed proof
       // still serialize, fsync and rename before the transaction returns.
-      const encoded=Buffer.from(JSON.stringify(state),'utf8');
-      if(prior===null||!encoded.equals(prior)){
-        const file = await open(temp, 'wx'),writeErrors=[];
-        try { await file.writeFile(encoded); await file.sync(); } catch(error){writeErrors.push(error);}
-        try { await file.close(); } catch(error){writeErrors.push(error);}
-        if(writeErrors.length)throw rewardStoreFailure(writeErrors);
-        await rename(temp, path);
-        // Publication can be visible even if the later durability fence fails.
-        publicRead=null;
+      // The explicit hint is limited to an existing version-2 ledger. A new
+      // file and version-1 migration must still publish even for a no-change
+      // callback. Every other callback keeps the exact byte comparison.
+      if(result!==REWARD_LEDGER_UNCHANGED||prior===null||needsMigration){
+        const encoded=Buffer.from(JSON.stringify(state),'utf8');
+        if(prior===null||!encoded.equals(prior)){
+          const file = await open(temp, 'wx'),writeErrors=[];
+          try { await file.writeFile(encoded); await file.sync(); } catch(error){writeErrors.push(error);}
+          try { await file.close(); } catch(error){writeErrors.push(error);}
+          if(writeErrors.length)throw rewardStoreFailure(writeErrors);
+          await rename(temp, path);
+          // Publication can be visible even if the later durability fence fails.
+          publicRead=null;
+        }
       }
     } catch(error){errors.push(error);}
     try { await unlink(temp); } catch(error){if(error.code!=='ENOENT')errors.push(error);}

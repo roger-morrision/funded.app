@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {Keypair} from '@solana/web3.js';
 import {buildRewardManifest} from '../../reward-merkle.js';
-import {createAutomaticRewardStore} from '../../server/automatic-reward-store.mjs';
+import {createAutomaticRewardStore,REWARD_LEDGER_UNCHANGED} from '../../server/automatic-reward-store.mjs';
 import {recoverSavedRewardPayouts} from '../../server/reward-payout-recovery.mjs';
 import {selectRewardPayoutRecoveries} from '../../server/reward-recovery-page.mjs';
 import {selectHolderPayoutPage} from '../../server/holder-payout-page.mjs';
@@ -54,6 +54,22 @@ test('failed error batch leaves every saved attempt unchanged and surfaces the d
     assert.equal(options.recoveryOnly,true);calls++;throw Error('Exact proof unavailable');}}}),/Error batch disk write refused/);
   assert.equal(calls,32);assert.equal(transactions,2);
   assert.deepEqual((await f.reopen().read()).schedules[f.plans[0].id].payoutAttempts,original);
+});
+
+test('repeated unknown recovery skips encoding only an unchanged locked error batch',async t=>{
+  const f=await fixture(t,[33,32]),original=(await f.store.read()).schedules;let hinted=0,calls=0;
+  const measured={...f.store,transaction:mutator=>f.store.transaction(async state=>{
+    const result=await mutator(state);if(result===REWARD_LEDGER_UNCHANGED)hinted++;return result;
+  })};
+  const chain={submitLeaf:async(_plan,_leaf,options)=>{
+    assert.equal(options.recoveryOnly,true);calls++;throw Error('Proof unavailable; original attempt pending');
+  }};
+  await recoverSavedRewardPayouts({store:measured,chain});assert.equal(hinted,0);
+  await recoverSavedRewardPayouts({store:measured,chain});
+  assert.equal(calls,64);assert.equal(hinted,1);
+  const after=(await f.reopen().read()).schedules;
+  for(const plan of f.plans){assert.deepEqual(after[plan.id].payoutAttempts,original[plan.id].payoutAttempts);
+    assert.deepEqual(after[plan.id].payments,{});}
 });
 
 test('paused and throwing scheduler readiness still performs only bounded read-only saved recovery',async t=>{

@@ -1,0 +1,43 @@
+{
+  "issue": "FQA-MN-001",
+  "status": "isolated candidate; 1001-recipient and full persistence gate pending",
+  "baseSource": "0c770137",
+  "change": "A locked reward-store callback may explicitly declare an unchanged existing v2 ledger. Only repeated saved-payout recovery with an already present original attempt and identical bounded error uses the hint. The store still reads under the same exclusive lock, cleans up and fences the directory; bootstrap and version-1 migration still publish. All other callbacks retain the byte comparison, fsync and rename path.",
+  "controlled33Linux": {
+    "environment": "same existing Node 24.22.3 image, network none, 0.75 CPU, 512 MiB, zero swap, read-only root, isolated tmpfs",
+    "baseline": {
+      "source": "0c770137 source-identical benchmark and storage dependencies on fe9a1847",
+      "submitted": 33,
+      "storeTransactions": 84,
+      "storeReads": 131,
+      "candidateSerializedBytes": 23725593,
+      "elapsedMsAfterFixtureConstruction": 5164.628978,
+      "rawStdoutSha256": "b6b779fef4c110ac70af27a672831774f8bdff7d9233ed75bd2da9bfb99e3083"
+    },
+    "candidate": {
+      "submitted": 33,
+      "storeTransactions": 84,
+      "storeReads": 131,
+      "hintedUnchangedTransactions": 28,
+      "candidateSerializedBytes": 15844895,
+      "elapsedMsAfterFixtureConstruction": 2530.806019,
+      "freshProcessDigestMatched": true,
+      "rawStdoutSha256": "b4559b2dc34e061ca6d600781fe6850f022809cf38a80851882ee6ab814c0af2"
+    },
+    "interpretation": "Candidate JSON encoding fell 7,880,698 bytes (33.2%) with the same 84 store transactions and 131 reads. The two elapsed values are single runs and are not an SLA or stable speedup claim. Both runs reported zero cgroup OOM kills."
+  },
+  "focusedChecks": {
+    "node": "24.22.3 Windows",
+    "tests": 35,
+    "passed": 35,
+    "failed": 0,
+    "rawStdoutSha256": "15e51f6b2a4b6dd5c8f227909c31fd14220c92fa029066b2b6dcd3eeaee86efd",
+    "coverage": "Explicit skip under lock, competing stores, bootstrap and v1 publication, repeated unknown attempt preservation, missing-attempt restoration, existing no-op durability and recovery cases."
+  },
+  "limits": [
+    "No 1001-recipient candidate run has completed; do not extrapolate the 33-recipient reduction to the full cohort.",
+    "The hint relies on a reviewed callback returning it before any mutation. It is currently used only in the saved-payout recovery catch; changing other callers requires separate proof.",
+    "A valid but noncanonical v2 JSON file encountered only by a hinted recovery is left byte-for-byte unchanged; the ordinary transaction path still normalizes it.",
+    "This is synthetic selected-scheduler evidence with mocked fresh payment outcomes and no live financial finality, full background service or cap increase."
+  ]
+}

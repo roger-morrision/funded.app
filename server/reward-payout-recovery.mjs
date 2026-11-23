@@ -1,6 +1,7 @@
 import {payoutIntentHash} from './reward-payout-journal.mjs';
 import {completedRewardPayment} from './reward-paid-record.mjs';
 import {selectRewardPayoutRecoveries} from './reward-recovery-page.mjs';
+import {REWARD_LEDGER_UNCHANGED} from './automatic-reward-store.mjs';
 
 // Read-only recovery is selected independently of today's due/blocked/paid state.
 // It cannot create an attempt even if the persisted marker disappears mid-read.
@@ -30,12 +31,15 @@ export async function recoverSavedRewardPayouts({store,chain,selected=null}){
   // and restore any disappeared marker in one locked transaction per page,
   // rather than reserializing the whole ledger for every unknown result.
   if(failures.length)await store.transaction(state=>{
+    let changed=false;
     for(const {planId,leaf,original,intent,message} of failures){
       const row=state.schedules?.[planId];if(!row||payoutIntentHash(row,leaf)!==intent)continue;
-      row.payoutAttempts||={};
-      if(!Object.hasOwn(row.payoutAttempts,leaf.recipient))row.payoutAttempts[leaf.recipient]=original;
-      row.payoutRecoveryError=message;
+      if(!Object.hasOwn(row.payoutAttempts||{},leaf.recipient)){
+        row.payoutAttempts||={};row.payoutAttempts[leaf.recipient]=original;changed=true;
+      }
+      if(row.payoutRecoveryError!==message){row.payoutRecoveryError=message;changed=true;}
     }
+    if(!changed)return REWARD_LEDGER_UNCHANGED;
   });
   return recovered;
 }

@@ -4,7 +4,7 @@ import {mkdtemp,realpath,rm,readFile,writeFile,stat,mkdir,rename,readdir} from '
 import {join,resolve,sep} from 'node:path';
 import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
-import {createAutomaticRewardStore} from '../../server/automatic-reward-store.mjs';
+import {createAutomaticRewardStore,REWARD_LEDGER_UNCHANGED} from '../../server/automatic-reward-store.mjs';
 async function fixture(t){
   const base=await realpath(tmpdir()),dir=await mkdtemp(join(base,'funded-store-noop-'));
   t.after(async()=>{const target=await realpath(dir);assert.equal(target,resolve(dir));assert(target.startsWith(base+sep));await rm(target,{recursive:true,force:true});});
@@ -17,6 +17,30 @@ test('byte-identical transaction preserves the actual ledger inode bytes and ret
   const f=await fixture(t);await seed(f.store);const before=await identity(f.path),bytes=await readFile(f.path);assert(before.ino>0n);
   const result=await f.store.transaction(s=>({amount:s.schedules.unit.amount}));assert.deepEqual(result,{amount:'1'});
   assert.equal((await identity(f.path)).ino,before.ino);assert.deepEqual(await readFile(f.path),bytes);
+});
+
+test('explicit unchanged hint skips full JSON encoding while retaining the locked inode and fence',async t=>{
+  const f=await fixture(t);await seed(f.store);const before=await identity(f.path),bytes=await readFile(f.path);
+  const stringify=JSON.stringify;let calls=0;
+  try{JSON.stringify=()=>{calls++;throw Error('Unexpected full-ledger encoding');};
+    assert.equal(await f.store.transaction(s=>{assert.equal(s.schedules.unit.amount,'1');return REWARD_LEDGER_UNCHANGED;}),REWARD_LEDGER_UNCHANGED);
+  }finally{JSON.stringify=stringify;}
+  assert.equal(calls,0);assert.equal((await identity(f.path)).ino,before.ino);assert.deepEqual(await readFile(f.path),bytes);
+});
+
+test('unchanged hint still publishes bootstrap and version-1 migration',async t=>{
+  const f=await fixture(t);assert.equal(await f.store.transaction(()=>REWARD_LEDGER_UNCHANGED),REWARD_LEDGER_UNCHANGED);
+  assert.equal((await f.reopen().read()).version,2);
+  await writeFile(f.path,JSON.stringify({version:1,schedules:{unit:{amount:'7'}}}));const old=await identity(f.path);
+  await f.reopen().transaction(()=>REWARD_LEDGER_UNCHANGED);
+  assert.equal((await f.reopen().read()).version,2);assert.notEqual((await identity(f.path)).ino,old.ino);
+});
+
+test('explicit unchanged hint interleaved with competing changed writers never loses a publication',async t=>{
+  const f=await fixture(t);await f.store.transaction(s=>{s.unitCounter=0;});const jobs=[];
+  for(let i=0;i<24;i++){jobs.push(f.reopen().transaction(s=>{s.unitCounter++;}));
+    jobs.push(f.store.transaction(s=>{assert(Number.isSafeInteger(s.unitCounter));return REWARD_LEDGER_UNCHANGED;}));}
+  await Promise.all(jobs);assert.equal((await f.reopen().read()).unitCounter,24);
 });
 
 test('missing-file read-only transaction still bootstraps a durable version2 ledger',async t=>{
