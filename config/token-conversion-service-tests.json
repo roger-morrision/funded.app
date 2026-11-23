@@ -6,6 +6,8 @@
       "path": "tests/readiness/token-conversion-service.test.mjs",
       "requiredTests": [
         "HTTP controller missing recovery attempt cannot contact signers",
+        "Private controller pages only saved attempts after restart without signing or broadcast",
+        "Private recovery cursor visits 65 saved attempts without repeating within a page",
         "HTTP authentication rejects controller and both custody requests before review",
         "HTTP schema and changed message hash refuse without a reservation",
         "HTTP cached role signature survives backend restart with actual fresh review and no new custody call",

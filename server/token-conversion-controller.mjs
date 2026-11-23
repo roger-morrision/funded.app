@@ -4,6 +4,16 @@ import {createTokenConversionTransport} from './token-conversion-transport.mjs';
 import {createTokenConversionRemoteSigner} from './token-conversion-remote-signers.mjs';
 import {conversionAuthorization,conversionReply,conversionJson,conversionObject,conversionSummary} from './token-conversion-http.mjs';
 
+export function selectSavedConversionPage({attempts,after=null,limit=32}){
+  assert(after===null||typeof after==='string'&&/^[a-f0-9]{64}$/.test(after),'Canonical recovery cursor required.');
+  assert(Number.isSafeInteger(limit)&&limit>=1&&limit<=32,'Bounded recovery page required.');
+  assert(attempts&&typeof attempts==='object'&&!Array.isArray(attempts),'Validated saved attempts required.');
+  const pending=Object.keys(attempts).filter(hash=>!['settled','released-no-conversion'].includes(attempts[hash].status)).sort();
+  const start=after===null?0:Math.max(0,pending.findIndex(hash=>hash>after));
+  const hashes=pending.slice(start,start+limit);
+  return {hashes,nextAfter:hashes.at(-1)??after,remaining:pending.length};
+}
+
 // Passive private controller, not registered with the public API or worker.
 // Holds service authentication references, never an operator/price private key.
 export function createTokenConversionController({store,connection,config,release,priceService,operatorService,token,now=Date.now,recoveryOnly=false}){
@@ -34,5 +44,18 @@ export function createTokenConversionController({store,connection,config,release
     }catch{return reply(409,{error:'Conversion request requires verified recovery or review.'});}
   });
   server.requestTimeout=120000;server.headersTimeout=5000;server.keepAliveTimeout=1000;
-  return {server,initialize:()=>transport.initialize(),status:()=>transport.status()};
+  // A private worker may reconcile only attempts already saved in its own
+  // controller journal. The cursor is a work hint; it grants no new signing or
+  // broadcast authority and is returned to the caller for bounded paging.
+  async function recoverSaved({after=null,limit=32}={}){
+    const {attempts}=await transport.status();
+    const {hashes:page,nextAfter,remaining}=selectSavedConversionPage({attempts,after,limit});
+    const results=[];
+    for(const messageHash of page){
+      try{const result=await transport.run({messageHash,recoveryOnly:true});results.push({messageHash,status:result.status});}
+      catch{results.push({messageHash,status:'reconciliation-pending'});}
+    }
+    return {attempts:results,nextAfter,remaining};
+  }
+  return {server,initialize:()=>transport.initialize(),status:()=>transport.status(),recoverSaved};
 }

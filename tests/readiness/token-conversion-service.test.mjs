@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {createTokenConversionSigningService} from '../../server/token-conversion-signing-service.mjs';
+import {selectSavedConversionPage} from '../../server/token-conversion-controller.mjs';
 import {createTokenConversionRemoteSigner} from '../../server/token-conversion-remote-signers.mjs';
 import {conversionSignature} from '../../server/token-conversion-http.mjs';
 import {conversionServiceFixture,conversionBucket} from './token-conversion-service-fixture.mjs';
@@ -18,6 +19,33 @@ for(const category of [5,6,7])test('HTTP conversion independently reviews signs 
 test('HTTP controller missing recovery attempt cannot contact signers',async t=>{
   const c=await conversionServiceFixture(t),result=await c.run({messageHash:c.hash,recoveryOnly:true});assert.equal(result.body.status,'unavailable');
   assert.equal(c.requests.length,0);assert.deepEqual(c.calls,{'price-attestation':0,operator:0,send:0});
+});
+
+test('Private controller pages only saved attempts after restart without signing or broadcast',async t=>{
+  const c=await conversionServiceFixture(t,{send:'unknown'});
+  assert.deepEqual(await c.controller.recoverSaved(),{attempts:[],nextAfter:null,remaining:0});
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+  await c.restartController();
+  const page=await c.controller.recoverSaved({limit:1});
+  assert.deepEqual(page,{attempts:[{messageHash:c.hash,status:'reconciliation-pending'}],nextAfter:c.hash,remaining:1});
+  const again=await c.controller.recoverSaved({after:c.hash,limit:1});
+  assert.deepEqual(again,page);
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+  for(const invalid of [{limit:0},{limit:33},{after:'not-a-hash'}])await assert.rejects(()=>c.controller.recoverSaved(invalid));
+});
+
+test('Private recovery cursor visits 65 saved attempts without repeating within a page',()=>{
+  const hashes=Array.from({length:65},(_,i)=>i.toString(16).padStart(64,'0'));
+  const attempts=Object.fromEntries(hashes.map(hash=>[hash,{status:'submitted'}]));
+  const first=selectSavedConversionPage({attempts});
+  const second=selectSavedConversionPage({attempts,after:first.nextAfter});
+  const third=selectSavedConversionPage({attempts,after:second.nextAfter});
+  assert.deepEqual([first.hashes.length,second.hashes.length,third.hashes.length],[32,32,1]);
+  assert.deepEqual([...first.hashes,...second.hashes,...third.hashes],hashes);
+  assert.deepEqual(selectSavedConversionPage({attempts,after:third.nextAfter}).hashes,hashes.slice(0,32));
+  attempts[hashes[0]].status='settled';
+  assert.deepEqual(selectSavedConversionPage({attempts}).hashes,hashes.slice(1,33));
 });
 
 test('HTTP authentication rejects controller and both custody requests before review',async t=>{

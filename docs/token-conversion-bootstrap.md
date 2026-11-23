@@ -25,6 +25,14 @@ admission facts are an observation, not financial authorization. A new ProgramDa
 hash or missing historical proof remains unresolved; recovery does not manufacture
 old code provenance.
 
+The private controller also exposes `recoverSaved({after, limit})` for a future
+worker. It selects only unfinished attempts already present in the controller's
+validated journal and calls the existing recovery-only transport, at most 32
+attempts per call. Its hash cursor is a work hint returned to the caller; the
+worker must persist and advance it under its own recovery policy. This API does
+not register or start a worker, create fresh requests, load custody, sign, or
+broadcast. The controller journal is still read as a whole for each page.
+
 Explicit signing preparation requires current unpaused operator/price bindings
 and an approved own-role custody reference. It still loads no custody at startup.
 The role backend first completes its existing actual independent review and
