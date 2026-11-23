@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "issueIds": ["FQA-MN-004", "FQA-MN-006"],
+  "scope": "Public identity and planning correction only; no executable Mainnet release or funding instruction",
+  "appParentRevision": "95adc3775e92a6f9f392a5f1ce5eb15f8770f811",
+  "contractReviewRevision": "7dc1ad415287d44b2622241fff52828436482ba4",
+  "contractPacket": {
+    "path": "C:/Data/DevApps/funded-mainnet-readiness/docs/evidence/production-contract-handoff-2026-11-22.json",
+    "sha256": "a732b307a745fc1bcff522bdd1267b2f93728855e9a0cbc24ca2fde08a154cd3",
+    "sourceRevision": "971399ff4e2ebdeca76a3e16a80273db38a8bfa0",
+    "programElfSha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "programElfBytes": 1110424,
+    "deployedProgramDataSha256": null,
+    "loaderPrefixMessages": 1236,
+    "loaderPrefixScope": "Unsigned, earlier fee quote only; the rest of the release message set is incomplete."
+  },
+  "balanceEvidence": {
+    "path": "C:/Data/DevApps/funded-mainnet-readiness/docs/evidence/mainnet-role-balances-2026-11-23.json",
+    "sha256": "95d7258ec7a67252f2e250181c83c1e51ae1670e357a45e9f747e748b305c220",
+    "commitment": "finalized",
+    "slot": 472788634,
+    "observedAt": "2026-11-23T03:16:43.580869Z",
+    "scope": "Six selected public accounts absent with zero lamports at this slot; balances and costs must be refreshed before a final proposal."
+  },
+  "wallets": [
+    {
+      "role": "deployment payer",
+      "address": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
+      "observedLamports": 0,
+      "knownEarlierPrefixRentAndBaseFeesLamports": 5655025880,
+      "temporaryReusableBufferRentLamports": 5641792120,
+      "illustrativeEnvelopeLamports": 5917665880,
+      "assignedReserveLamports": 0,
+      "remaining": "Exact ordered bootstrap, ATA, ALT, canary and priority-fee messages and current fee/rent quote; no final top-up yet."
+    },
+    {
+      "role": "admin and upgrade authority",
+      "address": "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi",
+      "observedLamports": 0,
+      "knownEarlierDirectRentLamports": 3952240,
+      "remaining": "Refresh actual direct-account rents and signer message inventory; do not use superseded ER7 balance."
+    },
+    {
+      "role": "automation operator",
+      "address": "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
+      "observedLamports": 0,
+      "singleProtectedReserveLamports": 3000000000,
+      "knownEarlierRouterRentLamports": 1315720,
+      "knownMinimumBeforeOtherCostsLamports": 3001315720,
+      "remaining": "Worker fees, setup and canary costs above the protected reserve, plus secure custody and operational restore."
+    },
+    {
+      "role": "independent price attestor",
+      "address": "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
+      "observedLamports": 0,
+      "knownDirectDebitLamports": 0,
+      "remaining": "Zero is conditional on final messages making this a readonly cosigner; independent administrative custody and backend admission remain unverified."
+    },
+    {
+      "role": "offline guardian",
+      "address": "Dmf2SqmWybu1KF4PjmqfJcfszJQq8UnS7zH8ZAYNqHQQ",
+      "observedLamports": 0,
+      "knownDirectDebitLamports": 0,
+      "remaining": "Zero is conditional on reviewed readonly nonsigner guard setup and any later operational messages; offline custody review remains open."
+    },
+    {
+      "role": "program identity",
+      "address": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+      "observedLamports": 0,
+      "directUserTransferRequiredLamports": 0,
+      "remaining": "Program account rent is paid through the deployment payer's reviewed loader messages; it is not a direct wallet top-up."
+    }
+  ],
+  "stillMissingForGoLive": [
+    "Exact App release revision, CI artifact and independently accepted configured-program runtime admission; the current program manifest still has null deployed full ProgramData hash.",
+    "All ordered unsigned deployment/init/guard/price/treasury/ATA/ALT/canary messages, decoded payer debits, fresh bounded priority-fee quote and wallet-specific peak funding/shortfall.",
+    "Approved operator/price/guardian custody separation, complete three-journal provisioning and operational restore, treasury and fee-recipient choices.",
+    "Authenticated original community bank and configured-program full 28-leaf live delivery, holder-scale acceptance, final source/build/release and financial independent QA.",
+    "Explicit human approval of the final costed proposal before any new spending or Mainnet deployment."
+  ],
+  "outcome": "Planning references now use the selected public identities and existing mint/pool. Mainnet activation remains false and all budgets, actual signer references, release revision and full ProgramData binding remain unset.",
+  "nextAction": "App Dev composes the final reviewed message/cost/rollback packet after runtime and independent QA gates; refresh finalized balances and fees immediately before requesting cost approval."
+}
