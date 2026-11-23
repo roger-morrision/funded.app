@@ -23,7 +23,9 @@ async function fixture(t,asset='SOL',count=1001){
   return {store,plan,reopen:()=>createAutomaticRewardStore(path)};
 }
 for(const asset of ['SOL',recipients[999]])test(`1001 global ${asset==='SOL'?'SOL':'paired'} entitlements finish in bounded restartable scheduler pages`,async t=>{
-  const f=await fixture(t,asset),settled=new Map();let calls=0,rounds=0,store=f.store;
+  const f=await fixture(t,asset),settled=new Map();let calls=0,rounds=0,transactions=0;
+  const counted=inner=>({transaction:mutate=>{transactions++;return inner.transaction(mutate);},read:()=>inner.read()});
+  let store=counted(f.store);
   // Models an attributed result at the existing submitLeaf interface, not an RPC
   // authenticator or chain outcome; those financial gates remain separate.
   const chain={cluster:'devnet',submitLeaf:async(plan,leaf,options)=>{
@@ -34,14 +36,15 @@ for(const asset of ['SOL',recipients[999]])test(`1001 global ${asset==='SOL'?'SO
   const start=performance.now();
   while(settled.size<1001){
     const before=calls;await payRewardSchedule({store,chain,plan:f.plan,batch:false});assert(calls-before<=32);assert(calls-before>0);
-    rounds++;store=f.reopen();assert(rounds<=32);
+    rounds++;store=counted(f.reopen());assert(rounds<=32);
   }
   assert.equal(rounds,32);assert.equal(calls,1001);assert.equal(settled.get(1000),'1001');
   assert.equal(String([...settled.values()].reduce((n,v)=>n+BigInt(v),0n)),f.plan.manifest.totalAmount);
   const saved=await store.read();assert.equal(Object.values(saved.schedules[f.plan.id].payments).filter(r=>r.status==='paid').length,1001);
   assert.deepEqual(saved.schedules[f.plan.id].manifest,f.plan.manifest);
   assert.equal(await payRewardSchedule({store,chain,plan:f.plan,batch:false}),0);assert.equal(calls,1001);
-  t.diagnostic(JSON.stringify({scope:'synthetic-result-interface-not-financial-or-live-scale-proof',asset:asset==='SOL'?'SOL':'paired',recipients:1001,rounds,calls,elapsedMs:performance.now()-start,maxRssKiB:process.resourceUsage().maxRSS}));
+  assert(transactions<=160); // 32 bounded selections plus four or fewer completion writes per page
+  t.diagnostic(JSON.stringify({scope:'synthetic-result-interface-not-financial-or-live-scale-proof',asset:asset==='SOL'?'SOL':'paired',recipients:1001,rounds,calls,storeTransactions:transactions,elapsedMs:performance.now()-start,maxRssKiB:process.resourceUsage().maxRSS}));
 });
 
 test('unknown first page does not starve later leaves or replace its original signed attempt',async t=>{
@@ -53,6 +56,40 @@ test('unknown first page does not starve later leaves or replace its original si
   const reopened=f.reopen();await payRewardSchedule({store:reopened,chain,plan:f.plan,batch:false});assert.equal(calls,64);
   const row=(await reopened.read()).schedules[f.plan.id];assert.deepEqual(row.payoutAttempts[recipients[0]],pending);
   assert.equal(Object.values(row.payments).filter(p=>p.status==='paid').length,63);assert.equal(row.payments[recipients[0]].status,'verification-pending');
+});
+
+test('normal holder completion bounds ledger writes and preserves mixed proof failures',async t=>{
+  const f=await fixture(t,'SOL',32);let transactions=0;
+  const store={transaction:mutate=>{transactions++;return f.store.transaction(mutate);}};
+  const chain={cluster:'devnet',submitLeaf:async(_plan,leaf)=>{
+    if(leaf.index===2)throw Error('Original attempt unresolved');
+    return{signature:'mocked-'+leaf.index,finalized:true,balanceDeltaVerified:true,
+      amountReceived:leaf.amount,payoutTransactionVerified:leaf.index===3};
+  }};
+  assert.equal(await payRewardSchedule({store,chain,plan:f.plan,batch:false}),30);
+  assert.equal(transactions,5); // one selection and four bounded completion writes
+  const row=(await f.store.read()).schedules[f.plan.id];
+  assert.equal(Object.values(row.payments).filter(payment=>payment.status==='paid').length,30);
+  assert.equal(row.payments[recipients[2]].status,'verification-pending');
+  assert.equal(row.payments[recipients[3]].status,'verification-pending');
+  assert.equal(row.holderPayoutCursor.nextIndex,0);
+});
+
+test('unacknowledged holder completion stops further submissions and resumes from published state',async t=>{
+  const f=await fixture(t,'SOL',32);let transactions=0,calls=0;
+  const unacknowledged={transaction:async mutate=>{
+    const result=await f.store.transaction(mutate);
+    if(++transactions===2)throw Error('Published completion was not acknowledged');
+    return result;
+  }};
+  const chain={cluster:'devnet',submitLeaf:async(_plan,leaf)=>{calls++;return{
+    signature:'mocked-'+leaf.index,finalized:true,balanceDeltaVerified:true,amountReceived:leaf.amount};}};
+  await assert.rejects(payRewardSchedule({store:unacknowledged,chain,plan:f.plan,batch:false}),/not acknowledged/);
+  assert.equal(calls,8);
+  assert.equal(Object.values((await f.reopen().read()).schedules[f.plan.id].payments).filter(row=>row.status==='paid').length,8);
+  assert.equal(await payRewardSchedule({store:f.reopen(),chain,plan:f.plan,batch:false}),24);
+  assert.equal(calls,32);
+  assert.equal(Object.values((await f.reopen().read()).schedules[f.plan.id].payments).filter(row=>row.status==='paid').length,32);
 });
 
 test('crash after page selection defers work but preserves all global entitlements for the next round',async t=>{

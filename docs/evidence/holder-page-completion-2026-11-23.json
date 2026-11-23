@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "issueId": "FQA-MN-001",
+  "parentRevision": "45cbe2bab264f66549990c8c4143b13f08b6a84d",
+  "scope": "Bounded holder-page payment status persistence after separately verified result and durable proof",
+  "change": "A holder work page remains limited to 32 leaves. Up to eight returned outcomes are committed in one locked ledger transaction. A failed or unacknowledged completion write stops further submissions; saved proofs and any published paid records are reconciled on the next pass.",
+  "localEvidence": {
+    "node": "24.22.3",
+    "holderTests": "12/12 pass, 0 fail, 0 skip, 0 TODO",
+    "focusedOutcomes": "A 32-leaf page with one unresolved attempt and one missing durable proof records 30 paid and two verification-pending statuses with five ledger transactions: one page selection and four completion writes.",
+    "publicationFailure": "An injected error after the first eight-result completion was published stopped the run after eight submit interfaces; a fresh store completed the other 24 without revisiting the first eight.",
+    "syntheticCohorts": "Separate 1001-leaf SOL and paired mock-result plans each completed in 32 reopened-store passes and 159 store transactions, with 1001 submit interfaces and unchanged roots, amounts and global indexes.",
+    "otherAffectedTests": "reward-scale 1/1; reward-paid-record 4/4; reward-payout-restart 3/3"
+  },
+  "limits": [
+    "The cohort outcomes are mocked interfaces, not authenticated finalized signatures or wallet/custody deltas.",
+    "This reduces whole-ledger transaction and candidate-serialization frequency; it does not remove O(N) ledger reads or prove full normal-worker throughput under the production CPU, memory and deadline limits.",
+    "The live 1000-holder cap, on-chain contract, economic policy and signing admission remain unchanged.",
+    "Independent exact-source QA and all parent Mainnet release criteria remain open. No funding, signing, transaction or deployment occurred."
+  ]
+}
