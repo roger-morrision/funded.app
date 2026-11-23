@@ -69,6 +69,26 @@ test('archive save is idempotent and expired claim settings survive offline repl
   const reopened=await f.reopen().prepared(f.launch);assert.equal(reopened.manifest.expiresAt,record.manifest.expiresAt);assert.equal(reopened.openingSignature,null);
 });
 
+test('nested archive publication fences the directory before returning its durable pointer',async t=>{
+  const f=await communityArchiveFixture(t),directory=join(f.directory,'new-parent','new-leaf');
+  const archive=createCommunitySnapshotArchive({directory});
+  const record=await f.service({snapshotArchive:archive}).prepare(f.input);
+  assert.equal(record.snapshotEvidence.publication.fileFsync,true);
+  assert.equal(record.snapshotEvidence.publication.directoryFsync,process.platform!=='win32');
+  assert.deepEqual((await readdir(directory)).filter(name=>name.endsWith('.tmp')),[]);
+  const reopened=f.service({snapshotArchive:createCommunitySnapshotArchive({directory}),store:f.store});
+  assert.deepEqual(await reopened.prepared(f.launch),record);
+});
+
+test('a corrupt existing content-addressed file refuses idempotent publication and cleans the temp file',async t=>{
+  const f=await communityArchiveFixture(t),record=await f.service().prepare(f.input);
+  const path=join(f.directory,record.snapshotEvidence.sha256+'.json'),original=await readFile(path);
+  const payload=JSON.parse(original);await writeFile(path,Buffer.from('{}'));
+  await assert.rejects(f.archive.save(payload),/Archive file identity\/size differs/);
+  assert.deepEqual((await readdir(f.directory)).filter(name=>name.endsWith('.tmp')),[]);
+  assert.equal((await readFile(path,'utf8')),'{}');
+});
+
 test('indexed capture qualifies through prepareFresh durable publication and offline restart',async t=>{
   const f=await communityArchiveFixture(t);f.connection.rpcEndpoint='https://offline.invalid';
   t.mock.method(globalThis,'fetch',async()=>({ok:true,json:async()=>({result:{token_accounts:f.addresses.map(address=>({address:String(address)}))}})}));

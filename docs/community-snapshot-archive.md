@@ -35,9 +35,12 @@ deployment claim.
 
 Publication uses canonical PublicKey/Buffer/BigInt/Map serialization, a SHA-256
 content address, exclusive temporary file creation, file fsync and atomic hard-link
-publication. Existing corrupt content is rejected rather than overwritten. The
-directory is synced before publishing the ledger reference where supported;
-Windows records directory fsync as unavailable when the platform refuses it.
+publication. Existing corrupt content is rejected rather than overwritten. After
+temporary-file cleanup, Linux fences the archive directory and same-device
+ancestors, including newly created directory names, before returning a pointer.
+Linux fence errors withhold the pointer even if the linked file is visible; that
+file must be verified on a later retry. Windows reports directory fsync as
+unavailable. The mounted root and symlink namespace must be provisioned by ops.
 File/header/hash/context validation precedes the ledger pointer. Read/restart
 revalidates all raw inputs, parent-linked replay, supply, original snapshot and
 rebuilt allocations/proofs/root/quantity/deadline, without current RPC balances.
@@ -60,7 +63,8 @@ Devnet and non-program Mainnet services have not been configured or deployed her
 Default per-artifact storage bound is 32 MiB, with an explicit constructor maximum
 of 128 MiB. Oversized evidence is rejected without trimming history or publishing
 a ledger record. Archives are append-only; production capacity, backup/restore,
-Linux power-loss durability and realistic cohort performance remain release work.
+host power-loss durability, operational restore and realistic cohort performance
+remain release work.
 This local run proves process restart/file validation on Windows, not those gates.
 
 Node 24 required inventory:
@@ -69,7 +73,7 @@ Node 24 required inventory:
 node scripts/security-tests.mjs --inventory config/community-snapshot-archive-tests.json
 ```
 
-63/63 cases pass, zero failure/skip/TODO: 24 original archive cases, 10 layout
+65/65 cases pass, zero failure/skip/TODO: 26 archive cases, 10 layout
 controls and 29 affected
 snapshot/opening/payment cases. The same three capture/qualification bodies fail
 on the exact fe518 source closure with only imports redirected. Tests include both

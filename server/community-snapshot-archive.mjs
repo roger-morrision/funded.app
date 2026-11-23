@@ -9,6 +9,7 @@ import nacl from 'tweetnacl';
 import {SOLANA_GENESIS} from '../solana-network.js';
 import {decodeCommunityBankLayout} from './community-bank-layout.mjs';
 import {reverseReplayCommunitySnapshot,verifyPumpMigrationTransaction} from './community-snapshot.mjs';
+import {fenceRewardLedgerDirectory,rewardStoreFailure} from './reward-store-durability.mjs';
 
 const digest=b=>createHash('sha256').update(b).digest('hex');
 const key=v=>new PublicKey(v).toBase58();
@@ -100,12 +101,6 @@ export function verifyCommunitySnapshotArchive(payload,expected={}){
 export function createCommunitySnapshotArchive({directory,maxBytes=32*1024*1024}){
   assert(directory&&Number.isSafeInteger(maxBytes)&&maxBytes>=1024&&maxBytes<=128*1024*1024,'Explicit bounded archive directory required.');
   const root=resolve(directory);
-  async function syncDirectory(){
-    let handle;
-    try{handle=await open(root,'r');await handle.sync();return true;}
-    catch(error){if(process.platform==='win32'&&['EPERM','EISDIR','EACCES','EINVAL','ENOTSUP','EBADF'].includes(error.code))return false;throw error;}
-    finally{if(handle)await handle.close();}
-  }
   const file=sha=>{assert(/^[a-f0-9]{64}$/.test(sha),'Canonical snapshot archive hash required.');return join(root,sha+'.json');};
   async function read(pointer,expected){
     const path=file(pointer.sha256),info=await lstat(path);assert(info.isFile()&&!info.isSymbolicLink()
@@ -121,12 +116,23 @@ export function createCommunitySnapshotArchive({directory,maxBytes=32*1024*1024}
     const bytes=Buffer.from(canonical(payload));assert(bytes.length<=maxBytes,'Snapshot archive exceeds byte budget.');
     const sha=digest(bytes),pointer={version:1,sha256:sha,bytes:bytes.length,baseSlot:evidence.baseSlot,migrationSlot:evidence.migrationSlot,
       expectedProgramDataSha256:context.expectedProgramDataSha256};
-    await mkdir(root,{recursive:true,mode:0o700});assert(await realpath(root)===root,'Archive directory must not be a symbolic alias.');
-    const temp=join(root,'.'+randomUUID()+'.tmp'),handle=await open(temp,'wx',0o600);
+    let temp,handle,rootReady=false;const errors=[];
     try{
-      try{await handle.writeFile(bytes);await handle.sync();}finally{await handle.close();}
+      await mkdir(root,{recursive:true,mode:0o700});rootReady=true;
+      assert(await realpath(root)===root,'Archive directory must not be a symbolic alias.');
+      temp=join(root,'.'+randomUUID()+'.tmp');handle=await open(temp,'wx',0o600);
+      await handle.writeFile(bytes);await handle.sync();
+    }catch(error){errors.push(error);}
+    if(handle)try{await handle.close();}catch(error){errors.push(error);}
+    if(errors.length===0)try{
       try{await link(temp,file(sha));}catch(error){if(error.code!=='EEXIST')throw error;}
-      await read(pointer,{context,snapshot});pointer.publication={fileFsync:true,directoryFsync:await syncDirectory()};return pointer;
-    }finally{await unlink(temp).catch(error=>{if(error.code!=='ENOENT')throw error;});}
+      await read(pointer,{context,snapshot});
+    }catch(error){errors.push(error);}
+    if(temp)try{await unlink(temp);}catch(error){if(error.code!=='ENOENT')errors.push(error);}
+    // The archive is linked before its ledger pointer is published. Fence the
+    // leaf directory and newly created same-device ancestors after cleanup.
+    if(rootReady)try{await fenceRewardLedgerDirectory(root);}catch(error){errors.push(error);}
+    if(errors.length)throw rewardStoreFailure(errors);
+    pointer.publication={fileFsync:true,directoryFsync:process.platform!=='win32'};return pointer;
   }};
 }

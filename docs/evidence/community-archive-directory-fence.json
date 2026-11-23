@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "issueId": "FQA-MN-002",
+  "parentRevision": "95adc3775e92a6f9f392a5f1ce5eb15f8770f811",
+  "scope": "Prospective content-addressed community archive publication durability",
+  "finding": "The prior archive synced only its leaf directory before removing its temporary link. A newly created nested archive path needs its same-device ancestor entries fenced before a prepared ledger pointer can be returned.",
+  "change": "After file fsync, hard-link publication, exact readback and temporary-file cleanup, the archive invokes the existing Linux same-device ancestor fence. Any read, cleanup or fence error withholds the pointer and retains all errors. Windows explicitly reports directory fsync unavailable.",
+  "verification": {
+    "node": "24.22.3",
+    "windowsRequiredInventory": "65/65 pass, 0 fail/skip/TODO",
+    "windowsFocusedArchive": "26/26 pass, 0 fail/skip/TODO",
+    "linuxFocusedArchive": "26/26 pass, 0 fail/skip/TODO in a one-off network-disabled, read-only, no-host-port container with temporary storage",
+    "nestedPath": "A previously absent two-level archive directory publishes and reopens the same pointer after the Linux fence; no temporary file remains.",
+    "existingCorruptHash": "An existing damaged canonical file is not overwritten; the idempotent save refuses it and cleans the temporary link."
+  },
+  "boundaries": [
+    "This is local filesystem and synthetic finalized RPC evidence, not a consensus bank proof or live delivery.",
+    "Linux same-device fencing assumes a pre-provisioned stable mount and symlink namespace; Windows does not expose the equivalent directory sync here.",
+    "No host power-loss test or operational production backup/restore acceptance is claimed.",
+    "The original November 19 atomic token-account bank and complete replay inputs remain unavailable in retained evidence. Existing public migration receipts and aggregate wallets do not reconstruct them.",
+    "No new launch, wallet, signing, funding, transaction, deployment, admission or expiry change occurred."
+  ]
+}

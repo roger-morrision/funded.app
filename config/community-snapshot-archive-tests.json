@@ -43,6 +43,8 @@
         "archive publication rejection prevents prepared ledger state",
         "existing aggregate-only record is not silently backfilled from current balances",
         "archive save is idempotent and expired claim settings survive offline replay",
+        "nested archive publication fences the directory before returning its durable pointer",
+        "a corrupt existing content-addressed file refuses idempotent publication and cleans the temp file",
         "indexed capture qualifies through prepareFresh durable publication and offline restart",
         "archival replay does not make an unopened drop claimable",
         "offline archive replay preserves an expired claim deadline without reopening",
