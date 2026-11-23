@@ -48,6 +48,31 @@ test('Private recovery cursor visits 65 saved attempts without repeating within 
   assert.deepEqual(selectSavedConversionPage({attempts}).hashes,hashes.slice(1,33));
 });
 
+test('Private controller persists recovery progress before retrying an unknown send',async t=>{
+  const c=await conversionServiceFixture(t,{send:'unknown'}),before=await readFile(c.paths.worker,'utf8');
+  assert.deepEqual(await c.controller.recoverNext(),{attempts:[],nextAfter:null,remaining:0});
+  assert.equal(await readFile(c.paths.worker,'utf8'),before);
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  const first=await c.controller.recoverNext({limit:1});
+  assert.deepEqual(first,{attempts:[{messageHash:c.hash,status:'reconciliation-pending'}],nextAfter:c.hash,remaining:1});
+  const saved=JSON.parse(await readFile(c.paths.worker,'utf8')).tokenConversionRecoveryProgressV1;
+  assert.equal(saved.after,c.hash);assert.equal(saved.sequence,1);
+  await c.restartController();
+  assert.deepEqual(await c.controller.recoverNext({limit:1}),first);
+  assert.equal(JSON.parse(await readFile(c.paths.worker,'utf8')).tokenConversionRecoveryProgressV1.sequence,2);
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+});
+
+test('Private recovery refuses a changed persisted context before touching a saved attempt',async t=>{
+  const c=await conversionServiceFixture(t,{send:'unknown'});
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+  await c.stores().worker.transaction(state=>{state.tokenConversionRecoveryProgressV1={contextHash:'0'.repeat(64),after:null,sequence:0};});
+  const before=await readFile(c.paths.worker,'utf8');
+  await assert.rejects(()=>c.controller.recoverNext({limit:1}),/Incompatible recovery progress/);
+  assert.equal(await readFile(c.paths.worker,'utf8'),before);
+  assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+});
+
 test('HTTP authentication rejects controller and both custody requests before review',async t=>{
   const c=await conversionServiceFixture(t);
   for(const role of ['worker','price-attestation','operator']){

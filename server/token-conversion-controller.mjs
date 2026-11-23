@@ -3,6 +3,9 @@ import {createServer} from 'node:http';
 import {createTokenConversionTransport} from './token-conversion-transport.mjs';
 import {createTokenConversionRemoteSigner} from './token-conversion-remote-signers.mjs';
 import {conversionAuthorization,conversionReply,conversionJson,conversionObject,conversionSummary} from './token-conversion-http.mjs';
+import {tokenPricePolicyHash} from './token-conversion-sell-review.mjs';
+
+const recoveryProgressKey='tokenConversionRecoveryProgressV1';
 
 export function selectSavedConversionPage({attempts,after=null,limit=32}){
   assert(after===null||typeof after==='string'&&/^[a-f0-9]{64}$/.test(after),'Canonical recovery cursor required.');
@@ -57,5 +60,25 @@ export function createTokenConversionController({store,connection,config,release
     }
     return {attempts:results,nextAfter,remaining};
   }
-  return {server,initialize:()=>transport.initialize(),status:()=>transport.status(),recoverSaved};
+  async function recoverNext({limit=32}={}){
+    const snapshot=await transport.status();
+    const page=await store.transaction(state=>{
+      const journal=state.tokenConversionPriceJournalV1;
+      assert(journal&&tokenPricePolicyHash(journal.context)===snapshot.contextHash,'Saved recovery context changed before cursor claim.');
+      const prior=state[recoveryProgressKey];
+      assert(prior===undefined||prior?.contextHash===snapshot.contextHash
+        &&(prior.after===null||typeof prior.after==='string'&&/^[a-f0-9]{64}$/.test(prior.after))
+        &&Number.isSafeInteger(prior.sequence)&&prior.sequence>=0,'Incompatible recovery progress requires review.');
+      const selected=selectSavedConversionPage({attempts:journal.attempts,after:prior?.after??null,limit});
+      if(selected.hashes.length)state[recoveryProgressKey]={contextHash:snapshot.contextHash,after:selected.nextAfter,sequence:(prior?.sequence??0)+1};
+      return selected;
+    });
+    const results=[];
+    for(const messageHash of page.hashes){
+      try{const result=await transport.run({messageHash,recoveryOnly:true});results.push({messageHash,status:result.status});}
+      catch{results.push({messageHash,status:'reconciliation-pending'});}
+    }
+    return {attempts:results,nextAfter:page.nextAfter,remaining:page.remaining};
+  }
+  return {server,initialize:()=>transport.initialize(),status:()=>transport.status(),recoverSaved,recoverNext};
 }

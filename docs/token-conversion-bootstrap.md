@@ -33,6 +33,12 @@ worker must persist and advance it under its own recovery policy. This API does
 not register or start a worker, create fresh requests, load custody, sign, or
 broadcast. The controller journal is still read as a whole for each page.
 
+`recoverNext({limit})` claims the next page cursor in that same locked store
+before attempting recovery. A crash or unknown result may defer that page until
+the cursor wraps, but it cannot create a new attempt or retry a send. The cursor
+is bound to the journal context and survives a controller restart. An empty
+journal does not create progress metadata.
+
 Explicit signing preparation requires current unpaused operator/price bindings
 and an approved own-role custody reference. It still loads no custody at startup.
 The role backend first completes its existing actual independent review and
