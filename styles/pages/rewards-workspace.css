@@ -100,6 +100,15 @@ html body #main-content #airdrops .airdrop-evidence { border-radius:8px;backgrou
  html body #main-content #airdrop-directory .directory-footer .directory-claim { flex:1;white-space:normal;min-height:44px; }
  html body #main-content #airdrops .airdrop-directory-pagination { justify-content:space-between;gap:8px;font-size:11px; }
 }
+/* On a phone, the status and actions share a row when they fit. Long statuses
+   or a claim action still wrap without leaving a reserved empty grid row. */
+@media(max-width:600px) {
+ html body.page-route-airdrops #main-content #airdrop-directory > .airdrop-directory-card { gap:8px;padding:12px; }
+ html body.page-route-airdrops #main-content #airdrop-directory .directory-facts strong { min-height:0; }
+ html body.page-route-airdrops #main-content #airdrop-directory .directory-footer { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px; }
+ html body.page-route-airdrops #main-content #airdrop-directory .directory-footer .airdrop-status { margin:0; }
+ html body.page-route-airdrops #main-content #airdrop-directory .directory-footer .token-card-actions { flex:0 1 auto;width:auto; }
+}
 /* Reward status is the first overview task; program balances stay separate. */
 html body #main-content .history-refine { display:grid;grid-template-columns:minmax(180px,2fr) repeat(3,minmax(140px,1fr)) auto;gap:12px;align-items:end;margin:16px 0; }
 html body #main-content .history-refine label { display:grid;gap:6px;min-width:0;font-size:12px;color:var(--cp-muted); }
