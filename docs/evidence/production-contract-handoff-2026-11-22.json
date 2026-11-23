@@ -4458,8 +4458,149 @@
       "Context is an observed snapshot, not final financial proof. Trusted resolver bounded calls, production auth/network/custody independence and mounting/backup remain runtime responsibilities.",
       "Graph at exact90b5 and source agree bootstrap imported only by readiness test; factories remain unbound, with no environment/key loader/listener/timer/public API/worker activation."
     ],
-    "status": "Contract source/local Node26 bootstrap review passed; independent E2E Node24 acceptance pending.",
+    "status": "Independent E2E Node24 recovery-first source-local bootstrap preparation accepted; actual production provisioning/worker and parent gates remain open.",
     "scope": "Actual HTTP/FS/crypto and reviewers with synthetic bank/RPC/finality and RAM fixture custody. No production provisioning/activation/live financial acceptance.",
-    "unchanged": "Contract971399ff/3f8 ELF1110424/1236Loaderprefix and core journal/proof/store/manifest/package/publicworker/Devnetlaunchers unchanged; no rebuild/requote."
+    "unchanged": "Contract971399ff/3f8 ELF1110424/1236Loaderprefix and core journal/proof/store/manifest/package/publicworker/Devnetlaunchers unchanged; no rebuild/requote.",
+    "independentVerification": {
+      "path": "C:\\Data\\DevApps\\funded.app\\data\\qa-evidence\\mainnet-e2e-20261122\\independent-conversion-bootstrap-90b5ab36-20261123.json",
+      "sha256": "0051d1cfd2275f1b365698555f51fee568a447f8951892e4b2bba51afe4047c9",
+      "rawArtifactsVerified": 22,
+      "tests": {
+        "linux": {
+          "20": {
+            "node": "v24.22.3",
+            "counts": {
+              "tests": 20,
+              "passed": 20,
+              "failed": 0,
+              "skipped": 0,
+              "todo": 0
+            },
+            "required": 20,
+            "requiredPassed": 20,
+            "success": true
+          },
+          "23": {
+            "node": "v24.22.3",
+            "counts": {
+              "tests": 23,
+              "passed": 23,
+              "failed": 0,
+              "skipped": 0,
+              "todo": 0
+            },
+            "required": 23,
+            "requiredPassed": 23,
+            "success": true
+          }
+        },
+        "windows": {
+          "20": {
+            "node": "v24.22.3",
+            "counts": {
+              "tests": 20,
+              "passed": 20,
+              "failed": 0,
+              "skipped": 0,
+              "todo": 0
+            },
+            "required": 20,
+            "requiredPassed": 20,
+            "success": true
+          },
+          "23": {
+            "node": "v24.22.3",
+            "counts": {
+              "tests": 23,
+              "passed": 23,
+              "failed": 0,
+              "skipped": 0,
+              "todo": 0
+            },
+            "required": 23,
+            "requiredPassed": 23,
+            "success": true
+          }
+        }
+      },
+      "extraIndependentLinuxProbes": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0,
+        "cases": [
+          "Actually incompatible persisted journal rejects before authentication/custody resolution and leaves exact damaged bytes unchanged.",
+          "Unknown custody load attempt returns409 once, same and freshly prepared service requests return503; exact saved row preserved, resolver calledonce, signature/send0."
+        ]
+      },
+      "missingCurrentReviewElf": {
+        "exit": 1,
+        "requiredPassed": 0,
+        "success": false
+      },
+      "sourceVerification": {
+        "revision": "90b5ab36e8fa8c4441d9f5fd4c28c2d958c650c1",
+        "reportGitSha256": "e9ef8e0a3ad5e90613e698d2a489a297425fd43c1f2580eafd1cd436ff22c5db",
+        "sourcePins": {
+          "server/token-conversion-bootstrap.mjs": "f6f98e68f923935f55f8e56e772c18fee4c9554b8e9b4165a40ef66f353a7d57",
+          "server/token-conversion-controller.mjs": "14054b65b95e1f55560b6c3ce77f71a1136a397c59d78e37166b984b8006af12",
+          "server/token-conversion-remote-signers.mjs": "54937d7d289bc09f07370d758a4b8ecc19ec8a2b7a675d57702331744b0401b3",
+          "server/token-conversion-signing-service.mjs": "b47e412b7b2cac92c3a7aa90eab19d7928f1115c4bcbc94b9faf411174648375",
+          "tests/readiness/token-conversion-bootstrap.test.mjs": "f5aacab41e56ccce73e6ccea82b9a3082349a925228beb4fe64f4db28af437a8",
+          "tests/readiness/token-conversion-service-fixture.mjs": "9cfcf80c34be7a98ddefdeb79bdb5c76a0fba59bfcb136f61947eaf6df7f8733",
+          "scripts/check-token-conversion-bootstrap.mjs": "d65bf0462cbb12fe276ecd92d6e9a3ac443fa93410446adfd3267eb4295879e7",
+          "config/token-conversion-bootstrap-tests.json": "e0951f818832be5b5f044cf28c26164633476cb8e265b03a79ff74f643a89878"
+        },
+        "unchangedContextPins": {
+          "server/token-conversion-journal.mjs": "b9a743392cb7c03d8e0eb0909039ec5ecc9692d64cc4e676cb1a5198b294eb3c",
+          "server/token-conversion-transport.mjs": "a90946344dc92c02e329d427f192011fbd5ee950098af05b1a74137966567eb2",
+          "server/token-conversion-http.mjs": "2cdc9d3b194e9c007dffd87848f2a0b3eda4544c566a4adf07e0c5bffa1940b4",
+          "server/token-conversion-sell-review.mjs": "6a07b291f74d814f50a2cff5075236abed24e692be0cc767dba164887ba26a6e",
+          "server/token-conversion-sell-proof.mjs": "a5f4eef822e6c03f55f3d25d4d0e1d8410ee53a5e3889b1977a53d8ec6094961",
+          "server/token-conversion-reservation.mjs": "df60b6459fb5158c469e4738fa7b0bb269809dd6c48b10c1d76bb3f2cecffb6c",
+          "server/finalized-program-context.mjs": "bfb825f2f1b89fdafb5e3561e3da5128ac7bac7d9315138a7cfd8d48d72cac3b",
+          "mainnet-program.js": "c9b934069c46d7569178d77476eec2a562d4b871f354239efd4aa538e9356602",
+          "server/mainnet-program.mjs": "266e963512a2f9cd3fc44eba31f2fa953e066c1fe6dfbeac0c4863c6163119e9",
+          "fee-router.js": "53bac0aa285292fb8e65782a3175f0e4789186df874aa16dff3faaccc80e31c3",
+          "protocol-guard.js": "eb8a432755453b0ad24625875bf06334b0624399b7aace43dcecde9fe88007f8",
+          "server/buyback-price-signer.mjs": "85be4dfbf114780a046d997a44565778ea77daa32ab7a1e174ef676faf82a2a8",
+          "server/automatic-reward-store.mjs": "5a85f4a2933d6fe93c4b2657e5df627dcb55c8f2f5fc10c05d20674dc6d66553",
+          "server/reward-store-durability.mjs": "02c8eb3cfd6ddc6940f9e427030a5badbb56f212c36e381f08339a774cb262ef",
+          "server/index.mjs": "2d117d0c162b56fc71f56ea76167e28c0424dab23b4ff74503478fd317ec6a70",
+          "server/api-financial-workers.mjs": "fe9161710be5cd978ba7328f9f99e78ce0bcdd945e302e0f65cbca92287f9e80",
+          "server/price-signer-bootstrap.mjs": "e78479b56171015c07ed0f4045ecb3085116acad7f0216b1081abc6cd848ba51",
+          "server/signer-service.mjs": "924eae51d96a98bdf96949ab7287fb31c96eb19e6ebebeff66971a15a3257d80",
+          "config/mainnet-program-release.json": "0dc1ad2fefcd41644ed08f9dc915fc1e895ab867de2fa6fe2ea79491f00a5b6e",
+          "config/mainnet-deployment-plan.json": "162d58ea91206fc3777a369b1e90638227c9fca2170783d9f3791e81b4ea915d",
+          "config/token-conversion-transport-tests.json": "ead38b0be20f7ea48616081dd096517887861648eb41428c59db60ab9d3fef08",
+          "config/token-conversion-integration-tests.json": "88ad41d00fff51ebc04c7ad8097358a08cb8a7b7a1d8ac418b6d48c4e2706766",
+          "package.json": "f43c9a42fe97bf17fcc9840ce709c8d2d3d846aba36c67f464bc215f6eb886e8",
+          "package-lock.json": "f1ada97112246b642a60cb3a1230eee66f6c06ebbe87106f97245930df41d6dc"
+        },
+        "all1248ArchiveMembersEqualRawGit": true,
+        "qaSourceTarSha256": "3249ceef0f9db9214c0c58e58d26303a117e8b46b81157c372f1f0dd46de821c",
+        "extraProbeSha256": {
+          "tests/readiness/qa-90b5-bootstrap-fixture.mjs": "6d9270688e1f55f471070d5d338a670fb5a3f825f72aa2d5d2c0d405792bf933",
+          "tests/readiness/qa-90b5-bootstrap-boundaries.test.mjs": "7626d82eb4184168a167d5e451099432ce5f01902076f2a68c75df818352d443"
+        },
+        "extraFixtureProvenance": "Exact original imports/setup function prefix with appended export only, no body rewrite. Extra2cases separate from20required."
+      },
+      "review": [
+        "All32pins and1248 raw archive members independently matched frozen Git. Own source-only tar adds separately hashed2-case QA probe and unchanged original setup-function prefix with appended export; no maintained source edits.",
+        "Reviewed release/policy, own role, opaque reference syntax/separation and service origins validate before any resolver. Own connection then checks finalized genesis/effective executable/full ProgramData/ELF/upgrade authority and canonical owned global router/price accounts at increasing safe context slots before journal/auth access.",
+        "Journal initialize validates saved context under actual locked store before authentication resolution. Resolver errors are sanitized, no private file/env/key loader is provided. Distinct public identifiers and supplied connections do not themselves establish independent administrative custody.",
+        "Default factory mode is recovery-only and fixed against HTTP request override; all3 roles return an unbound server, no custody load/listener/timer/worker registration. Read-only saved proof is available under pause/operator rotation at same reviewed code context.",
+        "Explicit signing requires current unpaused operator/price bindings. Actual backend full review and durable claim precede lazy approved own-role resolver; fresh context checked before load, returned public identity verified, then context checked again before handle use. Failed lookup promise remains uncertain and cannot be automatically reloaded for the saved attempt.",
+        "Context mutations after claim/before load and during load suppress custody access/use respectively. Wrong key cannot sign. Returned admission data is a snapshot, not financial execution authorization; fullPD context change or absent historical evidence is not fabricated.",
+        "Graph+import scan at90b5 confirms bootstrap has only readiness importer; it calls existing private factories, public API/workers/both existing Devnet signer launchers stay unchanged. Native Contract artifact/release economics unchanged."
+      ],
+      "limits": [
+        "Real HTTP/filesystem/crypto and actual public3f8 ELF input inside declared synthetic bank/program/RPC/finality and RAM custody fixtures; no independent live Mainnet executable/account authentication or external chain/signing execution occurred.",
+        "Actual approved production resolver/custody references, independent administration/auth/network provisioning, bounded provider operations and trusted listener/bootstrap/worker selection/admission remain open. No environment/private-path or credential loader is implemented.",
+        "Recovery-only proof through pause/rotation remains limited to same reviewed code context; changed ProgramData/missing history is unresolved. Admission snapshots alone are not financial proof.",
+        "Original historical bank/live28, whole-worker scale/provider/expiry/raw capture, operational financial backup and final fresh wallet funding/signing packet remain open/MainnetNO-GO.",
+        "No real key persistence, spending, deploy/build, cap1000/policy/allowlist/authority/activation change. Store3746/startup6196/Contract9713/ExUNA3f8/1110424bytes/1236Loaderprefix unchanged; no rebuild/requote or closed45e journey/infra recovery repeated."
+      ]
+    }
   }
 }
