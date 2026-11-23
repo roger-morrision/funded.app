@@ -4602,5 +4602,24 @@
         "No real key persistence, spending, deploy/build, cap1000/policy/allowlist/authority/activation change. Store3746/startup6196/Contract9713/ExUNA3f8/1110424bytes/1236Loaderprefix unchanged; no rebuild/requote or closed45e journey/infra recovery repeated."
       ]
     }
+  },
+  "conversionSavedRecoveryPagingReview": {
+    "appSource": "413013612187abf6dc0eb5c597564631aede451a",
+    "sourceRevision": "0910a5fb0105cb37f0ab5e804fd698a9c7bb6593",
+    "sourcePins": {
+      "server/token-conversion-controller.mjs": "27f1de378e22b10b8ea5f83b98f841877a3b4fbe1cc9a9357a5d948ea7ae94bc",
+      "tests/readiness/token-conversion-service.test.mjs": "c9da10bbdd200c9883ec26434e82ad19b2f3c87f59161511d1c4efe86fb46774",
+      "config/token-conversion-service-tests.json": "dece69da24b7501b71ea3fba11a3779b43b3edd948a8a2e64067001cd9bf98e7",
+      "scripts/check-token-conversion-service.mjs": "ea48dca7a91727b264dac75f58510b070ae53fe2d8a789db76ac6e471e9a6840"
+    },
+    "review": "Contract-side narrow source/ABI review: private controller recoverSaved snapshots validated journal, selects at most32 unfinished saved hashes in sorted circular pages, then invokes existing transport.run with messageHash and recoveryOnly true; exceptions remain pending. No reservation, signer or send path introduced. Cursor is returned work hint, not durable worker progress. Public API/worker are not registered by this slice.",
+    "tests": "PM reports maintained Node24 checked 25/25 pass, exit0. Contract did not repeat the suite. Existing 23-case private HTTP and core transport/conversion evidence reused by source identity.",
+    "limits": [
+      "No independent E2E exact-revision test; E2E usage limit reported by PM.",
+      "No durable cursor/worker registration, custody provisioning, live finalized financial or whole-worker capacity acceptance.",
+      "Full controller journal status still reads/scans entire attempts map before each bounded page."
+    ],
+    "unchanged": "Contract9713/3f8 ELF/1236 Loader prefix and financial policy unchanged; no build or quote refresh.",
+    "status": "Narrow Contract source review passed; independent E2E acceptance pending."
   }
 }
