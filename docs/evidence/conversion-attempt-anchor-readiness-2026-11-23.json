@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-23T09:43:58Z",
+  "status": "blocked-on-independent-durable-anchor-and-backup",
+  "scope": "current-source inspection and one synthetic local rollback regression; no signer, transaction or production backend",
+  "sourceRevision": "f344f16cd43364ad0d432079a2af02f7268addea",
+  "gitBlobs": {
+    "server/token-conversion-bootstrap.mjs": "cda7578dcae8032f71e179570d7d03036d6eb51e",
+    "server/token-conversion-journal.mjs": "29350f4aaef40f19b0698f41d89007e6fc23784d",
+    "config/mainnet-deployment-plan.json": "a5e3c2215414ffbc82cfe7f0a5c0ed5be9fad65a"
+  },
+  "localCheck": {
+    "runtime": "Node 26.13.1",
+    "case": "controller rollback before role signatures refuses resume without custody or new send",
+    "passed": 1,
+    "failed": 0,
+    "inputs": "retained public USDC sell capture, public 8f6 production fixture ELF and current 3f8 review ELF; synthetic bank/RPC/signature fixtures"
+  },
+  "coherentRollback": {
+    "priorSyntheticObservation": "restoring all three journals to consistent pre-attempt bytes hides an unknown signed attempt",
+    "runtimeGitBytesUnchangedSincePriorObservation": true,
+    "productionAcceptance": false
+  },
+  "productionInputs": {
+    "freshInfrastructure.databaseReference": null,
+    "freshInfrastructure.backupReference": null,
+    "approvedAnchorEndpointAndCredentialResolver": null,
+    "independentAdministrationAndFailureDomain": null,
+    "synchronousDurabilityAndRetention": null,
+    "noLossRestoreEvidence": null,
+    "providerAndBackupCostQuote": null
+  },
+  "signingEligible": false,
+  "mainnetActivationAuthorized": false,
+  "transactionsSubmitted": 0
+}
