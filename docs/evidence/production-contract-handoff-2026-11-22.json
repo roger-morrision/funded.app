@@ -4674,5 +4674,22 @@
     ],
     "unchanged": "Conversion transport/journal/store and Contract runtime/ABI, ExUNA3f8 ELF/Loader prefix and quote are unchanged by this five-path App diff.",
     "status": "Narrow Contract source review passed; independent E2E acceptance pending."
+  },
+  "conversionRecoveryWorkerReview": {
+    "appSource": "e1a79865d9c2eaa76187257a74df130e84208a22",
+    "parentSource": "1244cdfc31b9614b023f9b6af74e582126e855fc",
+    "appReport": "docs/evidence/token-conversion-recovery-worker.json",
+    "appReportSha256": "8dcaf82dd81a3ed11d2e371c815b8b337a980b249ce4637858458e928c1ee94e",
+    "workerSha256": "4102ae904e46239d383c7a0ee661537b909f4ed9f7ac97400921b51b92160e53",
+    "review": "prepareTokenConversionRuntime creates an inert worker only for a prepared controller in recovery-only mode. Explicit tick or start calls only the accepted recoverNext path with a maximum of 32 saved hashes. In-process concurrent ticks share one in-flight promise; scheduled errors latch the fault, stop future timers and require a new instance. stop clears the timer and awaits its current page. Explicit later tick remains callable, so stop is a scheduling/drain operation, not revocation of the private API. The controller/transport/journal source is byte-identical to the reviewed parent; no new request, custody, signing, blockhash or broadcast path and no Contract ABI/proof/financial admission change was found.",
+    "tests": "App reports maintained Node24.22.3 checked service 30/30 and bootstrap 20/20 pass. Contract reviewed source and exact report but did not independently rerun these tests. The new focused cases cover unknown-send restart, one in-process tick coalescing, error latching, and stop drain with synthetic RPC/custody. They do not establish multi-process operational scheduling or live financial recovery.",
+    "limits": [
+      "Independent E2E exact-revision acceptance is pending due to the reported usage limit.",
+      "The worker is not registered in the production launcher or public API, and no timer was started in production.",
+      "Controller cursor and full-journal read cost, approved independent role custody, complete three-journal restore, live finality and release readiness remain open.",
+      "No spending, signing with production keys, deployment or activation occurred."
+    ],
+    "unchanged": "Contract9713/ExUNA3f8 ELF/1236 Loader prefix and cost quote unchanged; no rebuild or re-quote.",
+    "status": "Narrow Contract source review passed; independent E2E acceptance pending."
   }
 }
