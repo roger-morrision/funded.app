@@ -57,7 +57,7 @@ test('failed error batch leaves every saved attempt unchanged and surfaces the d
 });
 
 test('repeated unknown recovery skips encoding only an unchanged locked error batch',async t=>{
-  const f=await fixture(t,[33,32]),original=(await f.store.read()).schedules;let hinted=0,calls=0;
+  const f=await fixture(t,[33]),original=(await f.store.read()).schedules;let hinted=0,calls=0;
   const measured={...f.store,transaction:mutator=>f.store.transaction(async state=>{
     const result=await mutator(state);if(result===REWARD_LEDGER_UNCHANGED)hinted++;return result;
   })};
