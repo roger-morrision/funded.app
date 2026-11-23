@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {createAutomaticRewardStore} from '../../server/automatic-reward-store.mjs';
 import {createTokenConversionSigningService} from '../../server/token-conversion-signing-service.mjs';
 import {createTokenConversionController} from '../../server/token-conversion-controller.mjs';
+import {createTokenConversionJournal} from '../../server/token-conversion-journal.mjs';
 import {sellReviewFixture} from './token-sell-review-fixture.mjs';
 
 export const conversionBucket='tokenConversionPriceJournalV1';
@@ -27,6 +28,8 @@ export async function conversionServiceFixture(t,{category=5,send='land',signTim
     const service=createTokenConversionSigningService({store,connection:f.connection,config:f.config,release:f.release,role,token:tokens[role],now:()=>f.now,signTimeoutMs,
       signer:{publicKey:keys[role].publicKey,signMessage:async args=>{calls[role]++;const row=Object.values((await store.read())[conversionBucket].attempts)[0];assert(row.signingStartedAt);
         return hooks[role]?hooks[role](args):nacl.sign.detached(args.message,keys[role].secretKey);}},...override});
+    if(!await store.hasPublishedFile())await createTokenConversionJournal({store,connection:f.connection,config:f.config,release:f.release,now:()=>f.now})
+      .initialize({firstProvisioningRole:role});
     await service.initialize();const origin=await bind(service.server);origins[role]=origin;backends[role]=service;return service;
   };
   for(const role of roles)await c.makeBackend(role);
@@ -44,9 +47,12 @@ export async function conversionServiceFixture(t,{category=5,send='land',signTim
   };
   c.land=()=>{for(const bank of Object.values(all)){bank.advance();bank.land(c.wire);bank.advance();}};
   c.makeController=async()=>{
-    const controller=createTokenConversionController({store:createAutomaticRewardStore(paths.worker),connection:f.connection,config:f.config,release:f.release,
+    const store=createAutomaticRewardStore(paths.worker);
+    const controller=createTokenConversionController({store,connection:f.connection,config:f.config,release:f.release,
       token:tokens.worker,now:()=>f.now,priceService:{endpoint:'https://price-custody.invalid/',token:tokens['price-attestation'],request:fetchFor('price-attestation')},
       operatorService:{endpoint:'https://operator-custody.invalid/',token:tokens.operator,request:fetchFor('operator')}});
+    if(!await store.hasPublishedFile())await createTokenConversionJournal({store,connection:f.connection,config:f.config,release:f.release,now:()=>f.now})
+      .initialize({firstProvisioningRole:'controller'});
     await controller.initialize();origins.worker=await bind(controller.server);c.controller=controller;return controller;
   };
   await c.makeController();

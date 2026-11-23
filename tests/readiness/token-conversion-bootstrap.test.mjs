@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Keypair,PublicKey} from '@solana/web3.js';
 import {join} from 'node:path';
-import {writeFile} from 'node:fs/promises';
+import {writeFile,rename} from 'node:fs/promises';
 import nacl from 'tweetnacl';
 import {createAutomaticRewardStore} from '../../server/automatic-reward-store.mjs';
+import {createTokenConversionJournal} from '../../server/token-conversion-journal.mjs';
 import {prepareTokenConversionRuntime,provisionFreshTokenConversionJournals,tokenConversionProvisioningDigest} from '../../server/token-conversion-bootstrap.mjs';
 import {tokenPricePolicyHash} from '../../server/token-conversion-sell-review.mjs';
 import {conversionServiceFixture} from './token-conversion-service-fixture.mjs';
@@ -102,6 +103,23 @@ test('resume refuses aliased role stores despite distinct public references',asy
   o.storeFactory=async()=>createAutomaticRewardStore(c.paths.worker);
   await assert.rejects(prepareTokenConversionRuntime(o),/Conversion journal reference unavailable/);
   assert.equal(counts.authentication,0);assert.equal(counts.custody,0);
+});
+
+test('prepared runtime initializers cannot recreate missing signed role journals',async t=>{
+  for(const role of ['controller','operator','price-attestation']){
+    const {c,counts,options}=await setup(t,{send:'unknown'});
+    assert.equal((await c.run({request:c.all.worker.request})).body.status,'reconciliation-pending');
+    const runtime=await prepareTokenConversionRuntime(options(role,role==='controller'?'recovery-only':'signing'));
+    const path=c.paths[role==='controller'?'worker':role];
+    await rename(path,path+'.retained');
+    await assert.rejects(runtime.initialize(),/Conversion journal reference unavailable/);
+    const f=c.all[role==='controller'?'worker':role];
+    await assert.rejects(createTokenConversionJournal({store:createAutomaticRewardStore(path),connection:f.connection,
+      config:f.config,release:f.release,now:()=>f.now}).initialize(),/Missing conversion journal requires reviewed first provisioning/);
+    assert.equal(await createAutomaticRewardStore(path).hasPublishedFile(),false);
+    assert.equal(counts.custody,0);
+    assert.deepEqual(c.calls,{'price-attestation':1,operator:1,send:1});
+  }
 });
 
 test('intact three-journal resume recovers saved signed intent and proof without a new send',async t=>{

@@ -10,6 +10,7 @@
         "resume refuses each missing or wrong-context role journal before authentication or custody",
         "resume refuses a corrupt third journal before authentication or custody",
         "resume refuses aliased role stores despite distinct public references",
+        "prepared runtime initializers cannot recreate missing signed role journals",
         "intact three-journal resume recovers saved signed intent and proof without a new send",
         "bootstrap prepares three real HTTP services and loads each approved role lazily after verified claims",
         "bootstrap malformed public references or unadmitted policy cannot invoke any resolver",

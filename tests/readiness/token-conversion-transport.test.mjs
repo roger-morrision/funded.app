@@ -8,6 +8,7 @@ import {Keypair,VersionedTransaction} from '@solana/web3.js';
 import nacl from 'tweetnacl';
 import {createAutomaticRewardStore} from '../../server/automatic-reward-store.mjs';
 import {createTokenConversionTransport} from '../../server/token-conversion-transport.mjs';
+import {createTokenConversionJournal} from '../../server/token-conversion-journal.mjs';
 import {sellReviewFixture} from './token-sell-review-fixture.mjs';
 
 const bucket='tokenConversionPriceJournalV1';
@@ -38,6 +39,8 @@ async function fixture(t,{category=5,send='land',signTimeoutMs=30000}={}){
   };
   c.make=(customStore=store)=>createTokenConversionTransport({store:customStore,connection:f.connection,config:f.config,release:f.release,
     priceSigner,operator,now:()=>f.now,signTimeoutMs});
+  await createTokenConversionJournal({store,connection:f.connection,config:f.config,release:f.release,now:()=>f.now})
+    .initialize({firstProvisioningRole:'controller'});
   c.transport=c.make();await c.transport.initialize();return c;
 }
 

@@ -170,8 +170,8 @@ test('HTTP unknown custody result cannot sign again after backend restart',async
 
 test('HTTP role signature disk failure cannot expose a usable response or invoke the operator',async t=>{
   const c=await conversionServiceFixture(t),base=c.stores()['price-attestation'];
-  await c.restartBackend('price-attestation',{store:{read:()=>base.read(),transaction:mutate=>base.transaction(s=>{
-    const result=mutate(s);if(Object.values(s[conversionBucket].attempts).some(a=>a.roleSignatures))throw Error('Injected role-cache write failure');return result;
+  await c.restartBackend('price-attestation',{store:{read:()=>base.read(),transaction:mutate=>base.transaction((s,publication)=>{
+    const result=mutate(s,publication);if(Object.values(s[conversionBucket].attempts).some(a=>a.roleSignatures))throw Error('Injected role-cache write failure');return result;
   })}});
   const result=await c.run({request:c.all.worker.request});assert.equal(result.body.status,'reconciliation-pending');
   assert.equal(c.calls.operator,0);assert.equal(c.calls.send,0);assert.equal((await c.row('price-attestation')).roleSignatures,undefined);

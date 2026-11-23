@@ -95,10 +95,13 @@ export function createTokenConversionJournal({store,connection,config,release=re
   });
   return {
     initialize:({firstProvisioningRole=null}={})=>store.transaction((state,publication)=>{
-      if(firstProvisioningRole!==null)assert(['controller','operator','price-attestation'].includes(firstProvisioningRole)
-        &&publication?.published===false&&!Object.hasOwn(state,bucket),'First provisioning requires a genuinely unpublished journal.');
-      if(!Object.hasOwn(state,bucket)){const at=now();assert(Number.isSafeInteger(at)&&at>0,'Valid journal clock required.');state[bucket]={context:copy(context),clock:at,attempts:{}};}
-      if(firstProvisioningRole!==null)state[bucket].provisionedRole=firstProvisioningRole;
+      if(firstProvisioningRole!==null){
+        assert(['controller','operator','price-attestation'].includes(firstProvisioningRole)
+          &&publication?.published===false&&!Object.hasOwn(state,bucket),'First provisioning requires a genuinely unpublished journal.');
+        const at=now();assert(Number.isSafeInteger(at)&&at>0,'Valid journal clock required.');
+        state[bucket]={context:copy(context),clock:at,attempts:{},provisionedRole:firstProvisioningRole};
+      }else assert(publication?.published===true&&Object.hasOwn(state,bucket),
+        'Missing conversion journal requires reviewed first provisioning.');
       checked(state);return {contextHash};
     }),
     verifyExisting:({role})=>store.transaction((state,publication)=>{

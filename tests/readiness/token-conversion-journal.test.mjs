@@ -17,7 +17,7 @@ async function setup(t,f=sellReviewFixture(),path=null){
     path=join(dir,'reservations.json');
   }
   const store=createAutomaticRewardStore(path),journal=createTokenConversionJournal({store,connection:f.connection,config:f.config,release:f.release,now:()=>f.now});
-  await journal.initialize();return {f,path,store,journal};
+  await journal.initialize(path&&await store.hasPublishedFile()?undefined:{firstProvisioningRole:'controller'});return {f,path,store,journal};
 }
 function policy(f,order,daily){f.config.quotePolicy.maxOrderQuoteRaw=order;f.config.quotePolicy.maxDailyQuoteRaw=daily;
   f.release.priceSignerPolicy=structuredClone(f.config);f.release.independentReview.priceSignerPolicySha256=tokenPricePolicyHash(f.config);}

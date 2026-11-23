@@ -24,7 +24,12 @@ Missing, corrupt, wrong-context or aliased role journals fail closed. An HTTP
 request, absent file or ordinary retry cannot choose first provisioning. Restore
 must preserve the original three journal files and reconcile unresolved signed
 attempts before any new reviewed work. No automatic empty-history reset exists
-in this production bootstrap.
+in this production bootstrap. A later call to the returned runtime's
+`initialize()` repeats the same finalized-context and three-journal resume
+checks; it cannot recreate a file removed after preparation.
+The underlying journal's default `initialize()` also requires an existing
+published file. Only the explicit reviewed first-provisioning call may create
+a new role journal.
 
 Before journal or service-authentication access, preparation validates the existing
 reviewed release/policy tuple, distinct role journal/authentication references and service origins, plus the
@@ -75,7 +80,7 @@ checks context again before using the handle. Unknown/mismatched resolver result
 cannot cause another automatic load or signature. Existing per-request policy,
 reserve, quote age, immutable message and finalized-proof rules remain enforced.
 
-Run `node scripts/check-token-conversion-bootstrap.mjs` for 26 required cases.
+Run `node scripts/check-token-conversion-bootstrap.mjs` for 27 required cases.
 Tests include actual three-service loopback execution, context changes around
 custody access, fail-before-secret ordering, and paused/rotated read-only proof
 recovery. Financial RPC/finality and approved custody resolvers are synthetic;

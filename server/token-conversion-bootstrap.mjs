@@ -89,13 +89,18 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
     }catch{throw Error('Finalized conversion runtime context unavailable or incompatible.');}
   }
   const admission=await verifyContext(!recoveryOnly);
-  let store;try{
-    for(const role of roles){
-      const candidate=await storeFactory(spec.journalReferences[role]);
-      await createTokenConversionJournal({store:candidate,connection,config:policy,release,now}).verifyExisting({role});
-      if(role===spec.role)store=candidate;
-    }
-  }catch{throw Error('Conversion journal reference unavailable or incompatible.');}
+  async function verifyJournalSet(){
+    let selected,ownResult;
+    try{
+      for(const role of roles){
+        const candidate=await storeFactory(spec.journalReferences[role]);
+        const result=await createTokenConversionJournal({store:candidate,connection,config:policy,release,now}).verifyExisting({role});
+        if(role===spec.role){selected=candidate;ownResult=result;}
+      }
+    }catch{throw Error('Conversion journal reference unavailable or incompatible.');}
+    return {store:selected,result:ownResult};
+  }
+  const {store}=await verifyJournalSet();
   const authentication=async role=>{
     let token;try{token=await loadAuthentication(spec.authenticationReferences[role]);}catch{throw Error('Conversion authentication reference unavailable.');}
     assert(typeof token==='string'&&token.length===64&&/^[a-f0-9]{64}$/.test(token),'Invalid conversion authentication reference.');return token;
@@ -116,7 +121,8 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
     }};
     runtime=createTokenConversionSigningService({store,connection,config:policy,release,role:spec.role,signer,token:await authentication(spec.role),now,recoveryOnly});
   }
-  return {...runtime,recoveryWorker:spec.role==='controller'&&recoveryOnly?createTokenConversionRecoveryWorker({controller:runtime}):undefined,
+  return {...runtime,initialize:async()=>{await verifyContext(!recoveryOnly);return (await verifyJournalSet()).result;},
+    recoveryWorker:spec.role==='controller'&&recoveryOnly?createTokenConversionRecoveryWorker({controller:runtime}):undefined,
     admission:{...admission,role:spec.role,mode:recoveryOnly?'recovery-only':'signing'},
     scope:'prepared private runtime; no listener or worker activation, custody is lazy and requires fresh verified context'};
 }

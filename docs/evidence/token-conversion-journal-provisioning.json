@@ -11,16 +11,18 @@
   "implementation": [
     "Normal prepareTokenConversionRuntime always verifies all three published role-labelled journals before service authentication or custody access.",
     "A separate explicit first-provisioning helper binds the exact release, signer policy and three distinct journal references to a reviewed digest and evidence hash, checks all three files are absent, and writes each role label under the locked durable store.",
-    "Missing, corrupt, wrong-context or wrong-role journals cannot resume; a partial first-provisioning failure cannot be silently retried as a normal runtime startup.",
+    "Missing, corrupt, wrong-context or wrong-role journals cannot resume; a partial first-provisioning failure cannot be silently retried as a normal runtime startup. A later returned initialize call repeats the same three-journal checks rather than recreating an empty file. Default raw journal initialization also requires an already published file.",
     "The public HTTP request body has no first-provisioning path. Existing signed attempts and finalized proof are reconciled from intact journals without a new send."
   ],
   "localValidation": {
     "node": "24.22.3",
-    "bootstrap": "26/26 required passed, 0 failed, 0 skipped, 0 TODO",
+    "bootstrap": "27/27 required passed, 0 failed, 0 skipped, 0 TODO",
+    "transport": "28/28 required passed, 0 failed, 0 skipped, 0 TODO",
     "service": "30/30 required passed, 0 failed, 0 skipped, 0 TODO",
-    "storePersistence": "288/288 required passed, 0 failed, 0 skipped, 0 TODO",
-    "sourceSyntax": "1202 JavaScript files passed",
-    "sourceSize": "1465 maintained code files within budget",
+    "journal": "16/16 direct Node tests passed, 0 failed, 0 skipped, 0 TODO",
+    "storePersistence": "288/288 required passed on parent 5aa24396; generic store source is unchanged in this correction",
+    "sourceSyntax": "1202 JavaScript files passed at corrected source",
+    "sourceSize": "1465 maintained code files within budget at corrected source",
     "diffCheck": "git diff --check exit 0"
   },
   "limits": [
