@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "issueId": "FQA-MN-002",
+  "recordedAt": "2026-11-22T12:50:10.437455+00:00",
+  "state": "isolated-integration-source-reviewed; release-not-cleared",
+  "baseRevision": "e06d2de0338e15a3e06ef9861b8540eeb934c84a",
+  "combinedInputRevision": "c25eb644d87d1c2753004fdfc643014cd7d0dbbd",
+  "inputCandidates": [
+    "2bbf23fb3f9052e808540b31ae0a0e3da48b4bbd",
+    "52a5c77e31871b2d7989892359afffd6dff115d5"
+  ],
+  "scope": "Exact7file source combination plus test-only correction for existing empty directory behavior. No main merge or live rollout.",
+  "sourceReview": {
+    "openingRecovery": "No further source correction found. Real recordOpening verifies reviewed program, immutable root/snapshot/reserve/drop before journal completion. Reconcile-only exits before prepare/sign/send; expiry prevents new attempts.",
+    "composition": "Four runtime files and two contributor unit test files match exact original blobs; only existing smoke regression adds ready-count/empty-state/annotation and retains populated visible-search checks.",
+    "snapshot": "Complete finalized parent chain and final base-slot checks fail honestly for missing history. Local acceptance does not provide authenticated historical chain data.",
+    "directory": "Anchor fallback attaches hero/directory. Existing no-indexed-programs CSS intentionally hides filters for empty lists; original regression assumed a populated list."
+  },
+  "sources": [
+    {
+      "path": "server/community-auto-delivery.mjs",
+      "sourceRevision": "2bbf23fb3f9052e808540b31ae0a0e3da48b4bbd",
+      "sha256": "edfeba3ea5f07d74c306eeaf9b83c586c89b2a9cb076e3c1b3ead2e0a1812a00",
+      "exactContributorBlob": true
+    },
+    {
+      "path": "server/community-execution-journal.mjs",
+      "sourceRevision": "2bbf23fb3f9052e808540b31ae0a0e3da48b4bbd",
+      "sha256": "58cd9d6df386d87d2f1a250c5009f86e552e7ffec496bb178b1153a30d7bc354",
+      "exactContributorBlob": true
+    },
+    {
+      "path": "tests/community-opening-recovery.test.mjs",
+      "sourceRevision": "2bbf23fb3f9052e808540b31ae0a0e3da48b4bbd",
+      "sha256": "c5195e60e702507baed489c95baca2cf457c75a6725f084751bdac01ae012d8f",
+      "exactContributorBlob": true
+    },
+    {
+      "path": "server/community-snapshot.mjs",
+      "sourceRevision": "52a5c77e31871b2d7989892359afffd6dff115d5",
+      "sha256": "73988b04cf976de7262d1e79b141ea93b696253ca3f423edfd02a8605f3ba6c1",
+      "exactContributorBlob": true
+    },
+    {
+      "path": "src/features/workspace/secondary-pages.js",
+      "sourceRevision": "52a5c77e31871b2d7989892359afffd6dff115d5",
+      "sha256": "f77cb5d592865fd6b2033faac76be4c063df96e697a72970fbadd751494220d6",
+      "exactContributorBlob": true
+    },
+    {
+      "path": "tests/community-snapshot.test.mjs",
+      "sourceRevision": "52a5c77e31871b2d7989892359afffd6dff115d5",
+      "sha256": "022592b785ca7379e57200fb71fe4831e0efbcebafc41b37251648060710aeff",
+      "exactContributorBlob": true
+    },
+    {
+      "path": "tests/smoke/pages.spec.mjs",
+      "sourceRevision": "52a5c77e31871b2d7989892359afffd6dff115d5",
+      "sha256": "b151cab83ac63a038f6915e75d87b6642acd6ed812b69d1054addfea146caa2c",
+      "exactContributorBlob": false
+    }
+  ],
+  "validation": {
+    "node": "v24.22.3",
+    "focusedRecoverySnapshotTestsPassed": 14,
+    "rootUnitTestsPassed": 23,
+    "qaRecoveryHarnessPassed": 9,
+    "qaHarnessChange": "Only file URL import prefixes redirected to combined source; original bodies unchanged.",
+    "sourceGates": {
+      "node": "v24.22.3",
+      "results": [
+        {
+          "name": "qa-independent-negatives",
+          "exitCode": 0,
+          "seconds": 0.620187500026077
+        },
+        {
+          "name": "check",
+          "exitCode": 0,
+          "seconds": 78.74122179998085
+        },
+        {
+          "name": "structure",
+          "exitCode": 0,
+          "seconds": 0.5504531003534794
+        },
+        {
+          "name": "unit",
+          "exitCode": 0,
+          "seconds": 0.7008476997725666
+        },
+        {
+          "name": "security",
+          "exitCode": 0,
+          "seconds": 0.07126510003581643,
+          "discoveredTests": 0,
+          "qualification": "EMPTY_INVENTORY_NOT_SECURITY_ACCEPTANCE"
+        },
+        {
+          "name": "build",
+          "exitCode": 0,
+          "seconds": 1.7904244000092149
+        },
+        {
+          "name": "manifest",
+          "exitCode": 0,
+          "seconds": 0.7465559998527169
+        }
+      ]
+    },
+    "directoryCoverage": {
+      "node": "v24.22.3",
+      "scope": "Four local compiled desktop/mobile profile cases; real read-only data, empty Mainnet and populated Devnet; no live rollout/financial acceptance.",
+      "results": [
+        {
+          "profile": "mainnet",
+          "exitCode": 0,
+          "expectedPassed": 2,
+          "unexpected": 0,
+          "indexedCounts": [
+            0
+          ]
+        },
+        {
+          "profile": "devnet",
+          "exitCode": 0,
+          "expectedPassed": 2,
+          "unexpected": 0,
+          "indexedCounts": [
+            11
+          ]
+        }
+      ]
+    },
+    "initialBrowserFailures": [
+      "First proxy502 prevented bootstrap; complete traces retained.",
+      "After upstream recovery, original search-visible assertion failed on intentionally hidden empty-directory controls; DOM diagnostic and traces retained."
+    ]
+  },
+  "securityGateGap": {
+    "scope": "Source inventory plus actual Node24 empty security discovery on combined candidate; not a security pass.",
+    "node": "v24.22.3",
+    "command": "node --test tests/security/*.test.mjs",
+    "observedTests": 0,
+    "observedExitCode": 0,
+    "inventory": {
+      "e06d2de0338e15a3e06ef9861b8540eeb934c84a": {
+        "trackedSecurityPaths": [],
+        "count": 0
+      },
+      "c25eb644d87d1c2753004fdfc643014cd7d0dbbd": {
+        "trackedSecurityPaths": [],
+        "count": 0
+      }
+    },
+    "targetedSecurityEvidence": "Nine independent QA recovery cases including four added rejection cases, plus focused snapshot/recovery regressions; no broad security pass claimed.",
+    "nextAction": "QA/PM assess the inherited empty security suite before release; do not weaken guards or relabel empty discovery as coverage."
+  },
+  "independentAcceptance": {
+    "openingCandidate": "Verified-local-only per PM SHA256c31b9145124b1ab64845749d94113da9511aeba331b1075bd8af14db58552248",
+    "snapshotDirectoryCandidate": "Independent review remains pending; four local integration UI cases are not that acceptance.",
+    "combinedRevision": "Pending independent review"
+  },
+  "limits": [
+    "No CI or compiled-SBF acceptance claimed.",
+    "No deployment or financial canary; no wallet signing, funded execution or new funds. Browser APIs were read-only; no chain-write RPC.",
+    "Real authenticated archival snapshot and finalized complete28leaf delivery remain open.",
+    "Security command discovers0tests; exit0 is not reported as a security pass.",
+    "Full-program Mainnet remains NO-GO."
+  ],
+  "nextAction": "QA review exact combined revision and test-only empty-state correction; prioritize the inherited empty security inventory through the existing queue. Serialize any later authorized deployment only after release coverage and independent snapshot/directory review are resolved."
+}

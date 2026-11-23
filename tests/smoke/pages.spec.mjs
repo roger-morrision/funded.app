@@ -75,6 +75,35 @@ for (const { path, title } of PAGES) {
   });
 }
 
+test('Airdrops keeps the wallet gate and searchable directory attached', async ({ page }) => {
+  await page.goto('/#airdrops', { waitUntil: 'domcontentloaded' });
+  const airdrops = page.locator('#airdrops');
+  await expect(airdrops.getByRole('heading', { name: 'Airdrops', exact: true })).toBeVisible();
+  await expect(airdrops.getByRole('region', { name: 'Wallet eligibility' })
+    .getByRole('button', { name: 'Connect wallet' })).toBeVisible({ timeout: 10_000 });
+  const directory = airdrops.locator('#airdrop-directory');
+  await expect(directory).toHaveAttribute('data-index-status', 'ready');
+  await expect(directory).toHaveAttribute('data-all-count', /^\d+$/);
+  const count = Number(await directory.getAttribute('data-all-count'));
+  expect(Number.isSafeInteger(count) && count >= 0, 'confirmed indexed airdrop count').toBe(true);
+  test.info().annotations.push({ type: 'airdrop-directory-state', description: JSON.stringify({ indexed: count }) });
+  const search = airdrops.locator('#airdrop-search');
+  await expect(search).toBeAttached();
+  await expect(search).toHaveAttribute('aria-label', 'Search airdrops by name, ticker, or token address');
+  if (count === 0) {
+    // Existing empty-directory styling hides filters; the nodes must stay attached.
+    await expect(airdrops).toHaveClass(/\bno-indexed-programs\b/);
+    await expect(directory).toHaveText('No airdrops yet.');
+    await expect(search).toBeHidden();
+  } else {
+    await expect(search).toBeVisible();
+    await search.fill('Example launch');
+    await expect(search).toHaveValue('Example launch');
+    await search.clear();
+    await expect(search).toHaveValue('');
+  }
+});
+
 // Token and wallet pages need a real address; take them from the live directory.
 test('token page for an Explore coin', async ({ page, request, baseURL }) => {
   const feed = await (await request.get('/api/pump/explore?limit=10&sort=last_trade_timestamp')).json();

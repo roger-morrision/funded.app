@@ -1,0 +1,261 @@
+{
+  "issueId": "FQA-MN-002-A",
+  "state": "validated-local-source-awaiting-independent-QA",
+  "baseRevision": "bf906a5af4c30d4b4f4502c9d840aaac1b079b97",
+  "contributorRevision": "bc957bce936cb172e7ad8801548a3593cbc48da5",
+  "integrationBase": "02c57471",
+  "branch": "codex/fqa-mn-002-integration",
+  "scope": "Only selected reserve GET no longer awaits unrelated directory work. Deterministic parser/cache/RPC regression coverage; no financial/API-policy/ABI/cache redesign.",
+  "sourceChanges": [
+    {
+      "path": "server/routes/airdrops.mjs",
+      "lines": 243,
+      "bytes": 17717,
+      "worktreeSha256": "e87a37af7d7e86a81ce79c812d160d6062d4f3ddfdf4f95eba7ee9740dc8a915",
+      "gitBlobSha256": "14393ed504dd538d30e6892999818d22dc901b4ce413014757aacea93c8ebf6d"
+    },
+    {
+      "path": "tests/airdrop-reserve-detail.test.mjs",
+      "lines": 46,
+      "bytes": 2044,
+      "worktreeSha256": "679e9c36c9464b59f3285f9ef6c174369bee62f30b72f3ecd107db9d204eb0d1",
+      "gitBlobSha256": "e282b55b435dcd569b00388e450547e5204fceca914953424676fec173692490"
+    },
+    {
+      "path": "tests/airdrop-reserve-proof.test.mjs",
+      "lines": 85,
+      "bytes": 5369,
+      "worktreeSha256": "6ddde849aa62735fd52dc0dc3c682bcde38626ec0c9b51e30c50d92648c4a60a",
+      "gitBlobSha256": "6ddde849aa62735fd52dc0dc3c682bcde38626ec0c9b51e30c50d92648c4a60a"
+    },
+    {
+      "path": "tests/airdrop-reserve-cache.test.mjs",
+      "lines": 63,
+      "bytes": 4365,
+      "worktreeSha256": "29c7c60e2c5d9c782f641208bfdef69591f2de34ad65ed9c8621026ce15feabe",
+      "gitBlobSha256": "29c7c60e2c5d9c782f641208bfdef69591f2de34ad65ed9c8621026ce15feabe"
+    },
+    {
+      "path": "tests/fixtures/airdrop-reserve-fixture.mjs",
+      "lines": 158,
+      "bytes": 10081,
+      "worktreeSha256": "18f2fee96950244923192d3b62daecc4009d0c8e94affcd91ca115a77fda454b",
+      "gitBlobSha256": "18f2fee96950244923192d3b62daecc4009d0c8e94affcd91ca115a77fda454b"
+    }
+  ],
+  "validation": {
+    "node": "24.22.3",
+    "focused": {
+      "tests": 21,
+      "pass": 21,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "unit": {
+      "tests": 57,
+      "pass": 57,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "security": {
+      "success": true,
+      "counts": {
+        "tests": 27,
+        "failed": 0,
+        "passed": 27,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "topLevel": 27,
+        "suites": 0
+      },
+      "duration_ms": 2662.6504
+    },
+    "sourceGates": [
+      {
+        "name": "check",
+        "exitCode": 0,
+        "seconds": 71.0759221999906
+      },
+      {
+        "name": "unit",
+        "exitCode": 0,
+        "seconds": 1.897223699837923
+      },
+      {
+        "name": "security",
+        "exitCode": 0,
+        "seconds": 2.9420807999558747
+      }
+    ],
+    "baseline": "Original empty-launch regression fails bf906 source (prior feasibility record). New unchanged funded-test body also fails baseline behind deliberately held unrelated directory; import-prefix redirects only. Twelve rejection cases pass unchanged on baseline and candidate.",
+    "fixtures": "Real program/ProgramData, reward-vault, mint/token-account and finalized status/receipt parsers with deterministic synthetic RPC return values. No network, signing, persisted keypairs or chain acceptance.",
+    "cache": [
+      "10pending same-mint duplicates + completed cache add0RPC verification",
+      "30second selected expiry",
+      "100mint selected bound",
+      "existing directory cache precedence",
+      "actual receipt route invalidation against old selected and directory promises finishing first and last; current work/caches retained",
+      "four directory rows admitted while first four deliberately held"
+    ]
+  },
+  "rpcRuns": [
+    {
+      "run": 0,
+      "exitCode": 0,
+      "seconds": 0.7875024997629225,
+      "metrics": [
+        {
+          "case": "rpc-budget",
+          "D": {
+            "counts": {
+              "getGenesisHash": 1,
+              "getAccountInfo": 21,
+              "getSignatureStatus": 6,
+              "getTransaction": 6
+            },
+            "peak": 8,
+            "ms": 12.389099999999985
+          },
+          "S": {
+            "counts": {
+              "getGenesisHash": 1,
+              "getAccountInfo": 6,
+              "getSignatureStatus": 1,
+              "getTransaction": 1
+            },
+            "peak": 2,
+            "ms": 2.431699999999978
+          },
+          "concurrent": {
+            "getGenesisHash": 2,
+            "getAccountInfo": 27,
+            "getSignatureStatus": 7,
+            "getTransaction": 7
+          },
+          "peak": 9,
+          "selectedBeforeDirectoryRelease": true,
+          "selectedMs": 5.563800000000015,
+          "totalMs": 6.6924000000000206,
+          "scope": "Deterministic RPC method counters; timings are not a live SLA."
+        },
+        {
+          "case": "directory-row-bound",
+          "admittedBeforeRelease": 4,
+          "rows": 6,
+          "peakRpc": 8
+        }
+      ]
+    },
+    {
+      "run": 1,
+      "exitCode": 0,
+      "seconds": 0.5530513999983668,
+      "metrics": [
+        {
+          "case": "rpc-budget",
+          "D": {
+            "counts": {
+              "getGenesisHash": 1,
+              "getAccountInfo": 21,
+              "getSignatureStatus": 6,
+              "getTransaction": 6
+            },
+            "peak": 8,
+            "ms": 11.3322
+          },
+          "S": {
+            "counts": {
+              "getGenesisHash": 1,
+              "getAccountInfo": 6,
+              "getSignatureStatus": 1,
+              "getTransaction": 1
+            },
+            "peak": 2,
+            "ms": 3.0194999999999936
+          },
+          "concurrent": {
+            "getGenesisHash": 2,
+            "getAccountInfo": 27,
+            "getSignatureStatus": 7,
+            "getTransaction": 7
+          },
+          "peak": 9,
+          "selectedBeforeDirectoryRelease": true,
+          "selectedMs": 6.3385000000000105,
+          "totalMs": 7.546099999999967,
+          "scope": "Deterministic RPC method counters; timings are not a live SLA."
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "exitCode": 0,
+      "seconds": 0.5425843996927142,
+      "metrics": [
+        {
+          "case": "rpc-budget",
+          "D": {
+            "counts": {
+              "getGenesisHash": 1,
+              "getAccountInfo": 21,
+              "getSignatureStatus": 6,
+              "getTransaction": 6
+            },
+            "peak": 8,
+            "ms": 12.882999999999981
+          },
+          "S": {
+            "counts": {
+              "getGenesisHash": 1,
+              "getAccountInfo": 6,
+              "getSignatureStatus": 1,
+              "getTransaction": 1
+            },
+            "peak": 2,
+            "ms": 2.6601
+          },
+          "concurrent": {
+            "getGenesisHash": 2,
+            "getAccountInfo": 27,
+            "getSignatureStatus": 7,
+            "getTransaction": 7
+          },
+          "peak": 9,
+          "selectedBeforeDirectoryRelease": true,
+          "selectedMs": 6.077499999999986,
+          "totalMs": 7.1591999999999985,
+          "scope": "Deterministic RPC method counters; timings are not a live SLA."
+        }
+      ]
+    }
+  ],
+  "rpcConclusion": "All3runs: D=(genesis1,account21,status6,transaction6); S=(1,6,1,1); concurrent=(2,27,7,7)=D+S. PeaksD8/S2/concurrent9. Selected completes before directory gate release. Local timings retained, not live SLA or provider throughput claim. Optional ProgramData header deliberately unavailable so full finalized pinned bytes are read in each scope.",
+  "preservedByGitIdentity": [
+    "All accepted opening/snapshot/security code and security inventory",
+    "Browser/runtime UI source, styles, package and lockfile",
+    "RPC pacing/gateway/global request and rate-policy code",
+    "Signing, entitlement, pause, solvency, expiry, financial policy and ABI"
+  ],
+  "evidenceHashes": {
+    "baseline-funded.stdout": "e878bac0d82c2c617bfd839a8fa4dd0feaa8aef31c658f3b46a36b9533451c51",
+    "baseline-negatives.stdout": "f067ac6e80e7addc1abddb0eea65793ca5d1fb05e7b93d9b1ed59dbac39baae2",
+    "focused-0.stdout": "5c380677b6bfa9d10ae39b63ab28cfe342f7c990f789ee0e51d9db99fa2e3866",
+    "focused-1.stdout": "45915b71c1186bbcde32ea36acbcda178aaf821d099ccbc6b0568cbe0ba43637",
+    "focused-2.stdout": "9852e2163de55e197b225e87bd77d854c708a34472ef98bb647cd54bcb2501fa",
+    "source-gates.json": "cb6e5f042a7fd6dda99ff1189e2cf0aa11a55da3a3ad11f9bf1b72605b8a87f8",
+    "unit.stdout": "8defad9563eb0840beb0a27d31dd195ec71b31a1cdd96c136f806e4cf16d34ce",
+    "security.stdout": "07c0085ff89524e7b58b355e29b42782c74f2ab34010048d093e1afa87df85ef"
+  },
+  "limitations": [
+    "Local deterministic mocked RPC fixtures, no new live financial or finalized outcome.",
+    "Cold directory and selected can verify the same mint twice, bounded byD+S under this accepted scenario; existing provider budgets unchanged.",
+    "Current live remains independently accepted bf906; no merge/deploy yet for this new source slice.",
+    "Parent archival/full28leaf and ContractC01-C05/MainnetNO-GO stay open."
+  ],
+  "nextAction": "Independent QA exact-source/proof/cache/counter acceptance, then already-authorized serialized Devnet release and affected1440/390 selected detail/receipt/close/retry verification.",
+  "checkedAt": "2026-11-22T13:41:13.652999+00:00",
+  "hashDefinition": "Source hashes distinguish actual measured worktree bytes from normalized staged Git blobs (Windows CRLF); exact code content compared with line endings normalized."
+}

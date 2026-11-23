@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "scope": "Current-source community opening/replay/history rejection coverage plus fail-closed security runner; local mocked fixtures, not full security audit or chain acceptance.",
+  "files": [
+    {
+      "path": "tests/community-opening-recovery.test.mjs",
+      "requiredTests": [
+        "recovers a finalized opening saved before the 300-second deadline after worker restart",
+        "retires an expired unlanded opening without creating another attempt",
+        "keeps an uncertain opening untouched after the deadline while the blockhash remains valid",
+        "keeps a journal pending when a saved opening has status but lacks its receipt",
+        "a recovered opening lets the restarted worker visit all 28 leaves without paying after expiry",
+        "wrong genesis rejects opening reconciliation without changing state or broadcasting",
+        "changed immutable root rejects opening reconciliation without changing state or broadcasting",
+        "rejected opening proof cannot finalize a journal or broadcast",
+        "expired opening with an empty journal cannot prepare or broadcast"
+      ]
+    },
+    {
+      "path": "tests/community-snapshot.test.mjs",
+      "requiredTests": [
+        "reconstructs migration-slot holdings with a finalized base 0 slots later",
+        "reconstructs migration-slot holdings with a finalized base 255 slots later",
+        "reconstructs migration-slot holdings with a finalized base 256 slots later",
+        "requires archival evidence when the finalized tip is 257 slots past migration",
+        "requires archival evidence when the holder base advances past the 256-slot window",
+        "rejects a finalized block list missing interior history",
+        "rejects a finalized block list missing base history",
+        "rejects a finalized block list missing all history",
+        "rejects an unavailable block advertised in the finalized block list"
+      ]
+    },
+    {
+      "path": "tests/security-runner.test.mjs",
+      "requiredTests": [
+        "security gate accepts actual required passing cases with exact counts",
+        "security gate fails zero file discovery",
+        "security gate fails an empty module despite Node file-wrapper success",
+        "security gate fails all-skipped required coverage",
+        "security gate fails a skipped required case even when another case passes",
+        "security gate fails a required TODO case",
+        "security gate fails an actual failing case",
+        "security gate fails a missing required name despite another passing test",
+        "security gate fails a missing inventory file"
+      ]
+    }
+  ]
+}

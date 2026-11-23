@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "issueId": "FQA-MN-006-A",
+  "baseRevision": "26ef2bbac0ff1a2c7a277c8a8961d89e3f7e12f6",
+  "recordedAt": "2026-11-22T13:05:40.698721+00:00",
+  "scope": "Checked-in current-source security inventory and fail-closed command; no application runtime/policy change.",
+  "command": "npm run test:security",
+  "node": "v24.22.3",
+  "inventory": "config/security-tests.json",
+  "actualCounts": {
+    "tests": 27,
+    "passed": 27,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "requiredCases": 27,
+  "requiredPassed": 27,
+  "runnerFixtureOutcomes": [
+    {
+      "securityGateFixture": "security gate accepts actual required passing cases with exact counts",
+      "exitCode": 0,
+      "counts": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "required": 1,
+      "requiredPassed": 1,
+      "nodeCounts": {
+        "tests": 1,
+        "failed": 0,
+        "passed": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "topLevel": 1,
+        "suites": 0
+      }
+    },
+    {
+      "securityGateFixture": "security gate fails zero file discovery",
+      "exitCode": 1,
+      "counts": {
+        "tests": 0,
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "required": 0,
+      "requiredPassed": 0,
+      "nodeCounts": null
+    },
+    {
+      "securityGateFixture": "security gate fails an empty module despite Node file-wrapper success",
+      "exitCode": 1,
+      "counts": {
+        "tests": 0,
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "required": 1,
+      "requiredPassed": 0,
+      "nodeCounts": {
+        "tests": 1,
+        "failed": 0,
+        "passed": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "topLevel": 1,
+        "suites": 0
+      }
+    },
+    {
+      "securityGateFixture": "security gate fails all-skipped required coverage",
+      "exitCode": 1,
+      "counts": {
+        "tests": 1,
+        "passed": 0,
+        "failed": 0,
+        "skipped": 1,
+        "todo": 0
+      },
+      "required": 1,
+      "requiredPassed": 0,
+      "nodeCounts": {
+        "tests": 1,
+        "failed": 0,
+        "passed": 0,
+        "cancelled": 0,
+        "skipped": 1,
+        "todo": 0,
+        "topLevel": 1,
+        "suites": 0
+      }
+    },
+    {
+      "securityGateFixture": "security gate fails a skipped required case even when another case passes",
+      "exitCode": 1,
+      "counts": {
+        "tests": 2,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 1,
+        "todo": 0
+      },
+      "required": 1,
+      "requiredPassed": 0,
+      "nodeCounts": {
+        "tests": 2,
+        "failed": 0,
+        "passed": 1,
+        "cancelled": 0,
+        "skipped": 1,
+        "todo": 0,
+        "topLevel": 2,
+        "suites": 0
+      }
+    },
+    {
+      "securityGateFixture": "security gate fails a required TODO case",
+      "exitCode": 1,
+      "counts": {
+        "tests": 1,
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 1
+      },
+      "required": 1,
+      "requiredPassed": 0,
+      "nodeCounts": {
+        "tests": 1,
+        "failed": 0,
+        "passed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 1,
+        "topLevel": 1,
+        "suites": 0
+      }
+    },
+    {
+      "securityGateFixture": "security gate fails an actual failing case",
+      "exitCode": 1,
+      "counts": {
+        "tests": 1,
+        "passed": 0,
+        "failed": 1,
+        "skipped": 0,
+        "todo": 0
+      },
+      "required": 1,
+      "requiredPassed": 0,
+      "nodeCounts": {
+        "tests": 1,
+        "failed": 1,
+        "passed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "topLevel": 1,
+        "suites": 0
+      }
+    },
+    {
+      "securityGateFixture": "security gate fails a missing required name despite another passing test",
+      "exitCode": 1,
+      "counts": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "required": 1,
+      "requiredPassed": 0,
+      "nodeCounts": {
+        "tests": 1,
+        "failed": 0,
+        "passed": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "topLevel": 1,
+        "suites": 0
+      }
+    },
+    {
+      "securityGateFixture": "security gate fails a missing inventory file",
+      "exitCode": 1,
+      "counts": {
+        "tests": 0,
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "required": 0,
+      "requiredPassed": 0,
+      "nodeCounts": null
+    }
+  ],
+  "deltaValidation": {
+    "node": "v24.22.3",
+    "checks": [
+      {
+        "syntax": "scripts/security-tests.mjs",
+        "passed": true
+      },
+      {
+        "syntax": "tests/security-runner.test.mjs",
+        "passed": true
+      },
+      {
+        "syntax": "tests/community-opening-recovery.test.mjs",
+        "passed": true
+      },
+      {
+        "sourceSize": "passed"
+      }
+    ],
+    "security": {
+      "counts": {
+        "tests": 27,
+        "passed": 27,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "required": 27,
+      "requiredPassed": 27,
+      "success": true
+    },
+    "runtimeAndLockfileUnchangedFrom": "26ef2bbac0ff1a2c7a277c8a8961d89e3f7e12f6",
+    "originalOpeningTestBodiesPreserved": true,
+    "reusedAcceptance": "Independent QA26ef source/local-browser acceptance, including23root unit and desktop/mobile empty/populated directory coverage. No broad healthy replay."
+  },
+  "sourceSha256": {
+    "package.json": "d0cda06196f0cbff716c889ac01b61adde5829c608c85a81668172c3e077040d",
+    "config/security-tests.json": "c805352d81d1ccdd3b5955397f456920950ad5a297fc1f86896a35963b4779b6",
+    "scripts/security-tests.mjs": "80b44d94ed6a9046081873d803bc7adb44a369dcda5fa36b4066f282a07c0284",
+    "tests/security-runner.test.mjs": "6f3f2babb46772f5748a736e212f2d34d7a0f3da52619e748b7807f36cc15cf2",
+    "tests/community-opening-recovery.test.mjs": "dd7c538a975ad447c3d5928df7273d256537013b579f9caf0ac42da3bd3db7b8",
+    "docs/security-tests.md": "9865b36594c38cb4d85ecd71902245cf6b1cb13638248abac530122d479df65c"
+  },
+  "reuse": "Existing opening/snapshot suites reused. Four independent QA rejection cases are now checked in; nine runner fixtures are new. No unrelated historical suites copied. Accepted unchanged23unit/UI evidence is reused by runtime source identity.",
+  "limits": [
+    "Local mocked receipts and runner fixtures, not on-chain financial outcomes or whole-app audit.",
+    "QA acceptance of this coverage delta remains pending.",
+    "After scoped acceptance, resume already-authorized serialized Devnet release; no Mainnet activation or new financial canary authority."
+  ],
+  "rawEvidence": "data/qa-evidence/security-gate-20261122/"
+}
