@@ -2,10 +2,10 @@ name: Contract bytecode build
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['contracts/**', 'server/agency-release.mjs', 'scripts/verify-agency-binary.mjs', 'scripts/verify-contract-candidate.mjs', 'scripts/check-mainnet-build-identity.sh', 'scripts/build-mainnet-contract.sh', 'config/contract-build-candidates.json', '.github/workflows/contracts.yml']
+    paths: ['contracts/**', 'server/agency-release.mjs', 'scripts/verify-agency-binary.mjs', 'scripts/verify-contract-candidate.mjs', 'scripts/check-mainnet-build-identity.sh', 'scripts/check-mainnet-build-provenance.sh', 'scripts/build-mainnet-contract.sh', 'config/contract-build-candidates.json', '.github/workflows/contracts.yml']
   push:
     branches: [main]
-    paths: ['contracts/**', 'server/agency-release.mjs', 'scripts/verify-agency-binary.mjs', 'scripts/verify-contract-candidate.mjs', 'scripts/check-mainnet-build-identity.sh', 'scripts/build-mainnet-contract.sh', 'config/contract-build-candidates.json', '.github/workflows/contracts.yml']
+    paths: ['contracts/**', 'server/agency-release.mjs', 'scripts/verify-agency-binary.mjs', 'scripts/verify-contract-candidate.mjs', 'scripts/check-mainnet-build-identity.sh', 'scripts/check-mainnet-build-provenance.sh', 'scripts/build-mainnet-contract.sh', 'config/contract-build-candidates.json', '.github/workflows/contracts.yml']
 permissions:
   contents: read
 concurrency:
@@ -32,7 +32,9 @@ jobs:
         working-directory: contracts/funded-fee-router
         run: 'CARGO_TARGET_DIR="$RUNNER_TEMP/router-build" "$RUNNER_TEMP/funded-agave/solana-release/bin/cargo-build-sbf" --manifest-path programs/funded-fee-router/Cargo.toml --arch v0 --tools-version v1.54 --sbf-out-dir "$PWD/target/deploy" -- --locked'
       - name: Verify production identity and recovery guards
-        run: bash scripts/check-mainnet-build-identity.sh
+        run: |
+          bash scripts/check-mainnet-build-identity.sh
+          bash scripts/check-mainnet-build-provenance.sh
       - name: Build developer token lock bytecode
         working-directory: contracts/funded-fee-router
         run: |
