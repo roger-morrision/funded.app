@@ -1,7 +1,8 @@
 {
   "issue": "FQA-MN-001",
-  "status": "isolated candidate; 1001-recipient and full persistence gate pending",
-  "baseSource": "0c770137",
+  "status": "isolated candidate; constrained full 1001-recipient and independent acceptance pending",
+  "baseSource": "cc14fa5c59ec503e5d5327befa26e518c4598758",
+  "candidateSource": "a8f32642",
   "change": "A locked reward-store callback may explicitly declare an unchanged existing v2 ledger. Only repeated saved-payout recovery with an already present original attempt and identical bounded error uses the hint. The store still reads under the same exclusive lock, cleans up and fences the directory; bootstrap and version-1 migration still publish. All other callbacks retain the byte comparison, fsync and rename path.",
   "controlled33Linux": {
     "environment": "same existing Node 24.22.3 image, network none, 0.75 CPU, 512 MiB, zero swap, read-only root, isolated tmpfs",
@@ -34,8 +35,48 @@
     "rawStdoutSha256": "15e51f6b2a4b6dd5c8f227909c31fd14220c92fa029066b2b6dcd3eeaee86efd",
     "coverage": "Explicit skip under lock, competing stores, bootstrap and v1 publication, repeated unknown attempt preservation, missing-attempt restoration, existing no-op durability and recovery cases."
   },
+  "currentSourceWindowsNode24": {
+    "baseline33": {
+      "source": "cc14fa5c59ec503e5d5327befa26e518c4598758",
+      "submitted": 33,
+      "storeTransactions": 84,
+      "storeReads": 131,
+      "candidateSerializedBytes": 23725593,
+      "peakRssKiB": 169184
+    },
+    "candidate33": {
+      "source": "a8f32642",
+      "submitted": 33,
+      "storeTransactions": 84,
+      "storeReads": 131,
+      "hintedUnchangedTransactions": 28,
+      "candidateSerializedBytes": 15844895,
+      "peakRssKiB": 168464,
+      "freshProcessSavedAttempts": 66,
+      "freshProcessPaidRecords": 99
+    },
+    "candidate1001Stopped": {
+      "reason": "Stopped manually at the first progress report because unconstrained Windows RSS approached the intended 512 MiB service limit; no full-capacity result is claimed.",
+      "completedRounds": 4,
+      "requiredRounds": 32,
+      "submitted": 128,
+      "candidateSerializedBytes": 1184956166,
+      "peakRssKiB": 510144
+    },
+    "requiredPersistenceGate": {
+      "command": "node scripts/check-reward-store-persistence.mjs",
+      "node": "24.22.3",
+      "tests": 297,
+      "passed": 297,
+      "required": 288,
+      "requiredPassed": 288,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  },
   "limits": [
-    "No 1001-recipient candidate run has completed; do not extrapolate the 33-recipient reduction to the full cohort.",
+    "No 1001-recipient candidate run has completed; do not extrapolate the 33-recipient reduction to the full cohort. The partial 1001 run approached the intended 512 MiB limit by round 4 of 32 on unconstrained Windows.",
     "The hint relies on a reviewed callback returning it before any mutation. It is currently used only in the saved-payout recovery catch; changing other callers requires separate proof.",
     "A valid but noncanonical v2 JSON file encountered only by a hinted recovery is left byte-for-byte unchanged; the ordinary transaction path still normalizes it.",
     "This is synthetic selected-scheduler evidence with mocked fresh payment outcomes and no live financial finality, full background service or cap increase."
