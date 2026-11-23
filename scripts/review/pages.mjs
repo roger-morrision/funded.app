@@ -15,7 +15,7 @@ const ROUTES = [
   ['bonuses', '/#bonuses'], ['airdrops', '/#airdrops'], ['leaderboard', '/#leaderboard'], ['list', '/#list'],
   ['buybacks', '/#buybacks'], ['docs', '/#docs'], ['analytics', '/#analytics-detail'], ['disclosures', '/#disclosures'],
   ['terms', '/#terms'], ['privacy', '/#privacy'],
-  ['token-rich', '/token/Bv1a7cEj5aRnJQhMw4kRQqAFesMSd5LwcDnUzq52BMmr'],
+  ['token-rich', '/token/7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump'],
   ['token-ext', '/token/77HqxiDCgYfXUsDXDD6YVefPhTTz1Z2n8jX4gTxipump'],
   ['wallet', '/wallet/ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC'],
 ];
