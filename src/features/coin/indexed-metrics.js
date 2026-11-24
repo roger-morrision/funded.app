@@ -22,6 +22,7 @@ export function renderIndexedMetricFields(appState,data,{document=globalThis.doc
 export function renderHolderCount(appState,data,{document=globalThis.document}={}) {
   const count=Number.isSafeInteger(data.holderCount)&&data.holderCount>=0?data.holderCount:null;
   appState.setCoinField('#coin-holder-count',count==null?'Unavailable':`${data.holderCountStale?'≈':''}${count.toLocaleString('en-US')}`);
+  if(appState.coinActivity){appState.coinActivity.holderCount=count??'—';appState.setCoinTabLabels?.();}
   const holder=document.querySelector('#coin-holder-count');
   if(holder){
     const at=data.holderCountAsOf||data.holderCountCheckedAt;
