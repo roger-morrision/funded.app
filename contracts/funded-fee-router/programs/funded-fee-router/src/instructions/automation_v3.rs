@@ -73,5 +73,10 @@ pub fn authorize(program_id: &Pubkey, creator: &AccountInfo, mint: &Pubkey,
         require!(record.recipients[usize::from(category - 1)] != Pubkey::default()
             && record.recipients[usize::from(category - 1)] == *recipient, ErrorCode::InvalidMintApprovalV3);
     }
+    // Mainnet referral budgets are uncapped user entitlements. An automation
+    // record chosen by the hot operator is not creator consent to spend them.
+    if cfg!(feature = "mainnet-v3-program") {
+        require!(!(2..=4).contains(&category), ErrorCode::InvalidMintApprovalV3);
+    }
     Ok(())
 }
