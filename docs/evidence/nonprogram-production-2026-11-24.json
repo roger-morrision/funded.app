@@ -1,0 +1,116 @@
+{
+  "date": "2026-11-24",
+  "site": "https://richpad.fun",
+  "deployment": {
+    "revision": "4d22c433486e784dac3a36580a24900902c1e2aa",
+    "image": "sha256:f054b774631a8e291e15de9026f3494f316475115dba4c75b298e91549e9ebd1",
+    "frontendSha256": "f0864d1a92d359f2f7aab50439b2930a8d0ce94971e31dab1bfc125c416413ac",
+    "publicAssetsMatched": 25,
+    "cluster": "mainnet-beta",
+    "genesis": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+    "programActivationAuthorized": false,
+    "changedServices": [
+      "app",
+      "rpc-gateway"
+    ],
+    "unchangedServices": [
+      "db",
+      "rpc-cache",
+      "https"
+    ]
+  },
+  "liveUi": {
+    "checkedAt": "2026-11-24T15:08:52.550Z",
+    "viewports": [
+      "desktop 1280x850",
+      "mobile 390x844"
+    ],
+    "mint": "38M2z4UCfZEkUHFzD48vhKQhFhNyRGto8pZbLjNipump",
+    "jimmyFirstInPaidListings": true,
+    "jimmyInFeaturedTokens": true,
+    "headerBoostMultiplier": 10,
+    "samplingExplanationVisible": true,
+    "estimatedVolumePrefix": "≈",
+    "finalizedJimmyBuyRanked": true
+  },
+  "readOnlyChainVerification": {
+    "checkedAt": "2026-11-24T14:56:41.519Z",
+    "signature": "2FAq5vMS1PtJQn93LXWL5DZAXB363WL6Tmf18S4J7K6HzRNCCxMQkPwhxijiLk1tuN5BdQM86RiDSzAhpzUNtyAw",
+    "commitment": "finalized",
+    "transactionError": null,
+    "wallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
+    "mint": "38M2z4UCfZEkUHFzD48vhKQhFhNyRGto8pZbLjNipump",
+    "side": "buy",
+    "tokenBalanceIncreased": true,
+    "feeRecipient": "M1HfA8vPXwGGn8uv5p9BZSYjsh4jhxhoMfDx2sGsj4M",
+    "feeLamports": "1000000",
+    "feeBps": 100,
+    "feeDerivedVolumeLamports": "100000000",
+    "slot": 473384485,
+    "submittedByAutomation": false
+  },
+  "tests": {
+    "finalRootSuite": {
+      "passed": 82,
+      "failed": 0
+    },
+    "earlierLinuxIntegration": {
+      "passed": 174,
+      "failed": 0,
+      "revision": "7e66010202f87e759a8084de57c3811062932a15"
+    },
+    "earlierLinuxSecurity": {
+      "passed": 67,
+      "failed": 0,
+      "revision": "7e66010202f87e759a8084de57c3811062932a15"
+    },
+    "earlierCompleteBrowserSweep": {
+      "total": 76,
+      "initialPassed": 73,
+      "initialFailed": 3,
+      "focusedRerunsPassed": 3
+    },
+    "finalBroadBrowserRerun": {
+      "status": "stopped-incomplete",
+      "planned": 78,
+      "reason": "Redundant broad run encountered selector and bootstrap/teardown timing failures under concurrent browser load; retained logs, verified reported fixes directly on both live layouts."
+    },
+    "httpFixtures": {
+      "scope": "local-only",
+      "solanaMintMetadata": "mocked",
+      "wallets": "ephemeral-in-memory",
+      "flows": [
+        "administrator free listing",
+        "stacked free boosts",
+        "authorization and duplicate rejection",
+        "favorites persistence, CSRF and isolation",
+        "referral attribution, first touch, self-referral and replay rejection"
+      ]
+    },
+    "browserRegressions": {
+      "scope": "mocked-http",
+      "adminBoostPopupHeader": "passed",
+      "stackedBoostTotal": "passed",
+      "staleReadProtection": "passed"
+    },
+    "finalFocusedBrowserAttempts": {
+      "leaderboardMobile": "passed",
+      "leaderboardDesktop": "passed with trace recording disabled; earlier run timed out during browser context teardown",
+      "lateTokenLookupDesktopAndMobile": "assertions completed; browser context teardown timed out"
+    }
+  },
+  "cleanup": {
+    "staleWorktreeDirectoriesRemoved": 12,
+    "obsoleteInstructionBackupsRemoved": 2,
+    "openPullRequestsFound": 0,
+    "obsoleteGitBranchesFound": 0,
+    "registeredWorktreesRemaining": 1
+  },
+  "limitations": [
+    "Live sell not tested",
+    "Other wallet-authorized Mainnet flows not exhaustively exercised",
+    "Local fixtures and mocked UI checks are not live financial-settlement evidence",
+    "Final broad browser rerun was not a clean completed sweep"
+  ],
+  "localEvidenceDirectory": "tmp/release-20261124-followup"
+}
