@@ -1,0 +1,343 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-24T01:19:22.307Z",
+  "sourceRevision": "5e23805c720c7d12993fb653178d5797d7548535",
+  "status": "partial-preparation-complete-mainnet-no-go",
+  "ownerChoice": "Docker on the same live server",
+  "infrastructure": {
+    "at": "2026-11-24T01:12:38.232572+00:00",
+    "status": "isolated-infrastructure-provisioned-not-mainnet-ready",
+    "project": "richpad-program-mainnet-prep",
+    "directory": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124",
+    "images": {
+      "db": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+      "cache": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537"
+    },
+    "network": {
+      "name": "richpad-program-mainnet-prep_private",
+      "internal": true,
+      "publishedPorts": []
+    },
+    "databaseRole": {
+      "name": "funded_program_app",
+      "superuser": false,
+      "createRole": false,
+      "createDatabase": false
+    },
+    "services": {
+      "richpad-program-mainnet-prep-db-1": "healthy",
+      "richpad-program-mainnet-prep-cache-1": "healthy"
+    },
+    "backup": {
+      "file": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124/backups/funded-program-20261124T011230Z.dump",
+      "bytes": 39112,
+      "sha256": "695fbda2494eef2943929d4b950090c314f136636cc73f6ce2ec48b5afbcd842",
+      "fixtureFile": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124/backups/initial-restore-fixture-20261124T011230Z.dump",
+      "fixtureSha256": "028c480770605a239d212de2251a33a2d9a3ec4f32e12d8b236c35bcfd47921e"
+    },
+    "restore": {
+      "passed": true,
+      "tablesIncludingProbe": 23,
+      "syntheticProbeRows": 3,
+      "freshContainer": true,
+      "freshVolume": true,
+      "network": "none",
+      "testResourcesRemoved": true,
+      "probeRemovedFromPreparationDB": true
+    },
+    "schemaSha256": "e09584c75da585056b6a1df0c2584928bc343b5fb043c477eca1c8ed6891481b",
+    "sourceRevision": "5e23805c720c7d12993fb653178d5797d7548535",
+    "secretReferences": {
+      "database": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124/secrets/database_url",
+      "cache": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124/secrets/redis_url"
+    },
+    "existingServicesUnchanged": true,
+    "independentBackup": false,
+    "signersProvisioned": false,
+    "financialStateImported": false,
+    "mainnetActivationAuthorized": false
+  },
+  "backup": {
+    "at": "2026-11-24T01:16:21.706187+00:00",
+    "backupTimer": "richpad-program-prep-backup.timer",
+    "timerActive": true,
+    "firstScheduledServiceRun": "success",
+    "backupDirectory": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124/backups/20261124T011618.941269Z",
+    "checksumVerification": true,
+    "retention": "No automatic deletion configured",
+    "independentBackup": false,
+    "historicalBackupsInspected": [
+      {
+        "file": "/opt/richpad/backups/mainnet/richpad-mainnet-20261119T023001Z.dump",
+        "bytes": 134884,
+        "sha256": "59f20889112ddd8a1b9ab494f14661e38a68c346e5f4510e9fc492f267bcd5d3",
+        "targetMintMatches": [],
+        "rawBankFieldMatches": []
+      },
+      {
+        "file": "/opt/richpad/backups/mainnet/richpad-mainnet-20261120T023001Z.dump",
+        "bytes": 134498,
+        "sha256": "562c0b738e7d03a211d6fbfc7386630369039a7fd7bd2cbd803097bc6e6d398a",
+        "targetMintMatches": [],
+        "rawBankFieldMatches": []
+      },
+      {
+        "file": "/opt/richpad/backups/mainnet/richpad-mainnet-20261121T023001Z.dump",
+        "bytes": 157472,
+        "sha256": "a8829aa05953d72e560674af154dd0a627dcba7af4e03b31e5b8b4c67925a287",
+        "targetMintMatches": [],
+        "rawBankFieldMatches": []
+      },
+      {
+        "file": "/opt/richpad/backups/mainnet/richpad-mainnet-20261122T023001Z.dump",
+        "bytes": 188988,
+        "sha256": "d98862699ae5fe0fb34cbfd2c0a0db5814e3bf18103400ae1a2749a5a09ddc57",
+        "targetMintMatches": [],
+        "rawBankFieldMatches": []
+      },
+      {
+        "file": "/opt/richpad/backups/mainnet/richpad-mainnet-20261123T023001Z.dump",
+        "bytes": 202648,
+        "sha256": "975a0696fd1b2fee1b3056c8a1e19f6ac365c3419f97133d5c0b70b5362f1dce",
+        "targetMintMatches": [],
+        "rawBankFieldMatches": []
+      }
+    ],
+    "scope": "Same-host database backup and read-only existing backup content search; no original historical bank qualification"
+  },
+  "restore": {
+    "at": "2026-11-24T01:17:46.599453+00:00",
+    "backup": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124/backups/20261124T011618.941269Z",
+    "backupChecksumsVerified": true,
+    "exactOwnerAndTableInventoryMatched": true,
+    "limitedApplicationRoleReadAllTables": true,
+    "tableCounts": [
+      {
+        "table": "public.account_watchlists",
+        "rows": 0
+      },
+      {
+        "table": "public.app_state",
+        "rows": 0
+      },
+      {
+        "table": "public.auth_records",
+        "rows": 0
+      },
+      {
+        "table": "public.collections",
+        "rows": 0
+      },
+      {
+        "table": "public.creator_directory",
+        "rows": 0
+      },
+      {
+        "table": "public.devnet_metadata",
+        "rows": 0
+      },
+      {
+        "table": "public.launches",
+        "rows": 0
+      },
+      {
+        "table": "public.market_activity",
+        "rows": 0
+      },
+      {
+        "table": "public.product_journey_events",
+        "rows": 0
+      },
+      {
+        "table": "public.product_trade_cursors",
+        "rows": 0
+      },
+      {
+        "table": "public.product_trade_events",
+        "rows": 0
+      },
+      {
+        "table": "public.product_trade_gaps",
+        "rows": 0
+      },
+      {
+        "table": "public.product_trade_nontrades",
+        "rows": 0
+      },
+      {
+        "table": "public.read_model_versions",
+        "rows": 0
+      },
+      {
+        "table": "public.receipt_backfill",
+        "rows": 0
+      },
+      {
+        "table": "public.receipt_counts",
+        "rows": 0
+      },
+      {
+        "table": "public.receipt_proofs",
+        "rows": 0
+      },
+      {
+        "table": "public.referral_claims",
+        "rows": 0
+      },
+      {
+        "table": "public.rpc_rate_limits",
+        "rows": 0
+      },
+      {
+        "table": "public.settlements",
+        "rows": 0
+      },
+      {
+        "table": "public.state_entities",
+        "rows": 0
+      },
+      {
+        "table": "public.state_meta",
+        "rows": 0
+      }
+    ],
+    "freshContainerAndVolume": true,
+    "network": "none",
+    "testResourcesRemoved": true,
+    "sameHostOnly": true,
+    "signerJournalRestoreTested": false
+  },
+  "custody": {
+    "identitiesVerified": 6,
+    "distinct": true,
+    "existingFilePermissionsInspected": true,
+    "worldReadablePrincipalsObserved": false,
+    "privateKeysTransferred": false,
+    "signaturesCreated": 0,
+    "independentCustodyEstablished": false
+  },
+  "history": {
+    "at": "2026-11-24T01:17:04.804Z",
+    "scope": "Read-only finalized Devnet history reconciliation; no payout, deadline change or Mainnet operation",
+    "capturePath": "data/qa-evidence/mainnet-e2e-20261122/retained-28-leaf-captures-20261122.json",
+    "captureSha256": "93cac1469986c41c87f1faaadd2a523df106e6d76a417ac011792da5a7a2d188",
+    "records": [
+      {
+        "mint": "Kj2yDt7s3g58KP8bcMTkLPZSPWYZBcdK8MpzqUQNj3c",
+        "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+        "drop": "GHprgrajyrd19kx4GBWs1aRhKcYtpyWjKC2vRkrBPJfc",
+        "migrationSlot": 523851480,
+        "baseSlot": 523851517,
+        "observedFinalizedSlot": 525622452,
+        "root": "7f010331fe1a13ec40d474f895396059107f05b7511a9e3ccb18bc129fae489e",
+        "rootAndAllProofsRecomputed": true,
+        "migrationReceiptVerified": true,
+        "dropAccountPresent": false,
+        "closed": null,
+        "expiresAt": null,
+        "paymentAccounts": 0,
+        "recipientsWithoutPaymentAccount": 28,
+        "claimedBaseUnits": "0",
+        "transactionDeltaProofs": 0
+      },
+      {
+        "mint": "FazNkvyhEmu8jMPzDpe9cPwbLS6VBpxSsi6LpHNPk3uH",
+        "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+        "drop": "JBVP71HHSWnLakEqt9LDiTXTuHVsnxT5mu1ELEi9MRsj",
+        "migrationSlot": 523857109,
+        "baseSlot": 523857159,
+        "observedFinalizedSlot": 525622467,
+        "root": "7d990e6c03659718938bb1e341bacac52ed2af1f627e4afe3d3b63ffb23c3b33",
+        "rootAndAllProofsRecomputed": true,
+        "migrationReceiptVerified": true,
+        "dropAccountPresent": false,
+        "closed": null,
+        "expiresAt": null,
+        "paymentAccounts": 0,
+        "recipientsWithoutPaymentAccount": 28,
+        "claimedBaseUnits": "0",
+        "transactionDeltaProofs": 0
+      },
+      {
+        "mint": "oD4Sz38sWHJFT2TZhso7z4s2rMd2KT83iMJ3iKdQA6X",
+        "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+        "drop": "4ff6GRp39tvi16T63f8ZPNcFZSHYA4qTGoeEbPY25ETZ",
+        "migrationSlot": 523869728,
+        "baseSlot": 523869803,
+        "observedFinalizedSlot": 525622483,
+        "root": "4f09a6e761603b996dcb93c48df9a9c0182f34f6ae8a90634eefa9142f0aa06a",
+        "rootAndAllProofsRecomputed": true,
+        "migrationReceiptVerified": true,
+        "dropAccountPresent": true,
+        "closed": true,
+        "expiresAt": 1795062556,
+        "paymentAccounts": 3,
+        "recipientsWithoutPaymentAccount": 25,
+        "claimedBaseUnits": "876464",
+        "transactionDeltaProofs": 3
+      }
+    ],
+    "localInventory": {
+      "filesInspected": 126,
+      "bytesInspected": 87595002,
+      "matchingOriginalRawBankCandidates": 0
+    },
+    "originalHistoricalBankQualified": false,
+    "report": {
+      "path": "tmp/mainnet-preparation-20261124/community-history.json",
+      "sha256": "78a31cd8687734e370e19498b72b9b2cc698cd70bb37e0331366bf7793c030fd"
+    },
+    "transactionEvidence": {
+      "path": "tmp/mainnet-preparation-20261124/community-payment-transactions.json",
+      "sha256": "a24ce2e12f95f6c6b11ff2cc4bae9e03e6da61c4f8f024d0de12cbde5a85d361"
+    },
+    "historicalProviderCheck": {
+      "url": "https://www.helius.dev/docs/rpc/historical-accounts",
+      "network": "Mainnet only; unavailable for these Devnet snapshots"
+    },
+    "financialTransactionsSubmitted": 0
+  },
+  "existingServicesPreserved": [
+    {
+      "name": "/richpad-mainnet-app-1",
+      "image": "sha256:a46daeb71a1c4ea6110084da88af280b0d1bb9992bfa432cf300174246d0491e",
+      "build": "01c0d38474699c87e8a8a800beb7fa1d363bc79b",
+      "health": "healthy"
+    },
+    {
+      "name": "/richpad-mainnet-rpc-gateway-1",
+      "image": "sha256:a46daeb71a1c4ea6110084da88af280b0d1bb9992bfa432cf300174246d0491e",
+      "build": "01c0d38474699c87e8a8a800beb7fa1d363bc79b",
+      "health": "healthy"
+    },
+    {
+      "name": "/richpad-mainnet-https-1",
+      "image": "sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9",
+      "build": null,
+      "health": "healthy"
+    },
+    {
+      "name": "/richpad-mainnet-db-1",
+      "image": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+      "build": null,
+      "health": "healthy"
+    },
+    {
+      "name": "/richpad-mainnet-rpc-cache-1",
+      "image": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
+      "build": null,
+      "health": "healthy"
+    }
+  ],
+  "remaining": [
+    "Independent backup/attempt durability outside this host and administrator rollback domain.",
+    "Reviewed and independently administered signer custody; current six identity files remain local candidates.",
+    "Authenticated original complete Devnet eligibility bank and replay provenance; current balances cannot substitute.",
+    "Independent exact-release review, full financial/capacity acceptance, explicit deployment/canary approval."
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/17/app-pgdump.html",
+    "https://docs.docker.com/engine/storage/volumes/",
+    "https://www.helius.dev/docs/rpc/historical-accounts"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "status": "same-host-preparation-only",
+  "connectionReference": ".secrets/.server",
+  "project": "richpad-program-mainnet-prep",
+  "directory": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124",
+  "database": {
+    "secretFileReference": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124/secrets/database_url",
+    "service": "db",
+    "name": "funded_program",
+    "role": "funded_program_app",
+    "superuser": false
+  },
+  "cache": {
+    "secretFileReference": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124/secrets/redis_url",
+    "service": "cache",
+    "role": "disposable-cache"
+  },
+  "network": {
+    "name": "richpad-program-mainnet-prep_private",
+    "internal": true,
+    "publishedPorts": []
+  },
+  "images": {
+    "db": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+    "cache": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537"
+  },
+  "backup": {
+    "timer": "richpad-program-prep-backup.timer",
+    "directory": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124/backups",
+    "schedule": "Daily 03:15 UTC plus up to five minutes jitter",
+    "retention": "No automatic deletion",
+    "restoreVerified": true,
+    "scope": "database schema, ownership, limited role and database access configuration; no financial signer journals",
+    "independentAdministration": false
+  },
+  "custody": {
+    "candidateIdentityCount": 6,
+    "localPrivateInventory": ".secrets/mainnet-preparation-20261124/custody-references.json",
+    "privateKeysTransferred": false,
+    "remoteSigningServicesStarted": false,
+    "independentAdministration": false
+  },
+  "productionAppConnected": false,
+  "financialStateImported": false,
+  "mainnetActivationAuthorized": false,
+  "independentReviewComplete": false,
+  "evidence": "docs/evidence/mainnet-local-infrastructure-2026-11-24.json"
+}
