@@ -1,6 +1,7 @@
 import {createRpcGateway} from './rpc-gateway.mjs';
 import {requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 import {rpcWriteBlocked} from './network-write-policy.mjs';
+import {rpcSubmissionBlocked} from './rpc-submission-policy.mjs';
 
 export const PUBLIC_DEVNET_RPC='https://api.devnet.solana.com';
 export const PUBLIC_MAINNET_RPC='https://api.mainnet-beta.solana.com';
@@ -25,11 +26,11 @@ export function isRpcQuotaRejection(response){
 // The nested gateway gives the public provider its own conservative shared queue,
 // batching/caching and rate-limit cooldown instead of inheriting Helius throughput.
 export function createRpcFailoverTransport({primary,publicTransport,recoveryIntervalMs=600000,
-  now=Date.now,publicOptions={},cluster='devnet'}={}){
+  now=Date.now,publicOptions={},cluster='devnet',env=process.env}={}){
   if(typeof primary!=='function'||typeof publicTransport!=='function'||!Number.isSafeInteger(recoveryIntervalMs)||recoveryIntervalMs<30000)
     throw Error('Valid RPC transports and a recovery interval of at least 30 seconds are required');
   requireSolanaCluster(cluster);
-  const fallback=createRpcGateway({transport:publicTransport,now,cluster,
+  const fallback=createRpcGateway({transport:publicTransport,now,cluster,env,
     minIntervalMs:500,blockIntervalMs:2500,sendIntervalMs:1000,maxConcurrent:1,...publicOptions});
   let active=false,nextProbeAt=0,probe=null,closed=false,failovers=0,recoveryProbes=0,primaryAttempts=0,publicRequests=0;
   async function recover(){
@@ -48,7 +49,13 @@ export function createRpcFailoverTransport({primary,publicTransport,recoveryInte
   }
   const transport=async payload=>{
     if(closed)throw Error('RPC transport is closed');
-    if(rpcWriteBlocked(cluster,payload.method))return {status:403,headers:{},body:{jsonrpc:'2.0',id:payload.id,error:{code:-32005,message:'Mainnet transaction submission is not activated.'}}};
+    const readAccounts=async addresses=>{
+      const id='funded-submission-lookups';
+      const response=await transport({jsonrpc:'2.0',id,method:'getMultipleAccounts',params:[addresses,{encoding:'base64',commitment:'finalized'}]});
+      if(response.status!==200||response.body?.jsonrpc!=='2.0'||response.body.id!==id||response.body.error)throw Error('Lookup unavailable');
+      return response.body.result;
+    };
+    if(rpcWriteBlocked(cluster,payload.method,env)||await rpcSubmissionBlocked(cluster,payload,{env,readAccounts}))return {status:403,headers:{},body:{jsonrpc:'2.0',id:payload.id,error:{code:-32005,message:'Transaction is not permitted by the Mainnet non-program policy.'}}};
     if(active)await recover();
     if(!active){
       primaryAttempts++;

@@ -43,6 +43,25 @@
         "security gate fails a missing required name despite another passing test",
         "security gate fails a missing inventory file"
       ]
+    },
+    {
+      "path": "tests/security/rpc-submission.test.mjs",
+      "requiredTests": [
+        "non-program policy admits legacy and v0 transactions in both RPC encodings",
+        "non-program policy blocks protected direct and CPI accounts including lookup tables",
+        "non-program policy rejects malformed bytes and unresolved or invalid lookup evidence",
+        "disabled submissions perform no lookup and Devnet behavior is unchanged",
+        "proxy never forwards protected static or lookup submissions and permits ordinary writes",
+        "gateway never forwards protected static or lookup submissions and permits ordinary writes",
+        "failover never forwards protected static or lookup submissions and permits ordinary writes"
+      ]
+    },
+    {
+      "path": "tests/security/mainnet-review-candidate.test.mjs",
+      "requiredTests": [
+        "current candidate accepts identical contract bytes with current full source provenance",
+        "candidate verifier rejects source, compiler, binary, identity and build-input drift"
+      ]
     }
   ]
 }

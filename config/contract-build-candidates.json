@@ -24,8 +24,8 @@
     "feature": "mainnet-v3-program",
     "programId": "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh",
     "identityScope": "public-test-fixture-only",
-    "bytes": 1076080,
-    "sha256": "04f08fc5ffeffa4d90ccb78a8b31fbd8f3b428661a5c1db6d4c49b504be6cbd0",
+    "bytes": 1076328,
+    "sha256": "21dc33c9be87ab3f4df78aa6a61ae0f723b3fd292c29d59cbb5cfb18f64492a1",
     "optimization": "z",
     "strip": true,
     "developerLockPeriodsSeconds": [

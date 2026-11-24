@@ -3,6 +3,7 @@ import https from 'node:https';
 import {PublicKey} from '@solana/web3.js';
 import {requireSolanaCluster,SOLANA_GENESIS} from '../solana-network.js';
 import {rpcWriteBlocked} from './network-write-policy.mjs';
+import {rpcSubmissionBlocked} from './rpc-submission-policy.mjs';
 
 export const RPC_GATEWAY_DEVNET_GENESIS='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -40,7 +41,7 @@ export function createRpcUpstreamTransport(upstreamUrl,{timeoutMs=12000,maxRespo
 
 export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=2500,sendIntervalMs=1000,maxConcurrent=1,batchWindowMs=15,
   maxQueue=48,maxQueueWaitMs=12000,cacheMaxEntries=1000,cacheMaxBytes=32*1024*1024,
-  cooldownMs=30000,now=Date.now,wait=pause,sharedCache,cluster='devnet'}={}){
+  cooldownMs=30000,now=Date.now,wait=pause,sharedCache,cluster='devnet',env=process.env}={}){
   if(typeof transport!=='function')throw Error('RPC transport is required');
   requireSolanaCluster(cluster);
   const genesis=SOLANA_GENESIS[cluster];
@@ -171,8 +172,14 @@ export function createRpcGateway({transport,minIntervalMs=500,blockIntervalMs=25
     counters.requests++;
     const id=input?.id??null,finish=response=>({...response,body:{...response.body,id}});
     if(!validRequest(input))return finish(failure(400,'Unsupported JSON-RPC request.',-32600));
-    if(rpcWriteBlocked(cluster,input.method))return finish(failure(403,'Mainnet transaction submission is not activated.'));
+    if(rpcWriteBlocked(cluster,input.method,env))return finish(failure(403,'Mainnet transaction submission is not activated.'));
     if(!verified)return finish(failure(503,'RPC gateway has not verified the selected network.'));
+    const readAccounts=async addresses=>{
+      const response=await upstream({method:'getMultipleAccounts',params:[addresses,{encoding:'base64',commitment:'finalized'}]});
+      if(response.httpStatus!==200||response.body.error)throw Error('Lookup unavailable');
+      return response.body.result;
+    };
+    if(await rpcSubmissionBlocked(cluster,input,{env,readAccounts}))return finish(failure(403,'Transaction is not permitted by the Mainnet non-program policy.'));
     const readonly=readMethod(input.method),key=stable([cluster,input.method,input.params]);
     if(!readonly){
       counters.uncacheableRequests++;generation++;inflight.clear();

@@ -9,10 +9,13 @@ RUN --mount=type=secret,id=proxy_ca \
 COPY solana-network.js ./
 COPY server/rpc-gateway.mjs server/rpc-gateway-server.mjs server/redis-rpc-cache.mjs server/rpc-gateway-pacing.mjs server/rpc-failover.mjs server/rpc-rotation.mjs server/network-write-policy.mjs ./server/
 COPY scripts/run-rpc-gateway.mjs ./scripts/
+COPY server/rpc-submission-policy.mjs ./server/
+COPY config/mainnet-deployment-plan.json config/mainnet-program-release.json ./config/
 ARG FUNDED_SOURCE_REVISION
 LABEL org.opencontainers.image.source="https://github.com/roger-morrision/funded.app" \
       org.opencontainers.image.revision=$FUNDED_SOURCE_REVISION
 ENV NODE_ENV=production FUNDED_BUILD_ID=$FUNDED_SOURCE_REVISION
+RUN chmod -R a+rX /app
 USER node
 EXPOSE 8899 8900
 CMD ["node", "scripts/run-rpc-gateway.mjs"]

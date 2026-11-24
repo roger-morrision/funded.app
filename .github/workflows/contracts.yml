@@ -2,10 +2,10 @@ name: Contract bytecode build
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['contracts/**', 'server/agency-release.mjs', 'scripts/verify-agency-binary.mjs', 'scripts/verify-contract-candidate.mjs', 'scripts/check-mainnet-build-identity.sh', 'scripts/check-mainnet-build-provenance.sh', 'scripts/build-mainnet-contract.sh', 'config/contract-build-candidates.json', '.github/workflows/contracts.yml']
+    paths: ['contracts/**', 'server/agency-release.mjs', 'scripts/verify-agency-binary.mjs', 'scripts/verify-contract-candidate.mjs', 'scripts/verify-mainnet-review-candidate.mjs', 'scripts/check-mainnet-build-identity.sh', 'scripts/check-mainnet-build-provenance.sh', 'scripts/build-mainnet-contract.sh', 'config/contract-build-candidates.json', 'config/mainnet-review-candidate.json', '.github/workflows/contracts.yml']
   push:
     branches: [main]
-    paths: ['contracts/**', 'server/agency-release.mjs', 'scripts/verify-agency-binary.mjs', 'scripts/verify-contract-candidate.mjs', 'scripts/check-mainnet-build-identity.sh', 'scripts/check-mainnet-build-provenance.sh', 'scripts/build-mainnet-contract.sh', 'config/contract-build-candidates.json', '.github/workflows/contracts.yml']
+    paths: ['contracts/**', 'server/agency-release.mjs', 'scripts/verify-agency-binary.mjs', 'scripts/verify-contract-candidate.mjs', 'scripts/verify-mainnet-review-candidate.mjs', 'scripts/check-mainnet-build-identity.sh', 'scripts/check-mainnet-build-provenance.sh', 'scripts/build-mainnet-contract.sh', 'config/contract-build-candidates.json', 'config/mainnet-review-candidate.json', '.github/workflows/contracts.yml']
 permissions:
   contents: read
 concurrency:
@@ -44,12 +44,11 @@ jobs:
           export CARGO_TARGET_DIR="$RUNNER_TEMP/production-review-build"
           export PATH="$HOME/.cache/solana/v1.54/platform-tools/rust/bin:$PATH"
           export FUNDED_MAINNET_PROGRAM_ID="$(node -p "require('./config/mainnet-deployment-plan.json').mainnetProgramId")"
-          export FUNDED_MAINNET_CONVERSION_POOLS="$(node -p "require('./docs/evidence/production-contract-handoff-2026-11-22.json').productionArtifact.conversionPools")"
-          node -e "const p=require('./config/mainnet-deployment-plan.json'), a=require('./docs/evidence/production-contract-handoff-2026-11-22.json').productionArtifact; if(p.mainnetProgramId!==a.programId || !a.conversionPools) throw Error('Selected candidate build inputs differ');"
+          export FUNDED_MAINNET_CONVERSION_POOLS="$(node -p "require('./config/mainnet-review-candidate.json').conversionPools")"
+          node -e "const p=require('./config/mainnet-deployment-plan.json'), a=require('./config/mainnet-review-candidate.json'); if(p.mainnetProgramId!==a.programId || !a.conversionPools) throw Error('Selected candidate build inputs differ');"
           candidate="$GITHUB_WORKSPACE/contracts/funded-fee-router/target/deploy/production-review"
           bash scripts/build-mainnet-contract.sh "$candidate"
-          expected="$(node -p "require('./docs/evidence/production-contract-handoff-2026-11-22.json').productionArtifact.sha256")"
-          printf '%s  %s\n' "$expected" "$candidate/funded_fee_router.so" | sha256sum --check
+          node scripts/verify-mainnet-review-candidate.mjs "$candidate"
       - name: Build developer token lock bytecode
         working-directory: contracts/funded-fee-router
         run: |

@@ -1,4 +1,5 @@
 import {rpcWriteBlocked} from './network-write-policy.mjs';
+import {rpcSubmissionBlocked} from './rpc-submission-policy.mjs';
 // Created once by the server composition layer; state belongs to this instance.
 export function createSolanaRpcProxy({
   store,
@@ -9,6 +10,7 @@ export function createSolanaRpcProxy({
   json,
   rpcMethods,
   solanaCluster = 'devnet',
+  env = process.env,
   centralized = process.env.FUNDED_RPC_GATEWAY_ENABLED === 'true',
   fetch = (...args) => globalThis.fetch(...args),
 }) {
@@ -24,7 +26,7 @@ export function createSolanaRpcProxy({
     }
     const request = await body(req);
     if (!request || request.jsonrpc !== '2.0' || !rpcMethods.has(request.method) || !Array.isArray(request.params)) return json(res, 400, { jsonrpc: '2.0', id: request?.id ?? null, error: { code: -32600, message: 'Unsupported Solana RPC request.' } });
-    if (rpcWriteBlocked(solanaCluster,request.method)) return json(res,403,{jsonrpc:'2.0',id:request.id??null,error:{code:-32000,message:'Mainnet transaction submission is not enabled.'}});
+    if (rpcWriteBlocked(solanaCluster,request.method,env)) return json(res,403,{jsonrpc:'2.0',id:request.id??null,error:{code:-32000,message:'Mainnet transaction submission is not enabled.'}});
     if (request.method === 'getProgramAccounts' && !authorized(req)) return json(res, 401, { error: 'Privileged Solana RPC authorization is required.' });
     const now = Date.now();
     if (['sendTransaction', 'simulateTransaction'].includes(request.method) && (typeof request.params[0] !== 'string' || request.params[0].length > 3_000)) return json(res, 400, { error: 'Invalid serialized transaction.' });
@@ -67,6 +69,16 @@ export function createSolanaRpcProxy({
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);
     try {
+      const readAccounts = async addresses => {
+        const id = 'funded-submission-lookups';
+        const response = await fetch(solanaRpcUrl, {method:'POST', headers:{'content-type':'application/json'},
+          body:JSON.stringify({jsonrpc:'2.0',id,method:'getMultipleAccounts',params:[addresses,{encoding:'base64',commitment:'finalized'}]}), signal:controller.signal});
+        const proof = await response.json();
+        if (!response.ok || proof?.jsonrpc !== '2.0' || proof.id !== id || proof.error) throw Error('Lookup unavailable');
+        return proof.result;
+      };
+      if (await rpcSubmissionBlocked(solanaCluster, request, {env,readAccounts})) return json(res,403,
+        {jsonrpc:'2.0',id:request.id??null,error:{code:-32000,message:'Transaction is not permitted by the Mainnet non-program policy.'}});
       const upstream = await fetch(solanaRpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request), signal: controller.signal });
       const result = await upstream.json().catch(() => null);
       if (upstream.status === 429) return json(res, 429, { jsonrpc: '2.0', id: request.id, error: { code: 429, message: 'Solana RPC is rate limited; retry shortly.' } });

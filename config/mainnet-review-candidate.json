@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "status": "awaiting-independent-review",
+  "deployEligible": false,
+  "sourceRevision": "68c526f3bbe4cdc8afcf5e0c9c10028e9f87a97b",
+  "contractTree": "4184c08bb6561707b0aca99f2bc8c952834b6adf",
+  "programId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+  "conversionPools": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v:Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v",
+  "binary": {
+    "bytes": 1110672,
+    "sha256": "b2e811357cf55dc6624a48b6f630eb6c32ae2c23f3bd6c271d6013c72db70b9c"
+  },
+  "compilerSha256": "e74835c5f7b9147151f8d1970e4433a3e5c6f95fc9b1c1bcaffdb423b54678bd",
+  "buildSettings": ["features=mainnet-v3-program", "arch=v0", "platform-tools=v1.54", "opt-level=z", "strip=true", "locked=true"],
+  "evidence": "docs/evidence/mainnet-referral-consent-2026-11-24.json",
+  "reviewScope": "Contract tree only. Each reproduction records its actual full source revision and tree. Historical evidence and runtime release approval remain separate."
+}

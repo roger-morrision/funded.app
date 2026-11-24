@@ -13,12 +13,14 @@ import {sellProofFixture} from './token-sell-proof-fixture.mjs';
 import {buildReviewedUsdcSellConversion} from '../../server/token-conversion-sell.mjs';
 import {quoteFixture} from './token-sell-quote-fixture.mjs';
 import {capture} from './token-sell-capture-fixture.mjs';
+import candidate from '../../config/mainnet-review-candidate.json' with {type:'json'};
 
 const disc=name=>createHash('sha256').update('account:'+name).digest().subarray(0,8);
 const key=n=>new PublicKey(new Uint8Array(32).fill(n));
 const reviewElf=readFileSync(process.env.FUNDED_OFFLINE_REVIEW_ELF||'missing-required-public-current-review-elf');
-const reviewElfHash='3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50';
-assert.equal(reviewElf.length,1110424);assert.equal(createHash('sha256').update(reviewElf).digest('hex'),reviewElfHash);
+const reviewElfHash=candidate.binary.sha256;
+assert.equal(candidate.deployEligible,false);
+assert.equal(reviewElf.length,candidate.binary.bytes);assert.equal(createHash('sha256').update(reviewElf).digest('hex'),reviewElfHash);
 
 export function sellReviewFixture({category=5,prefund=0}={}){
   // Actual current public ELF; header, activation, review and financial RPC are
@@ -27,7 +29,7 @@ export function sellReviewFixture({category=5,prefund=0}={}){
   const header=Buffer.from(f.programData.data.subarray(0,45)),upgrade=new PublicKey('5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi');
   upgrade.toBuffer().copy(header,13);f.programData.data=Buffer.concat([header,reviewElf]);
   Object.assign(f.release,{upgradeAuthority:String(upgrade),programDataSha256:createHash('sha256').update(f.programData.data).digest('hex'),
-    sourceRevision:'971399ff4e2ebdeca76a3e16a80273db38a8bfa0',binary:{bytes:reviewElf.length,sha256:reviewElfHash}});
+    sourceRevision:candidate.sourceRevision,binary:{bytes:reviewElf.length,sha256:reviewElfHash}});
   Object.assign(f.release.independentReview,{sourceRevision:f.release.sourceRevision,binarySha256:reviewElfHash});
   const info=(owner,data,lamports=1000)=>({owner,data:Buffer.from(data),lamports,executable:false});
   f.config={cluster:'mainnet-beta',programId:String(program),programDataSha256:f.release.programDataSha256,upgradeAuthority:f.release.upgradeAuthority,
