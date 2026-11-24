@@ -3,10 +3,15 @@
 `prepareTokenConversionRuntime` prepares the existing controller or role-service
 factory from explicit trusted public references. It defaults to recovery-only,
 returns an unbound server, and installs no listener, timer, public API, production
-launcher or worker. It reads no environment, key file or credential file itself.
-The approved deployment runtime must supply its own bounded RPC, journal,
-authentication and custody resolvers; no actual production references are
-provisioned by this code.
+launcher or worker. Preparation reads no environment-selected key or credential.
+The approved deployment runtime supplies bounded RPC, journal and authentication
+resolvers plus either `loadCustody` or an explicit `fileCustody: {keyFile}` for a
+signing role. The Linux file adapter remains lazy until a reviewed request has a
+durable signing claim; recovery and controller roles cannot select it. It accepts
+only a role-owned `0400` file matching the reviewed public identity. Call
+`disposeCustody()` when discarding an unbound prepared runtime; server close also
+clears its retained key buffer. See the
+[provisioned custody record](mainnet-custody-and-history-2026-11-24.md).
 
 First provisioning is a separate trusted operation. The release operator must
 review an exact digest of the production release, signer policy and three

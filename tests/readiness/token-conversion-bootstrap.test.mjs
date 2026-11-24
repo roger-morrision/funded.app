@@ -43,6 +43,23 @@ async function setup(t,fixtureOptions={}){
   return {c,events,counts,options,install};
 }
 
+test('file custody stays lazy through bootstrap and invalid requests, then signs after durable review once',async t=>{
+  const {c,options}=await setup(t),o=options('operator','signing');
+  const key=Keypair.fromSeed(new Uint8Array(32).fill(33)),file=join(c.dir,'operator-key.json');
+  delete o.loadCustody;o.fileCustody={keyFile:file};
+  // The file does not exist during preparation or the invalid request. A
+  // premature load would latch a failure and prevent the later valid request.
+  const runtime=await prepareTokenConversionRuntime(o);t.after(()=>runtime.disposeCustody());
+  c.backends.operator.server.closeAllConnections();await new Promise(r=>c.backends.operator.server.close(r));
+  c.origins.operator=await c.bind(runtime.server);c.backends.operator=runtime;
+  const invalid=c.signBody('operator');invalid.request=structuredClone(invalid.request);invalid.request.programId=String(Keypair.generate().publicKey);
+  assert.equal((await c.post('operator','/sign',invalid)).status,409);
+  await writeFile(file,JSON.stringify(Array.from(key.secretKey)),{mode:0o400});
+  const result=await c.run({request:c.all.worker.request});assert.equal(result.status,200);assert.equal(result.body.status,'settled');
+  assert.equal(c.calls.send,1);
+  assert.equal((await c.run({request:c.all.worker.request})).body.status,'settled');assert.equal(c.calls.send,1);
+});
+
 test('explicit first provisioning binds three absent role journals to the reviewed release',async t=>{
   const {c,counts,options}=await setup(t),o=options('controller'),roles=['controller','operator','price-attestation'];
   const stores=Object.fromEntries(roles.map(role=>[role,createAutomaticRewardStore(join(c.dir,'fresh-'+role+'.json'))]));

@@ -4,15 +4,15 @@
   "deploymentMode": "fresh-isolated-mainnet",
   "existingDevnetAction": "preserve",
   "freshInfrastructure": {
-    "databaseReference": null,
-    "cacheReference": null,
+    "databaseReference": "config/mainnet-infrastructure-preparation.json#database",
+    "cacheReference": "config/mainnet-infrastructure-preparation.json#cache",
     "metadataNamespace": null,
     "appDeploymentReference": null,
-    "backupReference": null
+    "backupReference": "config/mainnet-infrastructure-preparation.json#backup"
   },
   "freshSignerReferences": {
-    "automationAuthority": null,
-    "priceAttestation": null,
+    "automationAuthority": "mainnet-operator-file-v1",
+    "priceAttestation": "mainnet-price-attestation-file-v1",
     "operationsTreasury": null,
     "tradeFeeTreasury": null,
     "boostTreasury": null,
@@ -28,7 +28,7 @@
     "primaryMint": "7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump",
     "primaryPool": "58XqWPXDGp3GfU9DAFxs8C1GJwTLdHdQhJRofAF5yWTV",
     "source": "docs/evidence/production-contract-handoff-2026-11-22.json and finalized public account/market captures",
-    "scope": "Public selection only; absent role accounts at finalized slot 472788634. This does not resolve signer custody, fees, final quotes or activation."
+    "scope": "Selected identities; operator and price-attestor role files and lazy resolver verified on the approved server. Finalized role accounts, reviewed release admission, fees and activation remain separate checks."
   },
   "copyDevnetFinancialState": false,
   "reuseDevnetSigners": false,
@@ -62,7 +62,7 @@
   "mainnetAppOrigin": "https://richpad.fun",
   "productionRpcSecretPath": ".secrets/mainnet-helius-rpc.url",
   "deploymentPayerSignerReference": null,
-  "productionDatabaseSecretPath": null,
+  "productionDatabaseSecretPath": "/opt/richpad/program-mainnet-preparation/infrastructure-20261124/secrets/database_url",
   "metadataSecretPath": null,
   "feeRecipient": null,
   "fundedMint": "7R4MP6VX7n3RMNhL9zsk5Zu5ibZvwq8npUYnRq7epump",

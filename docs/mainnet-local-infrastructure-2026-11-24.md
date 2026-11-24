@@ -1,5 +1,10 @@
 # Same-server infrastructure and historical payout recovery
 
+Follow-up: the owner has accepted the same-server backup failure domain, and
+operational file custody is now provisioned and verified. See
+[the custody and eligibility update](mainnet-custody-and-history-2026-11-24.md).
+The observations below describe the earlier preparation checkpoint.
+
 24 November 2026. The owner selected Docker on the existing live server.
 Preparation is partially completed; full-program Mainnet remains **NO-GO**.
 The existing richpad.fun nonprogram service and funded.vip Devnet service were

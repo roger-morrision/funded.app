@@ -32,14 +32,57 @@
     "retention": "No automatic deletion",
     "restoreVerified": true,
     "scope": "database schema, ownership, limited role and database access configuration; no financial signer journals",
-    "independentAdministration": false
+    "independentAdministration": false,
+    "ownerRiskAcceptance": {
+      "date": "2026-11-24",
+      "accepted": true,
+      "statement": "same-server backups are not independent: I am ok. Don\u2019t block main net deploy.",
+      "scope": "Shared server and administrator failure domain for backups",
+      "launchBlocker": false
+    }
   },
   "custody": {
     "candidateIdentityCount": 6,
     "localPrivateInventory": ".secrets/mainnet-preparation-20261124/custody-references.json",
-    "privateKeysTransferred": false,
+    "privateKeysTransferred": true,
     "remoteSigningServicesStarted": false,
-    "independentAdministration": false
+    "independentAdministration": false,
+    "status": "role-files-and-resolver-verified; production-runtime-not-activated",
+    "transferredRoles": [
+      "operator",
+      "price-attestation"
+    ],
+    "retainedLocalRoles": [
+      "deployment-payer",
+      "admin-upgrade",
+      "program",
+      "guardian"
+    ],
+    "directory": "/opt/richpad/program-mainnet-preparation/custody-20261124",
+    "inspectionImage": "sha256:be013a1369e83af52eff56793e9bba64aab0d2efe51a45bcfc6d3fa7d70f58ec",
+    "inspectionCompose": "/opt/richpad/program-mainnet-preparation/custody-20261124/compose.json",
+    "signaturesCreated": 0,
+    "roles": {
+      "operator": {
+        "reference": "mainnet-operator-file-v1",
+        "publicKey": "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
+        "secretFileReference": "/opt/richpad/program-mainnet-preparation/custody-20261124/operator/secret-key.json",
+        "containerKeyFile": "/run/custody/secret-key.json",
+        "uid": 10001,
+        "mode": "0400",
+        "keyValidated": true
+      },
+      "price-attestation": {
+        "reference": "mainnet-price-attestation-file-v1",
+        "publicKey": "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
+        "secretFileReference": "/opt/richpad/program-mainnet-preparation/custody-20261124/price-attestation/secret-key.json",
+        "containerKeyFile": "/run/custody/secret-key.json",
+        "uid": 10002,
+        "mode": "0400",
+        "keyValidated": true
+      }
+    },
+    "evidence": "docs/evidence/mainnet-custody-history-2026-11-24.json"
   },
   "productionAppConnected": false,
   "financialStateImported": false,

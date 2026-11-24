@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-24T01:46:17.406749+00:00",
+  "scope": "File custody provisioning and fresh Mainnet archive enforcement; no live financial transaction",
+  "baseRevision": "4236279124f035b7c32751f4c312c503c82ac3f8",
+  "mainnetTransactionsSent": 0,
+  "productionSigningActivated": false,
+  "backupRiskAcceptance": {
+    "date": "2026-11-24",
+    "accepted": true,
+    "statement": "same-server backups are not independent: I am ok. Don\u2019t block main net deploy.",
+    "scope": "Shared server and administrator failure domain for backups",
+    "launchBlocker": false
+  },
+  "custody": {
+    "directory": "/opt/richpad/program-mainnet-preparation/custody-20261124",
+    "image": "sha256:be013a1369e83af52eff56793e9bba64aab0d2efe51a45bcfc6d3fa7d70f58ec",
+    "baseImage": "sha256:a46daeb71a1c4ea6110084da88af280b0d1bb9992bfa432cf300174246d0491e",
+    "moduleHashes": {
+      "server/token-conversion-file-custody.mjs": "84653442ad831ffffcfecfde8103cc3824b146a4f124e5c753c57b76e033da99",
+      "scripts/check-file-custody.mjs": "921494a0d1ef8309cc823ae4b58c2281fc935c979d33ba89315ab595b3486915",
+      "server/token-conversion-sell.mjs": "00364bda0b8fceb843e5320172f08014c5a0f924ae9d55e31298949ea01c8805",
+      "mint-router-v3-token.js": "00230c1e154a312b160696c002328f60c74b5c038dffb2e64abf7288a74b494a",
+      "fee-router.js": "6361005bc13740c11deaa58d8327997c52f4583778d343e1dedd566296ec2f84",
+      "mint-router-v3.js": "bac59c625161f39d6ad10ed2eeffc1666037f58cac527679e2cbedc1abb45a5c",
+      "protocol-guard.js": "04a70fb2e83f2055ff84702bb9469e57e0624bed5bdfb51a0027d48c3e288b31",
+      "config/protocol-fee-split.js": "ffc7cb551b0fa50c270dc91e5ad26775cd07db776e9d473cef97f2ad94b34d00",
+      "distribution-policy.js": "88d484043e703eae21f401ea8c9f61b8c620f26179cc0b6eab750f824a2076db",
+      "agency-mint-router-v3.js": "64c556d1205ffee27b4ebdbce31bb01a60a7cadcb4a17f5cc1bb0bd00bfc2da1",
+      "config/daily-bonus.js": "2635111a1466536457786d362bccd9c532df85f34114aa385c6abbee518f88d9",
+      "config/marketing-agency.js": "511b3a701599e3a69585b5c9bdd36326685603ee2633ed18736ef6bab1193851",
+      "agency-rules-v3.js": "11b23967b815bf593bb1ce290bc20162f910ca5cdfa4c5ed634b3ff297c9ce33",
+      "protected-mint-router-v3.js": "44c7c8b690ddc02948e90761012b78b98f8822c29a0221e707deb59bd74fae0c",
+      "config/agency-rules.js": "37e08ad45a411647117d12a2f2ecd95f6cc4b051ba4965ef2ff184e8f180f7a3",
+      "mint-automation-v3.js": "04676065b69e98b73bdc2dc885da58e49d5d7876a661038424857d237ad438d1"
+    },
+    "checks": [
+      {
+        "role": "operator",
+        "publicKey": "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
+        "keyValidated": true,
+        "signaturesCreated": 0,
+        "networkCalls": 0,
+        "releaseAdmitted": false
+      },
+      {
+        "role": "price-attestation",
+        "publicKey": "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
+        "keyValidated": true,
+        "signaturesCreated": 0,
+        "networkCalls": 0,
+        "releaseAdmitted": false
+      }
+    ],
+    "liveServices": [
+      {
+        "name": "/richpad-mainnet-app-1",
+        "image": "sha256:a46daeb71a1c4ea6110084da88af280b0d1bb9992bfa432cf300174246d0491e",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "/richpad-mainnet-rpc-gateway-1",
+        "image": "sha256:a46daeb71a1c4ea6110084da88af280b0d1bb9992bfa432cf300174246d0491e",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "/richpad-mainnet-db-1",
+        "image": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "/richpad-mainnet-rpc-cache-1",
+        "image": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "/richpad-mainnet-https-1",
+        "image": "sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9",
+        "running": true,
+        "health": "healthy"
+      }
+    ],
+    "signingServicesStarted": false,
+    "adminPayerProgramGuardianTransferred": false
+  },
+  "historicalEligibility": {
+    "originalDevnetBankRecovered": false,
+    "historicalEligibilityVerified": false,
+    "oldRecordsPreserved": true,
+    "copyDevnetFinancialState": false,
+    "freshMainnetArchiveRequired": true,
+    "crossNetworkRecordsRejected": true,
+    "currentBalanceSubstitutionRejected": true,
+    "liveMainnetPayoutAcceptance": "unavailable",
+    "priorEvidence": "docs/evidence/mainnet-local-infrastructure-2026-11-24.json"
+  },
+  "validation": {
+    "focusedTests": {
+      "passed": 68,
+      "failed": 0,
+      "skipped": 0,
+      "logSha256": "ebeeaaabe1a1abf4a66938c65970fd58ec1d4763531b290fc5e48644deec1170"
+    },
+    "fullSuite": {
+      "tests": 574,
+      "pass": 574,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "node": "24.22.2",
+      "scope": "local Linux Docker; synthetic/offline financial fixtures, network disabled",
+      "command": "node --test tests/*.test.mjs tests/readiness/*.test.mjs tests/security/*.test.mjs",
+      "logSha256": "d22f65043126910832aa16093dec45e1983c9c3598fc4904a6f538e804771f8d"
+    },
+    "sourceChecks": {
+      "passed": true,
+      "javascriptFiles": 1231,
+      "maintainedCodeFiles": 1496,
+      "logSha256": "73d32f938aaa648eae00d728750a7a92f3c884abcd9bfc760df140dfcf85faa6"
+    },
+    "securityChecks": {
+      "passed": 27,
+      "failed": 0,
+      "logSha256": "9c98010b4c61721be89c4032ebffd97f7f7beba966739731545223f5aff98077"
+    }
+  },
+  "remainingReleaseRequirements": [
+    "Reviewed exact production release and finalized deployed program context",
+    "Production runtime admission with authentication and coherent financial journals",
+    "Live financial acceptance before public activation"
+  ]
+}

@@ -31,6 +31,7 @@ export function createCommunityClaimService({ connection, store, programId, auth
   programEvidence = readProgramDataEvidence,
   snapshotArchive=process.env.FUNDED_COMMUNITY_SNAPSHOT_ARCHIVE_DIR?createCommunitySnapshotArchive({directory:process.env.FUNDED_COMMUNITY_SNAPSHOT_ARCHIVE_DIR}):null }) {
   requireSolanaCluster(cluster);
+  if(cluster==='mainnet-beta'&&!snapshotArchive) throw new Error('Mainnet community eligibility requires a durable original snapshot archive.');
   if(cluster!=='devnet'&&(qaCutoffMint||qaCutoffAuthority)) throw new Error('QA snapshot settings are forbidden outside Devnet.');
   if (!store?.transaction || !store?.read) throw new Error('An atomic persistent reward store is required.');
   if(snapshotArchive&&(!/^[a-f0-9]{64}$/.test(snapshotArchive.identity)||typeof snapshotArchive.save!=='function'||typeof snapshotArchive.read!=='function'))

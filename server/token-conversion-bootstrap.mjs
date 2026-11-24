@@ -5,6 +5,7 @@ import {SOLANA_GENESIS} from '../solana-network.js';
 import {deriveFeeRouter,buildExpectedFeeRouterAccountPrefix} from '../fee-router.js';
 import {MAINNET_ROUTER_LEN,parseProtocolGuard} from '../protocol-guard.js';
 import {priceConfigAddress} from './buyback-price-signer.mjs';
+import {createFileTokenConversionCustody} from './token-conversion-file-custody.mjs';
 import {finalizedProgramContext} from './finalized-program-context.mjs';
 import {requireReviewedTokenSignerPolicy,tokenPricePolicyHash} from './token-conversion-sell-review.mjs';
 import {createTokenConversionJournal} from './token-conversion-journal.mjs';
@@ -59,15 +60,23 @@ export async function provisionFreshTokenConversionJournals({spec,policy,release
   return {digest,roles:[...roles]};
 }
 
-// No environment/private-file/key loader, listener, timer or production registration.
-// Resolvers are supplied by the trusted runtime after approved provisioning.
-export async function prepareTokenConversionRuntime({spec,policy,release,connectionFactory,storeFactory,loadAuthentication,loadCustody,now=Date.now,request=fetch}){
+// No environment-selected keys, listener, timer or production registration.
+// Trusted callers supply custody references after approved provisioning.
+export async function prepareTokenConversionRuntime({spec,policy,release,connectionFactory,storeFactory,loadAuthentication,loadCustody,fileCustody=null,now=Date.now,request=fetch}){
   spec=structuredClone(spec);policy=structuredClone(policy);release=structuredClone(release);
   requireReviewedTokenSignerPolicy(policy,release);
   assert(spec?.schemaVersion===1&&spec.cluster==='mainnet-beta'&&roles.includes(spec.role)
     &&['recovery-only','signing'].includes(spec.mode??'recovery-only'),'Explicit private conversion runtime required.');
   assert(spec.journalStartup===undefined||spec.journalStartup?.mode==='resume','Runtime cannot select first provisioning.');
   const recoveryOnly=(spec.mode??'recovery-only')==='recovery-only';
+  let privateFileCustody;
+  if(fileCustody!==null){
+    assert(!recoveryOnly&&spec.role!=='controller'&&!loadCustody&&Object.keys(fileCustody).length===1
+      &&typeof fileCustody.keyFile==='string','Private file custody belongs only to an explicit signing role.');
+    privateFileCustody=createFileTokenConversionCustody({role:spec.role,reference:spec.custodyReference,
+      publicKey:spec.role==='operator'?policy.authority:policy.priceSigner,programId:policy.programId,keyFile:fileCustody.keyFile});
+    loadCustody=privateFileCustody;
+  }
   assert(spec.programId===policy.programId&&spec.programDataSha256===policy.programDataSha256
     &&spec.policyHash===tokenPricePolicyHash(policy),'Runtime public identity/policy differs.');
   for(const field of ['journalReferences','rpcReferences','authenticationReferences'])
@@ -160,10 +169,12 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
     runtime=createTokenConversionSigningService({store,connection,config:policy,release,role:spec.role,signer,token:await authentication(spec.role),now,recoveryOnly});
   }
   const prepared={...runtime,initialize:async()=>{await verifyContext(!recoveryOnly);return (await verifyJournalSet()).result;},
+    disposeCustody:async()=>privateFileCustody?.close(),
     recoveryWorker:spec.role==='controller'&&recoveryOnly?createTokenConversionRecoveryWorker({controller:runtime}):undefined,
     admission:{...admission,role:spec.role,mode:recoveryOnly?'recovery-only':'signing'},
     scope:'prepared private runtime; no listener or worker activation, custody is lazy and requires fresh verified context'};
   if(spec.role==='controller'&&recoveryOnly)preparedRecoveryRuntimes.set(prepared,{initialize:prepared.initialize,
     tick:prepared.recoveryWorker.tick,status:prepared.recoveryWorker.status});
+  if(privateFileCustody)runtime.server.once('close',()=>{void privateFileCustody.close();});
   return prepared;
 }
