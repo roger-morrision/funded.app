@@ -3,6 +3,18 @@
   "scope": "Current-source community opening/replay/history rejection coverage plus fail-closed security runner; local mocked fixtures, not full security audit or chain acceptance.",
   "files": [
     {
+      "path": "tests/security/mainnet-launch-readiness.test.mjs",
+      "requiredTests": [
+        "Mainnet launch reader verifies a finalized public snapshot without granting execution",
+        "Mainnet launch reader rejects missing review and mismatched public roles before RPC",
+        "Mainnet launch reader rejects stale context, wrong chain and altered program or custody accounts",
+        "Mainnet launch routes expose public readiness but refuse registration and reserve activation",
+        "Mainnet launch reader rejects unpublished, stale and mismatched agency policy",
+        "Mainnet launch reads coalesce, expire on timeout and recheck after role rotation",
+        "Mainnet capability integration never loads a signer or admits launches through flags"
+      ]
+    },
+    {
       "path": "tests/security/mainnet-settings-integration.test.mjs",
       "requiredTests": [
         "Mainnet preparation binds existing public settings without enabling runtime writes",

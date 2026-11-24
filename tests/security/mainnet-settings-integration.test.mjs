@@ -20,6 +20,9 @@ test('Mainnet preparation binds existing public settings without enabling runtim
   assert.equal(env.VITE_FUNDED_TRADE_FEE_OWNER,plan.feeRecipient);
   assert.equal(env.MAINNET_DEPLOYMENT_PAYER_SIGNER_REFERENCE,plan.deploymentPayerSignerReference);
   assert.equal(env.FUNDED_ADMIN_WALLETS,plan.adminWallet);
+  assert.equal(env.FUNDED_V3_OPERATOR_PUBLIC_KEY,plan.selectedPublicIdentities.automationOperator);
+  assert.equal(env.FUNDED_V3_GUARDIAN_PUBLIC_KEY,plan.selectedPublicIdentities.offlineGuardian);
+  assert.equal(env.FUNDED_V3_PRICE_ATTESTOR_PUBLIC_KEY,plan.selectedPublicIdentities.priceAttestor);
   assert.equal(env.PINATA_JWT_FILE,resolve(plan.metadataSecretPath).replaceAll('\\','/'));
   assert.equal(env.VITE_ALLOW_MAINNET,'false');
   assert.equal(env.VITE_MAINNET_READ_ONLY,'true');

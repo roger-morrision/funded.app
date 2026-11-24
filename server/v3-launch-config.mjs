@@ -8,6 +8,7 @@ import { rewardServiceHealth } from './reward-service-health.mjs';
 import {readAgencyDeployment,agencyWorkerHealth,agencyBuybackWorkerHealth} from './agency-deployment.mjs';
 import {MARKETING_AGENCY_POLICY} from '../config/marketing-agency.js';
 import {readAgencyBuybackReadiness} from './agency-buyback-readiness.mjs';
+import {createMainnetLaunchReadiness} from './mainnet-launch-readiness.mjs';
 
 // This exact Devnet ProgramData was verified against the tested protected V3
 // binary and exercised with finalized disposable-wallet payouts. An operator
@@ -32,6 +33,8 @@ export function createV3LaunchConfig({ solanaCluster, solanaRpcUrl, automaticRew
   }),
   programEvidence = readProgramDataEvidence, verifyRouter = verifyFeeRouterAccount,readAgency=readAgencyDeployment,
   readBuybackReadiness=readAgencyBuybackReadiness }) {
+  if(solanaCluster==='mainnet-beta')return createMainnetLaunchReadiness({env,store,solanaRpcUrl,
+    connectionFactory,verificationTimeoutMs});
   let pending;
   let onchainProof = null;
   const check = async () => {

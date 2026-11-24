@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-24",
+  "status": "public-launch-readiness-integrated-execution-disabled",
+  "mainnetActivationAuthorized": false,
+  "runtimeEndpoint": "/api/v3-launch-config",
+  "proofScope": "public-program-prerequisites-only",
+  "positiveFixtureScope": "mocked review and public accounts; not live Mainnet acceptance",
+  "generatedConfiguration": ".secrets/mainnet-runtime-20261124.env",
+  "currentConfigurationProbe": {
+    "scope": "local-only",
+    "ready": false,
+    "preparationStatus": "blocked",
+    "signerCalls": 0,
+    "rpcConnections": 0,
+    "reason": "Committed independent release manifest and finalized deployment configuration remain incomplete"
+  },
+  "verification": {
+    "requiredSecurityTests": {"passed": 47, "required": 47, "failed": 0, "skipped": 0},
+    "releaseValidationTests": {"passed": 6, "failed": 0},
+    "javascriptSyntax": {"files": 1243, "passed": true},
+    "sourceSize": {"files": 1511, "passed": true},
+    "cceIndex": {"status": "completed", "files": 920, "chunks": 4481}
+  },
+  "productionServicesChanged": false,
+  "productionKeyFilesRead": 0,
+  "transactionsSigned": 0,
+  "transactionsSubmitted": 0
+}

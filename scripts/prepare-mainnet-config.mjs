@@ -24,6 +24,8 @@ export function prepareMainnetConfig(plan,template,{root=process.cwd(),outputFil
   for(const name of ['mainnetProgramId','upgradeAuthority','adminWallet','fundedMint','fundedPool','feeRecipient'])
     if(!key(plan[name]))throw Error(`A canonical public identity is required: ${name}`);
   const identities=plan.selectedPublicIdentities;
+  for(const role of ['automationOperator','offlineGuardian','priceAttestor'])
+    if(!key(identities?.[role]))throw Error(`A public production custody identity is required: ${role}`);
   if(!key(identities?.deploymentPayer)||identities.program!==plan.mainnetProgramId
     ||identities.adminUpgrade!==plan.upgradeAuthority||identities.primaryMint!==plan.fundedMint
     ||identities.primaryPool!==plan.fundedPool||plan.upgradeAuthority!==plan.adminWallet
@@ -46,6 +48,8 @@ export function prepareMainnetConfig(plan,template,{root=process.cwd(),outputFil
     MAINNET_PROGRAM_LAYOUT:'merged-v3',MAINNET_APP_ORIGIN:plan.mainnetAppOrigin,
     VITE_API_BASE_URL:'/',FUNDED_SKIP_LOCAL_ENV:'true',
     MAINNET_APPROVED_UPGRADE_AUTHORITY:plan.upgradeAuthority,FUNDED_ADMIN_WALLETS:plan.adminWallet,
+    FUNDED_V3_OPERATOR_PUBLIC_KEY:identities.automationOperator,FUNDED_V3_GUARDIAN_PUBLIC_KEY:identities.offlineGuardian,
+    FUNDED_V3_PRICE_ATTESTOR_PUBLIC_KEY:identities.priceAttestor,
     MAINNET_APPROVED_IMMUTABLE_PROGRAM:'false',MAINNET_MAXIMUM_PRIORITY_FEE_LAMPORTS:plan.maximumPriorityFeeLamports,
     FUNDED_FEE_ROUTER_PROGRAM_ID:plan.mainnetProgramId,VITE_FUNDED_FEE_ROUTER_PROGRAM_ID:plan.mainnetProgramId,
     FUNDED_V3_FEE_ROUTER_PROGRAM_ID:plan.mainnetProgramId,FUNDED_DEVELOPER_LOCK_PROGRAM_ID:plan.mainnetProgramId,
