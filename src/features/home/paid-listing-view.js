@@ -1,6 +1,7 @@
 import { escapeHtml } from '../shared/display.js';
 import { icon } from '../../../ui-icons.js';
 import {accountFavorites} from '../account/preferences.js';
+import {marketValuation,metricNumber} from '../../../market-metrics.js';
 
 // The indexed logo endpoint is Mainnet-only. Devnet listings without uploaded
 // artwork keep a letter mark instead of making a guaranteed 404 request.
@@ -59,10 +60,12 @@ const changeMarkup = value => Number.isFinite(value) ? `<small class="${value >=
 function fillMetrics(root, mint, data) {
   const box = root.querySelector(`[data-listing-metrics="${CSS.escape(mint)}"]`); if (!box) return;
   const set = (name, html) => { const cell = box.querySelector(`[data-metric="${name}"] dd`); if (cell) cell.innerHTML = html; };
-  const cap = Number(data?.marketCapUsd ?? data?.fdvUsd), volume = Number(data?.windows?.['24h']?.volumeUsd ?? data?.volume24hUsd), holders = Number(data?.holders);
-  set('cap', `${escapeHtml(compactUsd(cap))}${changeMarkup(Number(data?.priceChangePercent))}`);
+  const valuation=marketValuation(data),cap=valuation.value,volume=metricNumber(data?.windows?.['24h']?.volumeUsd ?? data?.volume24hUsd),holders=metricNumber(data?.holderCount ?? data?.holders);
+  const capLabel=box.querySelector('[data-metric="cap"] dt');if(capLabel)capLabel.textContent=valuation.label;
+  set('cap', `${escapeHtml(compactUsd(cap))}${changeMarkup(metricNumber(data?.priceChangePercent))}`);
   set('volume', escapeHtml(compactUsd(volume)));
-  set('holders', Number.isFinite(holders) && holders > 0 ? escapeHtml(holders.toLocaleString('en-US')) : '—');
+  set('holders', Number.isFinite(holders) && holders >= 0 ? `${data?.holderCountStale?'≈':''}${escapeHtml(holders.toLocaleString('en-US'))}` : '—');
+  const holderCell=box.querySelector('[data-metric="holders"] dd');if(holderCell)holderCell.title=data?.holderCountStale?'Last known count; refresh unavailable':`Indexed count${data?.holderCountAsOf?` · source updated ${data.holderCountAsOf}`:''}`;
 }
 export async function loadPaidListingMetrics(root, request) {
   const mints = [...root.querySelectorAll('[data-listing-metrics]')].map(node => node.dataset.listingMetrics);
@@ -75,13 +78,15 @@ export async function loadPaidListingMetrics(root, request) {
     }
     return;
   }
-  for (const mint of mints) if (overviewCache.has(mint)) fillMetrics(root, mint, overviewCache.get(mint));
-  const queue = mints.filter(mint => !overviewCache.has(mint));
+  const fresh=mint=>overviewCache.has(mint)&&Date.now()-overviewCache.get(mint).at<60_000;
+  for (const mint of mints) if (fresh(mint)) fillMetrics(root, mint, overviewCache.get(mint).data);
+  const queue = mints.filter(mint => !fresh(mint));
   const worker = async () => {
     for (let mint = queue.shift(); mint; mint = queue.shift()) {
       const result = await request(`/api/tokens/${encodeURIComponent(mint)}/overview`, { signal: AbortSignal.timeout(12000) }).catch(() => null);
       const data = result?.available && result.data?.mint === mint ? result.data : null;
-      overviewCache.set(mint, data); fillMetrics(root, mint, data);
+      if(data)overviewCache.set(mint,{data,at:Date.now()});else overviewCache.delete(mint);
+      fillMetrics(root, mint, data);
     }
   };
   await Promise.all([worker(), worker()]);

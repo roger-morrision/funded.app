@@ -4,6 +4,9 @@ import { createWalletHoldingsRoute } from './wallet-holdings.mjs';
 import { createMainnetTradeLedger } from '../mainnet-trade-ledger.mjs';
 import { WSOL, dexMarketActivity } from '../free-market-data.mjs';
 import { readBirdeyeTrades } from '../birdeye-trades.mjs';
+import { createHolderCountReader } from '../holder-count.mjs';
+import { supplyFacts, cachedOverview, mergeOverviewMetrics } from '../overview-metrics.mjs';
+import { metricNumber } from '../../market-metrics.js';
 
 // Mainnet external-token data: free sources first (DexScreener, Jupiter,
 // GeckoTerminal), paid Birdeye only as fallback. Results are written to the
@@ -20,7 +23,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
     const state = await store.read().catch(() => ({}));
     const mints = [...Object.values(state.launches || {}), ...Object.values(state.listings || {})]
       .filter(row => row?.cluster === solanaCluster && row.onchainVerified === true && row.mint).map(row => row.mint).slice(0, 30);
-    for (const mint of [...new Set(mints)]) { await topHolders(mint).catch(() => null); await holderCount(mint).catch(() => null); }
+    for (const mint of [...new Set(mints)]) { await topHolders(mint).catch(() => null); await readHolderCount(mint).catch(() => null); }
   }
   if (solanaCluster === 'mainnet-beta') {
     setTimeout(() => { void warmRegistryHolders(); }, 20_000).unref?.();
@@ -33,36 +36,20 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
   const connection = () => rpc ||= new Connection(solanaRpcUrl, { commitment: 'confirmed', disableRetryOnRateLimit: true });
   const handleWalletHoldings = createWalletHoldingsRoute({ connection, free, tokenCache, respond });
   const supplyCache = new Map();
-  const KNOWN_INITIAL = new Set(['pump.fun', 'raydium-launchlab', 'letsbonk.fun', 'bonk.fun', 'moonshot']);
-  async function burnFacts(mint, launchpad) {
-    const initial = KNOWN_INITIAL.has(String(launchpad || '').toLowerCase()) || /(?:pump|bonk)$/.test(mint) ? 1_000_000_000 : null;
+  async function burnFacts(mint) {
     const hit = supplyCache.get(mint);
     let supply = hit && Date.now() - hit.at < 300_000 ? hit.value : null;
     if (supply == null) {
       const result = await connection().getTokenSupply(new PublicKey(mint), 'confirmed').catch(() => null);
-      supply = Number(result?.value?.uiAmountString);
+      supply = metricNumber(result?.value?.uiAmountString);
       if (!Number.isFinite(supply)) supply = hit?.value ?? null; else supplyCache.set(mint, { at: Date.now(), value: supply });
       if (supplyCache.size > 3000) supplyCache.delete(supplyCache.keys().next().value);
     }
-    if (!Number.isFinite(supply)) return {};
-    const burned = initial && supply <= initial ? initial - supply : null;
-    return { supplyTokens: supply, initialSupplyTokens: initial, burnedTokens: burned, burnedPercent: burned != null ? burned / initial * 100 : null };
+    // Current supply does not establish initial issuance or cumulative burns.
+    return supplyFacts(supply);
   }
-  const decimalsCache = new Map(), holdersCache = new Map(), holderCountCache = new Map();
-  async function holderCount(mint) {
-    const hit = holderCountCache.get(mint);
-    if (hit && Date.now() - hit.at < 3_600_000) return hit.value;
-    const gecko = await free.geckoTokenInfo(mint).catch(() => null);
-    let value = Number.isSafeInteger(gecko?.holders?.count) && gecko.holders.count > 0 ? gecko.holders.count : null;
-    if (value == null) { const jupInfo = await free.jupToken(mint).catch(() => null); if (Number.isSafeInteger(jupInfo?.holderCount)) value = jupInfo.holderCount; }
-    if (value == null) {
-      const result = await fetchBirdeye('/defi/token_overview', { address: mint }).catch(() => null);
-      value = Number.isSafeInteger(result?.data?.holder) ? result.data.holder : hit?.value ?? null;
-    }
-    holderCountCache.set(mint, { at: Date.now(), value });
-    if (holderCountCache.size > 2000) holderCountCache.delete(holderCountCache.keys().next().value);
-    return value;
-  }
+  const decimalsCache = new Map(), holdersCache = new Map();
+  const readHolderCount = createHolderCountReader({free,fetchBirdeye});
   async function topHolders(mint) {
     const hit = holdersCache.get(mint);
     if (hit && Date.now() - hit.at < (hit.value.source === 'birdeye' ? 600_000 : 300_000)) return hit.value;
@@ -78,7 +65,7 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
     if (!items?.length) return null;
     const cached = (await tokenCache.read([mint]).catch(() => new Map())).get(mint);
     const decimals = Number.isInteger(items[0].decimals) ? items[0].decimals : cached?.decimals;
-    const supply = cached?.marketCapUsd > 0 && cached?.priceUsd > 0 ? cached.marketCapUsd / cached.priceUsd : null;
+    const supply = (await burnFacts(mint)).supplyTokens;
     const holders = items.flatMap(row => typeof row?.owner === 'string' && /^\d+$/.test(String(row.amount)) ? [{ wallet: row.owner, address: row.token_account || null,
       amountRaw: String(row.amount), share: supply && Number.isFinite(Number(row.ui_amount)) ? Number(row.ui_amount) / supply * 100 : null }] : []);
     return holders.length ? { source: 'birdeye', decimals: Number.isInteger(decimals) ? decimals : 6, holders } : null;
@@ -117,7 +104,11 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       if (birdeye) { row = { ...birdeye, decimals: jup?.decimals ?? null, launchpad: jup?.launchpad ?? null }; source = 'birdeye'; }
       else if (jup) { row = { mint, priceUsd: jup.priceUsd, decimals: jup.decimals, liquidityUsd: jup.liquidityUsd, launchpad: jup.launchpad }; source = 'jupiter'; }
     }
-    if (!row) return cached ? { ...cached, source: 'cache', stale: true } : null;
+    if (!row) {
+      if (!cached) return null;
+      const facts = await readHolderCount(mint);
+      return {...cachedOverview(cached),...facts,holders:facts.holderCount,source:'cache'};
+    }
     // DexScreener only has artwork for tokens with a paid profile; fill the logo
     // (and missing identity) from Jupiter's token list, then GeckoTerminal.
     if (!row.imageUri && !cached?.imageUri) {
@@ -128,10 +119,8 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
       if (!row.name && jupInfo?.name) row = { ...row, name: String(jupInfo.name).slice(0, 80) };
       if (!row.symbol && jupInfo?.symbol) row = { ...row, symbol: String(jupInfo.symbol).slice(0, 20) };
     }
-    const [burn, holders] = await Promise.all([burnFacts(mint, row.launchpad ?? cached?.launchpad).catch(() => ({})), holderCount(mint).catch(() => null)]);
-    // One holder figure: the fresh count replaces any older cached launchpad count.
-    if (Number.isSafeInteger(holders)) row = { ...row, holderCount: holders, holders };
-    const merged = { ...(cached || {}), ...Object.fromEntries(Object.entries({ ...row, ...burn }).filter(([, v]) => v != null)), mint, source, observedAt: new Date().toISOString() };
+    const [burn, holders] = await Promise.all([burnFacts(mint).catch(() => supplyFacts(null)), readHolderCount(mint)]);
+    const merged = {...mergeOverviewMetrics(cached,row,burn,holders),mint,source,stale:false,observedAt:new Date().toISOString()};
     void tokenCache.upsert([merged]);
     return merged;
   }
@@ -183,8 +172,8 @@ export function createMainnetMarketRoutes({ solanaCluster, solanaRpcUrl, free, t
     if (holdersMatch) {
       const mint = decodeURIComponent(holdersMatch[1]);
       if (!validMint(mint)) return json(res, 400, { error: 'A valid Solana mint is required.' });
-      const [top, count] = await Promise.all([topHolders(mint).catch(() => null), holderCount(mint).catch(() => null)]);
-      return json(res, 200, { cluster: solanaCluster, mint, available: Boolean(top), holderCount: count, ...(top || { holders: [] }) });
+      const [top, facts] = await Promise.all([topHolders(mint).catch(() => null), readHolderCount(mint)]);
+      return json(res, 200, { cluster: solanaCluster, mint, available: Boolean(top), ...facts, ...(top || { holders: [] }) });
     }
     const tradesMatch = req.method === 'GET' && /^\/api\/tokens\/([^/]+)\/trades$/.exec(url.pathname);
     if (tradesMatch) {

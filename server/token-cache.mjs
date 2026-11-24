@@ -35,7 +35,8 @@ export function createTokenCache({ databaseUrl = process.env.DATABASE_URL, clust
     });
     await pool.query(`INSERT INTO discovered_tokens (cluster, mint, data, market_cap, volume_24h) VALUES ${values.join(',')}
       ON CONFLICT (cluster, mint) DO UPDATE SET data = discovered_tokens.data || EXCLUDED.data,
-        market_cap = COALESCE(EXCLUDED.market_cap, discovered_tokens.market_cap), volume_24h = COALESCE(EXCLUDED.volume_24h, discovered_tokens.volume_24h),
+        market_cap = CASE WHEN EXCLUDED.data ? 'marketCapUsd' THEN EXCLUDED.market_cap ELSE discovered_tokens.market_cap END,
+        volume_24h = CASE WHEN EXCLUDED.data ? 'volume24hUsd' THEN EXCLUDED.volume_24h ELSE discovered_tokens.volume_24h END,
         last_seen = now(), updated_at = now()`, params).catch(() => null);
     return list.length;
   }

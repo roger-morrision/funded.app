@@ -6,6 +6,7 @@ const CACHE_MS = 60_000;
 const MAX_CACHE = 500;
 
 const finite = value => {
+  if (value == null || value === '' || typeof value === 'boolean') return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 };
@@ -21,20 +22,23 @@ export function summarizeDexPairs(pairs, mint) {
   if (!rows.length) return null;
   rows.sort((a, b) => (finite(b.liquidity?.usd) ?? 0) - (finite(a.liquidity?.usd) ?? 0));
   const best = rows[0];
-  const volume24hUsd = rows.reduce((sum, pair) => sum + (finite(pair.volume?.h24) ?? 0), 0);
-  const trades24h = rows.reduce((sum, pair) => sum + (finite(pair.txns?.h24?.buys) ?? 0) + (finite(pair.txns?.h24?.sells) ?? 0), 0);
+  const volume24hUsd = rows.every(pair=>finite(pair.volume?.h24)!=null)
+    ? rows.reduce((sum,pair)=>sum+finite(pair.volume.h24),0) : null;
+  const trades24h = rows.every(pair => finite(pair.txns?.h24?.buys) != null && finite(pair.txns?.h24?.sells) != null)
+    ? rows.reduce((sum,pair)=>sum+finite(pair.txns.h24.buys)+finite(pair.txns.h24.sells),0) : null;
   const socials = (Array.isArray(best.info?.socials) ? best.info.socials : [])
     .map(item => ({ type: String(item?.type || '').slice(0, 20), url: httpsUrl(item?.url) }))
     .filter(item => item.type && item.url).slice(0, 6);
   const websites = (Array.isArray(best.info?.websites) ? best.info.websites : [])
     .map(item => httpsUrl(item?.url)).filter(Boolean).slice(0, 3);
   return {
+    metricsVersion: 2,
     name: String(best.baseToken?.name || '').slice(0, 64) || null,
     symbol: String(best.baseToken?.symbol || '').slice(0, 20) || null,
     imageUrl: httpsUrl(best.info?.imageUrl),
     priceUsd: finite(best.priceUsd),
     priceNative: finite(best.priceNative),
-    marketCapUsd: finite(best.marketCap) ?? finite(best.fdv),
+    marketCapUsd: finite(best.marketCap), fdvUsd: finite(best.fdv),
     liquidityUsd: finite(best.liquidity?.usd),
     volume24hUsd,
     trades24h,

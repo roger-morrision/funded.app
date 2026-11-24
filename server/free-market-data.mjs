@@ -99,10 +99,10 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
         const prior = result.get(mint);
         if (prior && (num(prior.liquidityUsd) || 0) >= (num(pair.liquidity?.usd) || 0)) continue;
         const info = pair.info || {}, social = type => info.socials?.find(row => row?.type === type)?.url || null;
-        result.set(mint, { mint, name: String(pair.baseToken.name || '').slice(0, 80), symbol: String(pair.baseToken.symbol || '').slice(0, 20),
+        result.set(mint, { mint, metricsVersion:2, name: String(pair.baseToken.name || '').slice(0, 80), symbol: String(pair.baseToken.symbol || '').slice(0, 20),
           pairAddress: pair.pairAddress || null, dexId: pair.dexId || null, url: pair.url || null,
           quoteMint: (origin.get(mint) || pair).quoteToken?.address || null, quoteSymbol: String((origin.get(mint) || pair).quoteToken?.symbol || '').slice(0, 20) || null, priceUsd: num(pair.priceUsd), priceNative: num(pair.priceNative),
-          marketCapUsd: num(pair.marketCap ?? pair.fdv), liquidityUsd: num(pair.liquidity?.usd), volume24hUsd: num(pair.volume?.h24),
+          marketCapUsd: num(pair.marketCap), fdvUsd: num(pair.fdv), liquidityUsd: num(pair.liquidity?.usd), volume24hUsd: num(pair.volume?.h24),
           buyCount24h: num(pair.txns?.h24?.buys), sellCount24h: num(pair.txns?.h24?.sells),
           windows: Object.fromEntries([['5m', 'm5'], ['1h', 'h1'], ['6h', 'h6'], ['24h', 'h24']].map(([key, field]) =>
             [key, { buys: num(pair.txns?.[field]?.buys), sells: num(pair.txns?.[field]?.sells), volumeUsd: num(pair.volume?.[field]) }])), priceChangePercent: num(pair.priceChange?.h24),
@@ -149,13 +149,13 @@ export function createFreeMarketData({ fetch = (...args) => globalThis.fetch(...
   // Jupiter token search (free): icon, name, symbol, decimals and holder count.
   async function jupToken(mint) {
     if (!MINT.test(mint)) return null;
-    const rows = await getJson(`https://lite-api.jup.ag/tokens/v2/search?query=${mint}`, { ttlMs: 600_000 });
+    const rows = await getJson(`https://lite-api.jup.ag/tokens/v2/search?query=${mint}`, { ttlMs: 60_000, staleMs: 0 });
     return Array.isArray(rows) ? rows.find(row => row?.id === mint) || null : null;
   }
   // GeckoTerminal token info (free): holder count and identity.
   async function geckoTokenInfo(mint) {
     if (!MINT.test(mint)) return null;
-    const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/tokens/${mint}/info`, { ttlMs: 600_000 });
+    const data = await getJson(`https://api.geckoterminal.com/api/v2/networks/solana/tokens/${mint}/info`, { ttlMs: 60_000, staleMs: 0 });
     return data?.data?.attributes || null;
   }
   async function jupQuote({ inputMint, outputMint, amount, slippageBps }) {
@@ -187,7 +187,7 @@ export function dexMarketActivity(row, { cluster, now = Date.now } = {}) {
   if (!row || row.priceUsd == null) return null;
   const trades = row.buyCount24h != null && row.sellCount24h != null ? row.buyCount24h + row.sellCount24h : null;
   return { mint: row.mint, cluster, source: 'dexscreener', coverage: 'indexed', displayOnly: true, observedAt: new Date(now()).toISOString(),
-    name: row.name, symbol: row.symbol, priceUsd: row.priceUsd, marketCapUsd: row.marketCapUsd, liquidityUsd: row.liquidityUsd,
+    name: row.name, symbol: row.symbol, priceUsd: row.priceUsd, marketCapUsd: row.marketCapUsd, fdvUsd: row.fdvUsd, liquidityUsd: row.liquidityUsd,
     volume24hUsd: row.volume24hUsd, buyVolume24hUsd: null, sellVolume24hUsd: null, holders: null, tradeCount24h: trades,
     buyCount24h: row.buyCount24h, sellCount24h: row.sellCount24h, priceChangePercent: row.priceChangePercent, lastTradeUnixTime: null };
 }

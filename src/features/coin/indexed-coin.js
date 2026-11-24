@@ -2,6 +2,8 @@ import { renderIndexedMarket } from './indexed-market.js';
 import { formatTinyDecimal } from '../shared/display.js';
 import { tokenPair, pairChipMarkup, loadPairQuotes } from '../shared/pair-label.js';
 import { indexedTradeEstimate } from '../trade/indexed-trade-estimate.js';
+import {completeTradeCount,metricNumber} from '../../../market-metrics.js';
+import {renderIndexedMetricFields,renderHolderCount} from './indexed-metrics.js';
 
 // Mainnet token page without per-visitor RPC reads: the server's cached
 // overview (DexScreener/Jupiter first, Birdeye fallback) fills the header,
@@ -35,11 +37,10 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     appState.setCoinField('#coin-price', Number.isFinite(data.priceUsd) ? (data.priceUsd < 0.01 ? `$${formatTinyDecimal(data.priceUsd)}` : usd(data.priceUsd)) : '—');
     // Large stat-card amounts show whole dollars so market cap and liquidity read alike.
     const wholeUsd = value => Number.isFinite(value) && Math.abs(value) >= 1000 ? `$${Math.round(value).toLocaleString('en-US')}` : usd(value);
-    for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) appState.setCoinField(selector, wholeUsd(data.marketCapUsd));
+    renderIndexedMetricFields(appState,data);
     appState.setCoinField('#coin-volume', wholeUsd(data.volume24hUsd)); appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? wholeUsd(data.liquidityUsd) : data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
     appState.setCoinField('#coin-liquidity-label', 'Liquidity');
     appState.setCoinField('#coin-change', Number.isFinite(data.priceChangePercent) ? `${data.priceChangePercent > 0 ? '+' : ''}${data.priceChangePercent.toFixed(2)}% · 24h` : '24h —');
-    appState.setCoinField('#coin-market-cap-label', 'Market cap');
     appState.setCoinField('#coin-market-cap-source', `${data.source === 'birdeye' ? 'Birdeye' : data.source === 'jupiter' ? 'Jupiter' : 'DexScreener'} · indexed market data`);
     appState.setCoinField('#coin-description', data.dexId ? `Trading on ${data.dexId}${data.launchpad ? ` · launched on ${data.launchpad}` : ''}. Swaps route through Jupiter.` : 'Swaps route through Jupiter.');
     // Paired with: the token this coin's pool or curve is quoted in.
@@ -58,11 +59,11 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
     }
     appState.compactCoinSocials?.();
     const explorerLink = document.querySelector('#coin-explorer-link'); if (explorerLink) { explorerLink.href = appState.exploreExplorer(`address/${mint}`); explorerLink.hidden = false; }
-    const supply = Number.isFinite(data.marketCapUsd) && data.priceUsd > 0 ? data.marketCapUsd / data.priceUsd : null;
+    const supply = metricNumber(data.supplyTokens);
     appState.coinIndexedSupply = { mint, supply };
     if (appState.coinActivity) appState.coinActivity.symbol = symbol;
     const chartFooter = document.querySelector('.coin-chart-panel > .chart-footer');
-    if (chartFooter) { const span = document.createElement('span'); span.textContent = Number.isFinite(supply) ? `Indexed candles · supply ≈ ${appState.formatOnChainNumber(supply, 0)}` : 'Indexed candles'; chartFooter.replaceChildren(span); }
+    if (chartFooter) { const span = document.createElement('span'); span.textContent = Number.isFinite(supply) ? `Indexed candles · supply ${appState.formatOnChainNumber(supply, 0)}` : 'Indexed candles'; chartFooter.replaceChildren(span); }
     const solUsd = await solRequest;
     if (!current()) return;
     appState.coinTradeEstimate = indexedTradeEstimate(data, solUsd);
@@ -79,7 +80,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
   const [market, trades] = await Promise.all([marketRequest, tradesRequest]);
   if (!current()) return;
   appState.coinIndexedWindows = { mint, windows: data?.windows || null, solUsd: Number(appState.coinTradeEstimate?.solUsd) || null };
-  applyTrades(appState, mint, trades, market?.data?.tradeCount24h ?? (data ? data.buyCount24h + data.sellCount24h : null));
+  applyTrades(appState, mint, trades, market?.data?.tradeCount24h ?? completeTradeCount(data?.buyCount24h,data?.sellCount24h));
   if (market?.available) renderIndexedMarket(appState, market.data, mint);
   if (data) applyNumbers(appState, data);
   startLiveRefresh(appState, mint, loadId);
@@ -111,7 +112,7 @@ async function loadHolders(appState, mint, loadId, data) {
   if (loadId !== appState.coinLoadId) return;
   const body = response?.available && response.data?.mint === mint ? response.data : null;
   const count = Number.isSafeInteger(body?.holderCount) ? body.holderCount : null;
-  appState.setCoinField('#coin-holder-count', count != null ? count.toLocaleString('en-US') : 'Not indexed');
+  renderHolderCount(appState,body||{});
   appState.coinActivity = { ...(appState.coinActivity || {}), status: 'ready', symbol: appState.coinActivity?.symbol || data?.symbol || 'TOKEN', collections: [], claims: [], accounts: [],
     holderDistribution: body?.available ? { holders: body.holders, partial: true } : null, holderCount: count ?? (body?.holders?.length ? `top ${body.holders.length}` : '—'),
     tokenDecimals: Number.isInteger(body?.decimals) ? body.decimals : 6, ledgerAvailable: false, indexedPriceUsd: data?.priceUsd ?? null,
@@ -133,10 +134,11 @@ function activityWindows(trades, indexed) {
     const buyVolumeSol = buys.reduce((sum, row) => sum + sol(row), 0), sellVolumeSol = sells.reduce((sum, row) => sum + sol(row), 0);
     const dexVolumeSol = Number.isFinite(dex?.volumeUsd) && solUsd > 0 ? dex.volumeUsd / solUsd : null;
     const scale = !covered && dexVolumeSol && buyVolumeSol + sellVolumeSol > 0 ? dexVolumeSol / (buyVolumeSol + sellVolumeSol) : 1;
-    return [key, { coverage: covered ? 'complete' : 'partial', sampleCount: rows.length,
-      indexedCounts: Number.isFinite(dex?.buys) && Number.isFinite(dex?.sells), indexedVolume: dexVolumeSol != null,
+    const indexedCount = completeTradeCount(dex?.buys,dex?.sells);
+    return [key, { coverage: 'partial', sampleCount: rows.length,
+      indexedCounts: indexedCount != null, indexedVolume: dexVolumeSol != null,
       volumeSplitEstimated: scale !== 1,
-      tradeCount: Number.isFinite(dex?.buys) ? dex.buys + dex.sells : rows.length, buyCount: Number.isFinite(dex?.buys) ? dex.buys : buys.length, sellCount: Number.isFinite(dex?.sells) ? dex.sells : sells.length,
+      tradeCount: indexedCount ?? rows.length, buyCount: indexedCount != null ? dex.buys : buys.length, sellCount: indexedCount != null ? dex.sells : sells.length,
       traderCount: new Set(rows.map(row => row.trader).filter(Boolean)).size, volumeSol: dexVolumeSol ?? buyVolumeSol + sellVolumeSol,
       buyVolumeSol: buyVolumeSol * scale, sellVolumeSol: sellVolumeSol * scale, largestTradeSol: rows.reduce((max, row) => Math.max(max, sol(row)), 0) }];
   }));
@@ -158,7 +160,7 @@ function applyNumbers(appState, data) {
   // Whole dollars from $1,000 up, matching the first render (prices below that keep cents).
   const usd = value => Number.isFinite(value) ? (Math.abs(value) >= 1000 ? `$${Math.round(value).toLocaleString('en-US')}` : appState.formatUsd(value)) : '—';
   if (Number.isFinite(data.priceUsd)) appState.setCoinField('#coin-price', data.priceUsd < 0.01 ? `$${formatTinyDecimal(data.priceUsd)}` : usd(data.priceUsd));
-  for (const selector of ['#coin-market-cap', '#coin-strip-market-cap']) if (Number.isFinite(data.marketCapUsd)) appState.setCoinField(selector, usd(data.marketCapUsd));
+    renderIndexedMetricFields(appState,data);
   if (Number.isFinite(data.volume24hUsd)) appState.setCoinField('#coin-volume', usd(data.volume24hUsd));
   appState.setCoinField('#coin-liquidity', Number.isFinite(data.liquidityUsd) ? usd(data.liquidityUsd) : data.dexId === 'pumpfun' ? 'Bonding curve' : '—');
   if (Number.isFinite(data.priceChangePercent)) appState.setCoinField('#coin-change', `${data.priceChangePercent > 0 ? '+' : ''}${data.priceChangePercent.toFixed(2)}% · 24h`);
@@ -166,15 +168,6 @@ function applyNumbers(appState, data) {
   const volumeLabel = globalThis.document?.querySelector('#coin-strip-volume')?.previousElementSibling;
   if (volumeLabel) volumeLabel.textContent = '24h volume';
   appState.setCoinField('#coin-strip-volume', Number.isFinite(data.volume24hUsd) ? appState.formatCompactUsd(data.volume24hUsd) : '—');
-  const trades = Number(data.buyCount24h) + Number(data.sellCount24h);
-  appState.setCoinField('#coin-strip-trades', Number.isFinite(trades) ? trades.toLocaleString('en-US') : '—');
-  const burnCell = globalThis.document?.querySelector('#coin-strip-burn-cell');
-  if (burnCell) {
-    const known = Number.isFinite(data.burnedTokens);
-    burnCell.hidden = !known;
-    // Compact (26.12M) so the figure fits the narrow stat cell instead of breaking mid-number.
-    if (known) appState.setCoinField('#coin-strip-burned', `${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(data.burnedTokens)} · ${data.burnedPercent.toFixed(2)}%`);
-  }
   if (appState.coinTradeEstimate?.mint === data.mint && Number.isFinite(data.priceUsd)) { appState.coinTradeEstimate.priceUsd = data.priceUsd; appState.renderTradeAmountEstimate?.(); }
 }
 
@@ -193,7 +186,7 @@ function startLiveRefresh(appState, mint, loadId) {
       if (loadId !== appState.coinLoadId) return;
       const data = overview?.available && overview.data?.mint === mint ? overview.data : null;
       if (data) { applyNumbers(appState, data); if (appState.coinIndexedWindows?.mint === mint) appState.coinIndexedWindows.windows = data.windows || appState.coinIndexedWindows.windows; }
-      applyTrades(appState, mint, trades, data ? data.buyCount24h + data.sellCount24h : null);
+      applyTrades(appState, mint, trades, completeTradeCount(data?.buyCount24h,data?.sellCount24h));
       appState.renderCoinPricePath?.();
     }
     liveTimer = setTimeout(tick, LIVE_MS);
