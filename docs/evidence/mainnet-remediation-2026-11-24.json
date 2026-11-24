@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-24T06:38:35.598Z",
+  "status": "security-remediated-mainnet-not-ready",
+  "mainnetActivationAuthorized": false,
+  "source": {
+    "applicationRevision": "2a8a37a98cbce09d460ff3aad19a67581c108992",
+    "contractBuildRevision": "9ada9f8f3c473430f9d3c1d15fe294cb7df2b747",
+    "contractTree": "4184c08bb6561707b0aca99f2bc8c952834b6adf",
+    "contractTreeMatchesCandidate": true
+  },
+  "candidate": {
+    "schemaVersion": 1,
+    "status": "awaiting-independent-review",
+    "deployEligible": false,
+    "sourceRevision": "68c526f3bbe4cdc8afcf5e0c9c10028e9f87a97b",
+    "contractTree": "4184c08bb6561707b0aca99f2bc8c952834b6adf",
+    "programId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+    "conversionPools": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v:Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v",
+    "binary": {
+      "bytes": 1110672,
+      "sha256": "b2e811357cf55dc6624a48b6f630eb6c32ae2c23f3bd6c271d6013c72db70b9c"
+    },
+    "compilerSha256": "e74835c5f7b9147151f8d1970e4433a3e5c6f95fc9b1c1bcaffdb423b54678bd",
+    "buildSettings": [
+      "features=mainnet-v3-program",
+      "arch=v0",
+      "platform-tools=v1.54",
+      "opt-level=z",
+      "strip=true",
+      "locked=true"
+    ],
+    "evidence": "docs/evidence/mainnet-referral-consent-2026-11-24.json",
+    "reviewScope": "Contract tree only. Each reproduction records its actual full source revision and tree. Historical evidence and runtime release approval remain separate.",
+    "localArtifact": "tmp/remaining-issues-20261124/production-9ada9f8f/funded_fee_router.so"
+  },
+  "findings": {
+    "referralAuthorization": "Creator signatures required for Mainnet referral approval and payment; compiled VM regression passes.",
+    "rpcSubmission": "All three relay paths reject protected program and ProgramData keys, including resolved lookup tables and indirect CPI accounts. Malformed or unavailable proof fails closed.",
+    "unusedFlags": "Prior documentation correction retained.",
+    "headerRepair": "Not a Mainnet entrypoint: excluded by feature gating; production bytecode returns Anchor 101 in the executed reward_mainnet_gates test."
+  },
+  "validation": {
+    "security": {
+      "passed": 36,
+      "failed": 0,
+      "scope": "local mocked regressions; final ProgramData addition also verified in focused suite and final application CI"
+    },
+    "focusedRpc": {
+      "passed": 7,
+      "failed": 0,
+      "scope": "local in-memory signed fixtures and mocked RPC; no blockchain submission"
+    },
+    "readiness": {
+      "cases": 476,
+      "passed": 476,
+      "failed": 0,
+      "scope": "466 passed in full Linux run; ten directory-fsync fault cases passed in isolated Linux rerun with explicit filesystem root. Synthetic financial RPC, public captured artifacts and temporary journals; not live Mainnet acceptance.",
+      "node": "24.22.2"
+    },
+    "productionVm": {
+      "passed": 27,
+      "failed": 0,
+      "scope": "Exact production-identity SBF in LiteSVM; no live chain transactions"
+    },
+    "applicationCi": "https://github.com/roger-morrision/funded.app/actions/runs/45341367730",
+    "contractCi": "https://github.com/roger-morrision/funded.app/actions/runs/45339137899",
+    "financialCpi": "Buyback, conversion, and agency milestone CI steps passed against captured public programs in the VM.",
+    "sourceChecks": "1237 JavaScript files syntax checked; source-size checks passed."
+  },
+  "limitations": [
+    "Initial Windows readiness run lacked required fixture variables and cannot establish Linux durability. Superseded by explicitly scoped Linux runs.",
+    "Initial Linux Node 22 run is excluded; final runs used Node 24.",
+    "Initial contract test clone lacked Node dependencies; successful final runs installed Linux dependencies.",
+    "Claude follow-up was not submitted because UI input timed out; its earlier static review remains historical AI evidence."
+  ],
+  "preservedWorkspacePatchSha256": "49f8a0400455c15ce1ab856d1ebc4ec364926402eecd11f4667d07b337098546",
+  "missingInputs": [
+    "deploymentPayerSignerReference",
+    "metadataSecretPath",
+    "feeRecipient",
+    "Independent reviewer and exact-source/binary report",
+    "Explicit canary plan and budget"
+  ],
+  "remainingEngineering": [
+    "Mainnet launch client and registration still reject submission.",
+    "Production collection, signing, and payout runtime wiring and current-release end-to-end financial acceptance are not complete.",
+    "Finalized deployed program verification and capped canary remain unavailable before an approved program deployment."
+  ],
+  "acceptedBoundaries": [
+    "Same-host backup failure-domain choice retained as previously accepted.",
+    "Missing historical Devnet eligibility bank is not imported into the fresh isolated Mainnet installation."
+  ],
+  "logs": {
+    "security-tests.json": "07a87436ca5a93cee11ee6c3677a2698274385449d1f8ac94e32350cfda88d36",
+    "linux-readiness-tests.log": "aeef166e227e6bcca681cb889cee1e599e0da91b9a26a5abc16fb1c94b125575",
+    "linux-directory-fence.log": "f7ba00a2899f818906a68f1f580400847029079f2c62bb8e6a1cb5674307d3d7",
+    "production-build.log": "8fcea1a979b9105af163343fddd6159a94c32138da841f4c2755225fe08227d4",
+    "production-contract-tests.log": "b050c4744784d3b904bd26c5fefe579a51f7e62f91a6cf0d117f7d0aaf9dac4e",
+    "deployment-quote.json": "349d42ed5128a2128fd846a2a90aa6917b546a8054a0f2f7a88f4e88f9387c44"
+  },
+  "devnetRelease": {
+    "origin": "https://funded.vip",
+    "revision": "2a8a37a98cbce09d460ff3aad19a67581c108992",
+    "image": "sha256:4a69d8d7f38400e4f523c0fc17772c81494b22e73cd95864a28eaba958597f66",
+    "releaseId": "2a8a37a98cbce09d460ff3aad19a67581c108992-908e38cb-edcf-42a4-9a76-02a00d144a13",
+    "frontendDigest": "eedbbc96252e7e23ec64fc9c9931f649e4cc72d34acff071485ac225608e19ab",
+    "verifiedAt": "2026-11-24T06:40:14.807Z",
+    "healthyServices": [
+      "app",
+      "fee-collector",
+      "buyback-worker",
+      "agency-buyback-worker",
+      "signer",
+      "price-signer"
+    ],
+    "configurationPreserved": true,
+    "rollbackAvailable": true,
+    "liveBrowser": {
+      "at": "2026-11-24T06:40:28.472Z",
+      "origin": "https://funded.vip",
+      "scope": "Live public UI: startup, page search, destination focus, Help and viewport overflow. All non-read requests blocked; no wallet or transaction.",
+      "results": [
+        {
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "passed": true,
+          "scriptErrors": [],
+          "screenshot": "tmp/deploy-security-20261124/live-1280.png"
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "passed": true,
+          "scriptErrors": [],
+          "screenshot": "tmp/deploy-security-20261124/live-390.png"
+        }
+      ]
+    }
+  },
+  "codeIndex": {
+    "status": "updated",
+    "chunks": 6900,
+    "files": 1623,
+    "scope": "navigation only, not execution evidence"
+  },
+  "mainnetSiteDeployment": "Existing richpad.fun non-program site was not redeployed in this task. No Mainnet program was deployed."
+}
