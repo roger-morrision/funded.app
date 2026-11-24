@@ -1,4 +1,5 @@
 import { apiRequest } from '../../../client.js';
+import { confirmedBoosts } from './confirmed-boosts.js';
 
 // "Boost for free (admin)" in the boost dialog. Admin status is decided only by
 // the server from the admin JWT cookie set at wallet sign-in (GET /api/auth/admin);
@@ -55,8 +56,14 @@ export function decorateAdminBoost(appState, details) {
     if (!globalThis.confirm?.(`Add a free ${packageId} boost to this token? No payment and no wallet signature are needed; each confirmation adds one more boost.`)) return;
     busy = true; appState.renderExploreBoostDialog();
     try {
-      await apiRequest('/api/boosts/admin', { method: 'POST', signal: AbortSignal.timeout(20000), body: { mint, packageId } });
-      await appState.loadExploreBoostHistory(mint);
+      const response = await apiRequest('/api/boosts/admin', { method: 'POST', signal: AbortSignal.timeout(20000), body: { mint, packageId } });
+      if (!response.available || response.data?.mint !== mint) throw new Error('Boost confirmation is unavailable. Check history before trying again.');
+      confirmedBoosts.remember(response.data, appState.EXPLORE_CLUSTER);
+      appState.verifiedBoosts = confirmedBoosts.merge(appState.verifiedBoosts, appState.EXPLORE_CLUSTER);
+      appState.verifiedBoostsAvailable = true;
+      appState.scheduleBoostExpiryRefresh();
+      globalThis.dispatchEvent?.(new Event('funded:boost-verified'));
+      await appState.loadExploreBoostHistory(mint, {fresh:true});
       const total = appState.activeBoostMultiplier?.(appState.verifiedBoosts?.[mint]);
       appState.boostCheckout.message = `Free ${packageId} boost added by admin${total ? ` · active now ${total}x` : ''}. No fee was charged.`;
       void appState.loadVerifiedBoosts?.();

@@ -3,6 +3,7 @@ import {currentBoostSnapshot} from '../../../boost-offer.js';
 import {snapshotBoostPayment,assertBoostWalletPayment,MAX_BOOST_NETWORK_FEE_LAMPORTS} from '../../../boost-wallet-review.js';
 import {boostHistoryTable} from '../../features/fees/boost-history-table.js';
 import {decorateAdminBoost} from '../../features/boost/admin-boost-button.js';
+import {confirmedBoosts} from '../../features/boost/confirmed-boosts.js';
 // Dependencies and mutable application state are read live through appState.
 export function createBoostCheckoutController(appState) {
   let livePackages=null, pricingRevision=null;
@@ -114,10 +115,10 @@ export function createBoostCheckoutController(appState) {
   // app-source-end
 
   // app-source: 292
-  async function loadExploreBoostHistory(mint){
-    const response = await appState.apiRequest(`/api/boosts?mint=${encodeURIComponent(mint)}`).catch(() => ({ available:false }));
+  async function loadExploreBoostHistory(mint,{fresh=false}={}){
+    const response = await appState.apiRequest(`/api/boosts?mint=${encodeURIComponent(mint)}${fresh ? `&confirmed=${Date.now()}` : ''}`).catch(() => ({ available:false }));
     if (appState.boostCheckout.mint !== mint) return;
-    if (!response.available || !Array.isArray(response.data?.history)) {
+    if (!response.available || response.data?.cluster !== appState.EXPLORE_CLUSTER || !Array.isArray(response.data?.history)) {
       appState.exploreBoostHistoryState = 'unavailable'; appState.renderExploreBoostDialog(); return;
     }
     appState.exploreBoostHistoryState = 'ready';
@@ -141,6 +142,7 @@ export function createBoostCheckoutController(appState) {
     }
     if (response.data.active?.[mint]) appState.verifiedBoosts[mint] = response.data.active[mint];
     else delete appState.verifiedBoosts[mint];
+    appState.verifiedBoosts = confirmedBoosts.merge(appState.verifiedBoosts, appState.EXPLORE_CLUSTER);
     appState.scheduleBoostExpiryRefresh();
     appState.renderExploreBoostDialog();
   }

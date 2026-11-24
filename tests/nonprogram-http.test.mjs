@@ -76,7 +76,8 @@ test('nonprogram admin sign-in, free listing and stacked boosts persist and reje
   assert.equal((await request('/api/listings/admin',{mint:f.mint})).status,409);
   assert.equal((await request('/api/boosts/admin',{mint:f.mint,packageId:'bad'})).status,400);
   for(let i=0;i<2;i++){const boost=await request('/api/boosts/admin',{mint:f.mint,packageId:'10x'});
-    assert.equal(boost.status,201);assert.equal(boost.data.lamports,0);assert.equal(boost.data.adminBoost,true);}
+    assert.equal(boost.status,201);assert.equal(boost.data.lamports,0);assert.equal(boost.data.adminBoost,true);
+    assert.equal(boost.data.active.multiplier,(i+1)*10);assert.equal(boost.data.active.count,i+1);}
   const state=await createStore(join(f.dir,'state.json'),'').read();
   assert.equal(state.listings[f.mint].adminListing,true);
   assert.equal(Object.values(state.boostReceipts).filter(r=>r.mint===f.mint).length,2);

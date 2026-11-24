@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
-import { boostPackage } from '../../boost-offer.js';
+import { boostPackage, activeBoosts } from '../../boost-offer.js';
 import { STACKED_BOOST_POLICY } from '../../boost-timeline.js';
 import { allowedAuthOrigin } from '../x-auth.mjs';
 import { updateBoostState } from '../boost-store.mjs';
@@ -38,7 +38,8 @@ export function createAdminBoostRoute({ body, store, solanaCluster, clientKey, r
       current.boostReceipts ||= {};
       current.boostReceipts[key] = record;
       (current.adminAudit ||= {})[`admin-boost:${key}`] = { wallet: admin.wallet, mint, packageId: pack.id, startsAt, session: admin.jti };
-      return record;
+      // Return the committed total, including stacked boosts, without a cached GET.
+      return { ...record, active: activeBoosts(Object.values(current.boostReceipts), now(), solanaCluster)[mint] };
     });
     return json(res, 201, saved);
   };

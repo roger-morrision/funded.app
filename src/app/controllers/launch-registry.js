@@ -1,5 +1,6 @@
 import { createReserveLoader } from '../../features/rewards/reserve-loader.js';
 import { currentBoostSnapshot } from '../../../boost-offer.js';
+import { confirmedBoosts } from '../../features/boost/confirmed-boosts.js';
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchRegistryController(appState) {
   let displayedBoostQuantities;
@@ -141,12 +142,12 @@ export function createLaunchRegistryController(appState) {
     const response = await appState.apiRequest('/api/boosts', { signal }).catch(() => ({ available:false }));
     signal?.throwIfAborted();
     if (!response.available || response.data?.cluster !== appState.EXPLORE_CLUSTER) {
-      appState.verifiedBoostsAvailable = false;
-      appState.verifiedBoosts = {};
+      appState.verifiedBoosts = confirmedBoosts.merge({}, appState.EXPLORE_CLUSTER);
+      appState.verifiedBoostsAvailable = Object.keys(appState.verifiedBoosts).length > 0;
       appState.scheduleBoostExpiryRefresh();
       return;
     }
-    appState.verifiedBoosts = response.data.active || {};
+    appState.verifiedBoosts = confirmedBoosts.merge(response.data.active || {}, appState.EXPLORE_CLUSTER);
     appState.verifiedBoostsAvailable = true;
     appState.boostPurchasesEnabled = response.data.enabled === true;
     appState.scheduleBoostExpiryRefresh();

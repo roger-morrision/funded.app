@@ -29,20 +29,25 @@ export function renderCoinPulse({ coinMarketActivity, coinPulsePeriod }, { forma
   const partial = pulse.coverage === 'partial';
   const count = value => `${partial && value > 0 ? '≥' : ''}${formatOnChainNumber(value, 0)}`;
   const usd = value => formatExploreUsd(value, { partial: partial && Number(value) > 0 });
-  setCoinField('#coin-pulse-trades', count(pulse.tradeCount));
+  const tradeCount = value => pulse.indexedCounts ? formatOnChainNumber(value, 0) : count(value);
+  const splitUsd = value => pulse.volumeSplitEstimated ? `≈${formatExploreUsd(value, {partial:false})}` : usd(value);
+  setCoinField('#coin-pulse-trades', tradeCount(pulse.tradeCount));
   setCoinField('#coin-pulse-traders', count(pulse.traderCount));
-  setCoinField('#coin-pulse-volume', usd(pulse.volumeSol));
-  setCoinField('#coin-pulse-buy-volume', usd(pulse.buyVolumeSol));
-  setCoinField('#coin-pulse-sell-volume', usd(pulse.sellVolumeSol));
+  setCoinField('#coin-pulse-volume', pulse.indexedVolume ? formatExploreUsd(pulse.volumeSol, {partial:false}) : usd(pulse.volumeSol));
+  setCoinField('#coin-pulse-buy-volume', splitUsd(pulse.buyVolumeSol));
+  setCoinField('#coin-pulse-sell-volume', splitUsd(pulse.sellVolumeSol));
   setCoinField('#coin-pulse-largest', usd(pulse.largestTradeSol));
-  setCoinField('#coin-pulse-buy-count', `Buys ${count(pulse.buyCount)}`);
-  setCoinField('#coin-pulse-sell-count', `Sells ${count(pulse.sellCount)}`);
+  setCoinField('#coin-pulse-buy-count', `Buys ${tradeCount(pulse.buyCount)}`);
+  setCoinField('#coin-pulse-sell-count', `Sells ${tradeCount(pulse.sellCount)}`);
   const volume = Number(pulse.buyVolumeSol) + Number(pulse.sellVolumeSol);
   if (buyBar) buyBar.style.width = `${volume > 0 ? Number(pulse.buyVolumeSol) / volume * 100 : 0}%`;
   if (sellBar) sellBar.style.width = `${volume > 0 ? Number(pulse.sellVolumeSol) / volume * 100 : 0}%`;
   if (note) {
-    note.hidden = !partial;
-    note.textContent = '';
+    note.hidden = !partial && !pulse.volumeSplitEstimated;
+    note.textContent = partial
+      ? `Traders and largest trade are based on ${Number.isSafeInteger(pulse.sampleCount) ? pulse.sampleCount.toLocaleString('en-US') + ' sampled' : 'sampled'} trades, not the full ${coinPulsePeriod} total.`
+      : '';
+    if (pulse.volumeSplitEstimated) note.textContent += ' Buy/sell volumes are estimates.';
   }
 }
 

@@ -133,7 +133,9 @@ function activityWindows(trades, indexed) {
     const buyVolumeSol = buys.reduce((sum, row) => sum + sol(row), 0), sellVolumeSol = sells.reduce((sum, row) => sum + sol(row), 0);
     const dexVolumeSol = Number.isFinite(dex?.volumeUsd) && solUsd > 0 ? dex.volumeUsd / solUsd : null;
     const scale = !covered && dexVolumeSol && buyVolumeSol + sellVolumeSol > 0 ? dexVolumeSol / (buyVolumeSol + sellVolumeSol) : 1;
-    return [key, { coverage: covered ? 'complete' : 'partial',
+    return [key, { coverage: covered ? 'complete' : 'partial', sampleCount: rows.length,
+      indexedCounts: Number.isFinite(dex?.buys) && Number.isFinite(dex?.sells), indexedVolume: dexVolumeSol != null,
+      volumeSplitEstimated: scale !== 1,
       tradeCount: Number.isFinite(dex?.buys) ? dex.buys + dex.sells : rows.length, buyCount: Number.isFinite(dex?.buys) ? dex.buys : buys.length, sellCount: Number.isFinite(dex?.sells) ? dex.sells : sells.length,
       traderCount: new Set(rows.map(row => row.trader).filter(Boolean)).size, volumeSol: dexVolumeSol ?? buyVolumeSol + sellVolumeSol,
       buyVolumeSol: buyVolumeSol * scale, sellVolumeSol: sellVolumeSol * scale, largestTradeSol: rows.reduce((max, row) => Math.max(max, sol(row)), 0) }];

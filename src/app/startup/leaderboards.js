@@ -2,6 +2,15 @@ import { initializeAppState } from '../runtime.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeLeaderboards(appState) {
+  if (appState.EXPLORE_CLUSTER === 'mainnet-beta') {
+    const poller = appState.createRoutePoller({
+      run: () => appState.loadMainnetTraders(true),
+      active: () => appState.requestedPageRoute() === 'leaderboard' && appState.leaderboardView === 'traders',
+      intervalMs: 15_000,
+    });
+    window.addEventListener('funded:trade-verified', () => { void appState.loadMainnetTraders(true); });
+    document.querySelector('.leaderboard-tabs')?.addEventListener('click', () => poller.refresh());
+  }
   const table = document.querySelector('#leaderboard-table');
   table?.addEventListener('focusin', event => {
     const link = event.target.closest('a[href]');

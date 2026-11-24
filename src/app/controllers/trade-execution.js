@@ -341,7 +341,8 @@ export function createTradeExecutionController(appState) {
       // A verified trade needs no extra receipt line; clear any pending status.
       appState.clearTradeReceiptStatus?.();
       appState.rememberRoundTripReceipt({ walletAddress:pending.walletAddress, mint:pending.mint, side:pending.side, signature:pending.signature, symbol:pending.symbol });
-        appState.productEvent('trade_confirmed');
+      appState.productEvent('trade_confirmed');
+      window.dispatchEvent(new Event('funded:trade-verified'));
       appState.renderRoundTripAction();
       const share = document.querySelector('#trade-share');
       if (share) {
