@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-24",
+  "status": "launch-execution-recovery-hardened",
+  "scope": "local-only and mocked RPC verification",
+  "requiredSecurityTests": {
+    "failed": 0,
+    "newCases": 13,
+    "skipped": 0,
+    "required": 60,
+    "passed": 60
+  },
+  "productionFrontendBuild": "passed",
+  "sourceSize": {
+    "maintainedFiles": 1514,
+    "passed": true
+  },
+  "mainnetExecutionEnabled": false,
+  "liveTransactionProof": false,
+  "sourceHashes": {
+    "launch-recovery-outcome.js": "561a0c553c3473d674a02741bc947df8d40693e9e1827487a2f47a3d9fe5d5f5",
+    "tests/security/launch-burn-order.test.mjs": "e7c646c5bb94fa57417d25e49a3911dbe21db15c90e7459cbc132e439fdd33bb",
+    "launch-flow.js": "d7d7d49f92e90d7f9f5dc518f77f37e5464c3cad17d370d2ceebb7cccad5f4f0",
+    "launch-journal.js": "a95176a05a5a068ff9f752985e69e7eb480cbfaf7d3c76f2729cc7bb59338653",
+    "config/security-tests.json": "8425371d1f05eb2971f8035e030bd6bdab9315e120e4f91ce3f75a92ccfb99ec",
+    "tests/security/launch-execution-recovery.test.mjs": "ebf08ff1f69a39a9a02a98ae8ab707bc91e3fb4d3fe08fbd78c7dab0319c452b",
+    "launch-executor.js": "c16acfea9056ddd2572dafbbf0bc1057378788e80571c7014315b19919fdf267",
+    "src/app/controllers/launch-submit.js": "442030a1f66d5c3b1315d1586c3b93deffa1542c32142c4c5548dc9f056153af"
+  }
+}

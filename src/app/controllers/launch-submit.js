@@ -4,6 +4,7 @@ import {promotionContentState} from '../../features/launch/promotion-requirement
 import { refreshServiceFees } from '../../features/fees/service-fees-client.js';
 import { readLaunchAgencySelection } from '../../features/marketing/agency-selection.js';
 import { showLaunchSuccess } from '../../features/launch/success-dialog.js';
+import {createLaunchRecoveryRecorder} from '../../../launch-recovery-outcome.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchSubmitController(appState) {
@@ -65,6 +66,7 @@ export function createLaunchSubmitController(appState) {
     appState.launchSubmitting = true;
     appState.updateLaunchButton();
     let journalId, pilotLaunchVerified = false;
+    const recovery=createLaunchRecoveryRecorder();
     try {
       const [{ submitPumpDevnetLaunch }, { devnetExplorer }] = await Promise.all([import('../../../launch-flow.js'), import('../../../launch-core.js')]);
       appState.assertWalletSessionCurrent(session);
@@ -111,7 +113,8 @@ export function createLaunchSubmitController(appState) {
       journalId=crypto.randomUUID();appState.recordLaunchEvent(journalId,{state:'prepared',name,symbol,payer:session.address,cluster:'devnet'});
       appState.emitPilotSignal('launch-submission-started');
       let recoveryMint = null;
-      const recordAndSaveRecovery = event => {
+      const recordAndSaveRecovery = async event => {
+        await recovery.record(event);
         const row = appState.recordLaunchEvent(journalId, event);
         if (event.state === 'prepared' && event.mint) {
           recoveryMint = event.mint;
@@ -254,26 +257,34 @@ export function createLaunchSubmitController(appState) {
       const burnSummary = burnReceipt
         ? ` · ${appState.formatLaunchBurnAmount(burnReceipt.amountTokens)} $RICH burned ${burnReceipt.atomicWithPumpLaunch ? 'atomically' : 'in a separately confirmed transaction'}`
         : '';
+      const developerBuyPending=result.developerBuyRecovery?.broadcastAttempted&&result.developerBuyRecovery.outcome!=='finalized-failure';
+      const developerBuySummary=result.developerBuyError
+        ? `\nDeveloper buy: ${developerBuyPending?'receipt verification required. Do not buy again until its outcome is known.':result.developerBuyError}` : '';
       const launchLinks = [
         { label: burnReceipt?.atomicWithPumpLaunch ? 'Verify launch and burn on Explorer ↗' : 'Verify fee owner on Explorer ↗', href: devnetExplorer(`tx/${result.signature}`) },
+        ...(developerBuyPending&&result.developerBuyRecovery.signature?[{label:'Verify developer buy on Explorer ↗',href:devnetExplorer(`tx/${result.developerBuyRecovery.signature}`)}]:[]),
         ...(burnReceipt && !burnReceipt.atomicWithPumpLaunch ? [{ label: 'Verify separate $RICH burn on Explorer ↗', href: devnetExplorer(`tx/${burnReceipt.signature}`) }] : []),
         { label: 'View mint on Explorer ↗', href: devnetExplorer(`address/${result.mint.publicKey.toBase58()}`) },
         { label: 'Open My launches →', href: '#my-launches' },
         { label: 'Review this coin’s migration airdrop →', href: `/?airdropMint=${launchPolicy.mint}#airdrops` },
       ];
-      appState.setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}\nSettlement policy: 80% creator-directed · ${savedFeeAllocationCopy(launchPolicy.feeDistribution)}${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
+      appState.setLaunchLinks(`Launch verified ✓\n${result.name} (${result.symbol}) is confirmed on Solana.\nMint: ${result.mint.publicKey.toBase58()}\nLaunch tier: ${launchBurn.label}${burnSummary}${developerBuySummary}\nSettlement policy: 80% creator-directed · ${savedFeeAllocationCopy(launchPolicy.feeDistribution)}${feeDistributionInput.solClaimPercent > 0 ? `\nSOL claim recipient: ${xRecipient}` : ''}`, launchLinks);
       document.querySelector('#launch-status').classList.add('launch-complete');
       appState.showToast(persistedLaunch.available ? `${result.symbol} launched and listed in Explore` : `${result.symbol} launched on-chain; Explore listing is pending API verification`); appState.renderAirdropClaims(); appState.refreshWalletBalance();
       showLaunchSuccess({mint:launchPolicy.mint,name:result.name,symbol:result.symbol,signature:result.signature,registered:persistedLaunch.available});
     } catch (error) {
+      error=recovery.failure(error);
       let saved=appState.readLaunchJournal().find(row=>row.id===journalId);
-      if(journalId&&saved?.state==='prepared')saved=appState.recordLaunchEvent(journalId,{state:'failed',message:error.message});
-      const needsRecovery=Boolean(saved&&(saved.signature||saved.events?.some(event=>event.signature||['broadcasting','submitted','confirmed','verification-pending','registration-pending','unknown'].includes(event.state))));
+      if(journalId&&saved?.state==='prepared'){
+        try{saved=appState.recordLaunchEvent(journalId,{state:'failed',message:error.message});}catch{/* Preserve the original execution outcome when storage is unavailable. */}
+      }
+      const needsRecovery=Boolean(error.launchRecovery?.broadcastAttempted||saved&&(saved.signature||saved.events?.some(event=>event.signature||['broadcasting','submitted','confirmed','verification-pending','registration-pending','unknown'].includes(event.state))));
       if (!pilotLaunchVerified) appState.emitPilotSignal(appState.pilotInterruptedSignal('launch', error, needsRecovery));
       if (appState.isWalletSessionCurrent(session)) {
         const message = `Launch stopped: ${error.message}${needsRecovery ? ' A transaction may have reached Solana. Check its receipt before attempting another launch.' : ' No transaction was sent; correct the issue and retry.'}`;
-        if (needsRecovery && saved?.signature) {
-          appState.setLaunchLinks(message, [{ label: 'Check transaction on Solana Explorer ↗', href: appState.exploreExplorer(`tx/${encodeURIComponent(saved.signature)}`) }], true);
+        const recoverySignature=error.launchRecovery?.signature||saved?.signature;
+        if (needsRecovery && recoverySignature) {
+          appState.setLaunchLinks(message, [{ label: 'Check transaction on Solana Explorer ↗', href: appState.exploreExplorer(`tx/${encodeURIComponent(recoverySignature)}`) }], true);
         } else appState.setLaunchStatus(message, true);
       }
     } finally { appState.launchSubmitting = false; appState.updateLaunchButton(); }

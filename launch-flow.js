@@ -15,6 +15,7 @@ import { buildProtectedMintRouterV3InitializeInstruction, directedGrossUnits, pr
   verifyMintPolicyV3Account,
   verifyMintRouterV3Account } from './mint-router-v3.js';
 import { executeLaunchPlan } from './launch-executor.js';
+import {createLaunchRecoveryRecorder} from './launch-recovery-outcome.js';
 import { submitPairedDeveloperBuy } from './paired-developer-buy.js';
 import { confirmPromotionBurn } from './launch-promotion-burn.js';
 import { initialCurvePremiumBps } from './launch-review.js';
@@ -195,6 +196,8 @@ export async function prepareFundedLaunchBurn({ connection, payer, fundedMint, a
 }
 
 export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, provider, payer, input, metadataUri, prepareMetadata, feeRouterProgramId = null, useMintRouter = false, v3FeeRouter = null, launchBurn = null, launchServiceQuote = null, reserveConfig = null, onStatus = () => {}, onJournal = () => {}, assertWalletCurrent = () => {} }) {
+  const recovery=createLaunchRecoveryRecorder(onJournal);onJournal=recovery.record;
+  try{
   if (cluster !== 'devnet') throw new Error('Mainnet coin launching is not enabled. No transaction was prepared or sent.');
   if (launchBurn && launchBurn.tier !== 'standard' && (!Number.isSafeInteger(launchBurn.amountTokens) || launchBurn.amountTokens <= 0))
     throw Error('A valid promotion burn quote is required before coin creation.');
@@ -210,6 +213,9 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   const launchInput = normalizeLaunchInput(input);
   if (!reserveConfig?.authority || !reserveConfig?.lookupTable || !Number.isSafeInteger(input.reserveTokens) || input.reserveTokens <= 0)
     throw new Error('An active, configured community reward vault is required before coin creation.');
+  if(String(feeRouterProgramId)!==String(v3FeeRouter.programId)||reserveConfig.programId!==String(v3FeeRouter.programId)
+    ||String(reserveConfig.authority)!==String(v3FeeRouter.initialAuthority))
+    throw new Error('Launch, reserve and settlement program/authority identities must match before signing.');
   await assertRpcNetwork(connection,cluster);
   assertWalletCurrent();
   const global = await verifyFeeRouterAccount({ connection, programId:v3FeeRouter.programId,
@@ -246,7 +252,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if(input.maxInitialBuyLamports!=null&&initialBuy.maxSolAmountLamports>BigInt(input.maxInitialBuyLamports))throw new Error('The initial-buy cost increased beyond the reviewed maximum. Refresh the quote and review again; no transaction was sent.');
   const mint = Keypair.generate();
   const serviceInstructions = launchServiceFeeInstructions({ payer, mint:mint.publicKey, quote:launchServiceQuote, cluster,escrowReceiptMarker:launchDeveloperBaseUnits>0n });
-  onJournal({state:'prepared',mint:mint.publicKey.toBase58()});
+  await onJournal({state:'prepared',mint:mint.publicKey.toBase58()});
   const mintRouter = buildLaunchMintRouter({ mint:mint.publicKey, payer, v3FeeRouter,
     feeShares:input.feeShares });
   const feeRouter = mintRouter.router.address;
@@ -275,21 +281,14 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     ? await prepareFundedLaunchBurn({ connection, payer, fundedMint: launchBurn.fundedMint, amountTokens: launchBurn.amountTokens })
     : null;
   const beforeBroadcast = () => {
+    if(!Number.isFinite(Date.parse(launchServiceQuote.expiresAt)) || Date.parse(launchServiceQuote.expiresAt)<=Date.now()+60_000)
+      throw Error('Launch fee quote is too close to expiry. Refresh before sending another transaction.');
     // Leave enough lease time for this recent-blockhash transaction to expire
     // before another creator may acquire the same ticker.
     if (symbolReservationExpiresAt !== null && (!Number.isFinite(symbolReservationExpiresAt)
       || Date.now() + 5 * 60_000 >= symbolReservationExpiresAt))
       throw new Error('Ticker reservation expired. Check saved receipts before starting another launch review.');
   };
-  const launchBurnReceipt = burnPlan ? await confirmPromotionBurn({connection,provider,payer,mint,burnPlan,quoteId:launchBurn.quoteId,
-    onJournal,onStatus,assertWalletCurrent,beforeBroadcast:()=>{
-      beforeBroadcast();
-      if(!Number.isFinite(Date.parse(launchBurn.quoteExpiresAt)) || Date.parse(launchBurn.quoteExpiresAt)<=Date.now()+30_000)
-        throw Error('Promotion quote expired before burning. Refresh the launch review.');
-      if(!Number.isFinite(Date.parse(launchServiceQuote.expiresAt)) || Date.parse(launchServiceQuote.expiresAt)<=Date.now()+60_000)
-        throw Error('Launch fee quote is too close to expiry. Refresh before burning.');
-    }}) : null;
-  onStatus(burnPlan ? 'Promotion burn verified. Preparing the Pump coin creation transaction…' : 'Preparing the Pump coin creation transaction…');
   const launchInstructions = paired
     ? await PUMP_SDK.createV2AndBuyV2Instructions({
       global: initialBuy.global,
@@ -342,11 +341,20 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
     expectedSol:(Number(initialBuy.solAmountLamports) / 1_000_000_000).toFixed(9),
     maximumSol:(Number(initialBuy.maxSolAmountLamports) / 1_000_000_000).toFixed(9),
   };
+  // Compile and size-check every creation step before an irreversible burn.
+  // Execution refreshes each blockhash after the burn has been verified.
+  const launchBurnReceipt = burnPlan ? await confirmPromotionBurn({connection,provider,payer,mint,burnPlan,quoteId:launchBurn.quoteId,
+    onJournal,onStatus,assertWalletCurrent,beforeBroadcast:()=>{
+      beforeBroadcast();
+      if(!Number.isFinite(Date.parse(launchBurn.quoteExpiresAt)) || Date.parse(launchBurn.quoteExpiresAt)<=Date.now()+30_000)
+        throw Error('Promotion quote expired before burning. Refresh the launch review.');
+    }}) : null;
+  onStatus(burnPlan ? 'Promotion burn verified. Preparing the Pump coin creation transaction…' : 'Preparing the Pump coin creation transaction…');
   assertWalletCurrent();
   onStatus(plan.mintRouterSeparate ? 'Approve mint router initialization, then approve the Pump launch…'
     : 'Approve the Pump launch with richpad.fun set as creator-fee owner…');
   const {signature,mintRouterSignature}=await executeLaunchPlan({connection,provider,payer,mint,plan,assertWalletCurrent,onEvent:onJournal,beforeBroadcast});
-  onJournal({state:'verification-pending',signature});
+  await onJournal({state:'verification-pending',signature});
   const reserveAccount = await getAccount(connection, reserve.destination, 'finalized', TOKEN_2022_PROGRAM_ID);
   if (!reserveAccount.owner.equals(reserve.vault) || !reserveAccount.mint.equals(mint.publicKey) || reserveAccount.amount !== reserve.amount)
     throw new Error(`Coin was created but its exact community reserve is not verified. Mint: ${mint.publicKey.toBase58()}; transaction: ${signature}`);
@@ -375,7 +383,7 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
   if (!bondingCurve) throw new Error(`Coin was created, but its Pump bonding curve could not be verified. Mint: ${mint.publicKey.toBase58()}`);
   const feeRoute = verifyPermanentPumpCreatorRoute({ bondingCurve, feeRouter, payer });
   if (!feeRoute.verified) throw new Error(`Coin was created, but richpad.fun is not its Pump creator-fee owner. Mint: ${mint.publicKey.toBase58()}`);
-  let developerBuySignature = null, developerBuyError = null;
+  let developerBuySignature = null, developerBuyError = null, developerBuyRecovery = null;
   if (separateDeveloperBuy) {
     // The coin exists already: a cancelled or failed developer buy leaves it
     // registered without one; nothing here is retried automatically.
@@ -384,10 +392,17 @@ export async function submitPumpDevnetLaunch({ cluster = 'devnet', connection, p
       developerBuySignature = (await submitPairedDeveloperBuy({ connection, provider, payer, mint:mint.publicKey, quoteMint, quoteTokenProgram,
         spend:developerBuy.solAmountLamports, maxSpend:developerBuy.maxSolAmountLamports, config:reserveConfig.developerTokenLock,
         quoteId:launchServiceQuote.id, lockSeconds:input.developerLockSeconds, lookupTable, assertWalletCurrent, onJournal })).signature;
-    } catch (error) { developerBuyError = error.message; onStatus(`Coin created without the developer buy: ${error.message}`); }
+    } catch (error) {
+      developerBuyError = error.message;
+      developerBuyRecovery = error.launchRecovery || null;
+      onStatus(error.launchRecovery?.broadcastAttempted&&!error.knownFailure
+        ? `Coin created. Developer buy needs receipt verification: ${error.launchRecovery.signature}. Do not buy again until its outcome is known.`
+        : `Coin created without the developer buy: ${error.message}`);
+    }
   }
-  return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate, developerBuySignature, developerBuyError,
+  return { ...launchInput, mint, signature, mintRouterSignature, mintRouterSeparate: plan.mintRouterSeparate, developerBuySignature, developerBuyError, developerBuyRecovery,
     mintRouterScope:mintRouter.scope, pump: true, feeRouter, feeRoute, launchBurnReceipt, initialBuy,
     reserveReceipt:{ signature, vault:reserve.vault.toBase58(), tokenAccount:reserve.destination.toBase58(), fundedTokens:input.reserveTokens, atomic:true },
     metadataUri: launchMetadataUri };
+  }catch(error){throw recovery.failure(error);}
 }

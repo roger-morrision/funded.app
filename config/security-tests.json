@@ -3,6 +3,29 @@
   "scope": "Current-source community opening/replay/history rejection coverage plus fail-closed security runner; local mocked fixtures, not full security audit or chain acceptance.",
   "files": [
     {
+      "path": "tests/security/launch-execution-recovery.test.mjs",
+      "requiredTests": [
+        "launch executor awaits approval and broadcast journals for legacy and v0 messages",
+        "launch executor stops at asynchronous journal failures and preserves broadcast outcome",
+        "launch executor preserves an unknown send when the recovery writer also fails",
+        "launch executor requires explicit finalized success and never resends during reconciliation",
+        "launch executor rechecks wallet and quote after persistence and rejects malformed expiry",
+        "launch executor rejects wallet message substitution in both wire formats",
+        "launch journal refuses corrupt or unreadable history and verifies its write",
+        "launch journal retains unresolved receipts beyond row and event history limits",
+        "launch recovery retains earlier finalized steps and unresolved developer buys after registration"
+      ]
+    },
+    {
+      "path": "tests/security/launch-burn-order.test.mjs",
+      "requiredTests": [
+        "oversized launch fails before promotion burn or wallet approval",
+        "launch preparation persistence failure stops before mint use or promotion burn",
+        "launch fee expiry blocks promotion burn before wallet signing",
+        "launch rejects conflicting reserve custody identities and keeps Mainnet execution disabled"
+      ]
+    },
+    {
       "path": "tests/security/mainnet-launch-readiness.test.mjs",
       "requiredTests": [
         "Mainnet launch reader verifies a finalized public snapshot without granting execution",
