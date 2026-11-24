@@ -8,7 +8,7 @@
   "programId": null,
   "programDataSha256": null,
   "upgradeAuthority": "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi",
-  "payerSignerReference": null,
+  "payerSignerReference": ".secrets/mainnet-release-wallets/deployment-payer-keypair.json",
   "maximumTotalSpendLamports": null,
   "maximumPriorityFeeLamports": "0",
   "independentReviewReference": null,

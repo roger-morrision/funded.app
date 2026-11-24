@@ -47,6 +47,13 @@ export async function buildMainnetLaunchPacket({plan,acceptance,manifest,config,
     &&config.FUNDED_ADMIN_WALLETS===plan.adminWallet;
   checks.selectedAuthority=key(plan.upgradeAuthority)&&acceptance.upgradeAuthority===plan.upgradeAuthority
     &&config.MAINNET_APPROVED_UPGRADE_AUTHORITY===plan.upgradeAuthority;
+  checks.configuredFeeRecipient=key(plan.feeRecipient)&&config.FUNDED_TRADE_FEE_OWNER===plan.feeRecipient
+    &&config.VITE_FUNDED_TRADE_FEE_OWNER===plan.feeRecipient;
+  checks.configuredPayer=present(plan.deploymentPayerSignerReference)
+    &&config.MAINNET_DEPLOYMENT_PAYER_SIGNER_REFERENCE===plan.deploymentPayerSignerReference
+    &&acceptance.payerSignerReference===plan.deploymentPayerSignerReference;
+  checks.configuredMetadata=present(plan.metadataSecretPath)&&config.METADATA_STORAGE==='pinata'
+    &&present(config.PINATA_JWT_FILE)&&resolve(config.PINATA_JWT_FILE)===resolve(plan.metadataSecretPath);
   checks.configuredSpend=checks.uncappedDeploymentSpend&&config.MAINNET_MAXIMUM_TOTAL_SPEND_LAMPORTS===undefined
     &&config.MAINNET_MAXIMUM_PRIORITY_FEE_LAMPORTS===plan.maximumPriorityFeeLamports;
   const reviewed=reviewedMainnetManifest(manifest);

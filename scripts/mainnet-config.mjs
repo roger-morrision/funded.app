@@ -13,9 +13,11 @@ export function loadMainnetConfig(file,{read=readFileSync}={}){
     const reference=env[name+'_FILE'];
     if(missing(reference)){if(missing(env[name]))delete env[name];continue;}
     if(!missing(env[name]))throw Error(`Configure ${name} by file reference only, not both sources.`);
-    let value;try{value=read(resolve(dirname(path),reference),'utf8').trim();}catch{throw Error(`Cannot read ${name}_FILE. No network request was made.`);}
+    const resolvedReference=resolve(dirname(path),reference);
+    let value;try{value=read(resolvedReference,'utf8').trim();}catch{throw Error(`Cannot read ${name}_FILE. No network request was made.`);}
     if(missing(value)||/[\r\n]/.test(value))throw Error(`Invalid ${name}_FILE contents.`);
     env[name]=value;
+    env[name+'_FILE']=resolvedReference;
   }
   return env;
 }

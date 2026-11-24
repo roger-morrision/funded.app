@@ -3,6 +3,15 @@
   "scope": "Current-source community opening/replay/history rejection coverage plus fail-closed security runner; local mocked fixtures, not full security audit or chain acceptance.",
   "files": [
     {
+      "path": "tests/security/mainnet-settings-integration.test.mjs",
+      "requiredTests": [
+        "Mainnet preparation binds existing public settings without enabling runtime writes",
+        "Mainnet preparation rejects activation, signer settings, credentials and mismatched identities",
+        "Mainnet loader resolves metadata references and never reads the deployment payer key",
+        "Mainnet packet rejects fee, payer and metadata configuration drift"
+      ]
+    },
+    {
       "path": "tests/community-opening-recovery.test.mjs",
       "requiredTests": [
         "recovers a finalized opening saved before the 300-second deadline after worker restart",

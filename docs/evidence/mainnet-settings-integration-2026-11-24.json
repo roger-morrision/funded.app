@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-24",
+  "status": "configuration-integrated-not-deployable",
+  "mainnetActivationAuthorized": false,
+  "payer": {
+    "publicKey": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
+    "metadataReference": ".secrets/mainnet-release-wallets/deployment-payer-metadata.json",
+    "signerReference": ".secrets/mainnet-release-wallets/deployment-payer-keypair.json",
+    "metadataMatchesPlan": true,
+    "fileExists": true,
+    "privateKeyRead": false,
+    "fundingAndControlVerified": false
+  },
+  "metadata": {
+    "storage": "pinata",
+    "localSecretReference": ".secrets/pinata-jwt",
+    "fileExists": true,
+    "existingMainnetCompose": "tmp/mainnet-deploy/mainnet.compose.json",
+    "existingMainnetHostReference": "/opt/richpad/mainnet/secrets/pinata_jwt",
+    "existingMainnetContainerReference": "/run/secrets/pinata_jwt",
+    "credentialRead": false,
+    "authenticationVerified": false,
+    "crossHostCredentialEquivalenceVerified": false,
+    "uploads": 0
+  },
+  "feePolicy": {
+    "source": "https://richpad.fun/api/service-fees",
+    "httpStatus": 200,
+    "cluster": "mainnet-beta",
+    "revision": 0,
+    "tradeBps": 100,
+    "tradeRecipient": "M1HfA8vPXwGGn8uv5p9BZSYjsh4jhxhoMfDx2sGsj4M",
+    "matchesExistingMainnetCompose": true,
+    "scope": "Advertised public configuration only; not on-chain payment evidence"
+  },
+  "generatedConfigReference": ".secrets/mainnet-integration-20261124.env",
+  "verification": {
+    "security": {"passed": 40, "required": 40, "failed": 0, "skipped": 0},
+    "deploymentFundingTests": {"passed": 3, "failed": 0},
+    "javascriptSyntax": {"files": 1239, "passed": true},
+    "sourceSize": {"files": 1507, "passed": true},
+    "generatedPacketSettingsChecks": {"payer": true, "metadata": true, "feeRecipient": true, "ready": false},
+    "overwriteProtection": {"rejected": true, "existingBytesUnchanged": true},
+    "cceIndex": {"status": "incomplete", "reason": "Backend ingest failed: database is locked"},
+    "scope": "local-only and mocked regression tests; no live financial acceptance"
+  },
+  "transactionsSigned": 0,
+  "transactionsSubmitted": 0,
+  "productionServicesChanged": false
+}
