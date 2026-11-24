@@ -54,6 +54,32 @@ That record binds the exact selection; it is trusted operator input, not a
 cryptographic proof that approval occurred. Owner acceptance of an AI review
 method does not populate an operational activation record.
 
+After startup, authenticated `GET /admission` on each private role repeats the
+finalized program, router authority, price signer, pause and coherent journal-set
+checks. It never loads custody, signs or submits a transaction. Successful
+responses are not cached; overlapping probes share only their in-flight check.
+Unauthorized probes return 401, unavailable/incompatible context returns a
+sanitized 503. The result names its role, source revision, observed slots and
+mode. An admitted `recovery-only` process can still report
+`freshSigningEligible: false`; this is not approval to sign. The `check` command
+prints the same freshly inspected result, not the earlier preparation snapshot.
+
+Before release admission, the selected candidate can be observed without a
+signer using:
+
+```sh
+node scripts/verify-mainnet-candidate-online.mjs CANDIDATE_ELF DEDICATED_RPC_FILE NEW_OUTPUT_JSON
+```
+
+The command validates the selected local ELF, then compares the upgradeable
+program and canonical ProgramData in finalized bank snapshots from a dedicated
+RPC and the official RPC. It checks retained authority, exact ELF bytes, zero
+padding and deployment-slot visibility. The full ProgramData hash is distinct
+from the ELF hash. Disagreement, absence or malformed reads fail verification.
+Its output is an observation only: it does not populate the release manifest,
+approve activation, load a payer key or submit a transaction. Public balance and
+rent observations exclude fees, initialization, reserve and acceptance costs.
+
 Journals must already exist. Normal startup cannot provision, truncate or reset
 them. Use the separate reviewed first-provisioning procedure documented in the
 bootstrap guide. All roles need access to validate the complete coherent set;
