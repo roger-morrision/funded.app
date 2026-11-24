@@ -29,6 +29,7 @@ export function createFeaturedScroller(root) {
   const viewport=root.querySelector('.home-featured-viewport'),track=root.querySelector('.home-featured-track');
   const button=root.querySelector('[data-featured-pause]');
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+  const hover=matchMedia('(hover: hover)');
   let paused=reduced.matches,visible=false,frame=0,last=0,holdUntil=0,cycle=0,key='',position=0;
   const copies=()=>{
     track.querySelectorAll('[data-featured-copy]').forEach(node=>node.remove());
@@ -48,7 +49,10 @@ export function createFeaturedScroller(root) {
   const animate=time=>{
     if(!canRun()){frame=0;last=0;return;}
     const elapsed=last?Math.min(time-last,64):0;last=time;
-    if(cycle&&time>=holdUntil&&!root.matches(':hover, :focus-within')){
+    // Pause while browsing cards, but let Play resume while its button retains
+    // focus. Touch can leave :hover stuck, so only mouse hover should hold motion.
+    const browsingCards=viewport.matches(':focus-within')||(hover.matches&&viewport.matches(':hover'));
+    if(cycle&&time>=holdUntil&&!browsingCards){
       // WebKit (iPhone Safari, wallet browsers) keeps scrollLeft in whole pixels, so
       // sub-pixel steps added to it are lost; the position is tracked separately.
       if(Math.abs(viewport.scrollLeft-position)>2)position=viewport.scrollLeft;

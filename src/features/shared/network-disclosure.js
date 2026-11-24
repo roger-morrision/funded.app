@@ -24,11 +24,4 @@ export function mountNetworkDisclosure({ cluster, readOnly }, document = globalT
       : 'richpad.fun is the product name shown here. Verify the domain and token mint before connecting a wallet.';
     help.append(heading,body,brand); document.getElementById('profile')?.append(help);
   }
-  for (const parent of [document.querySelector('.hero-copy-column'),document.getElementById('payments')]) {
-    if (!parent || parent.querySelector('.network-rewards-note')) continue;
-    const note = document.createElement('p'); note.className = 'network-rewards-note';
-    note.textContent = 'Allocated or claimable rewards are not paid rewards. Paid totals require finalized receipts. Promoted placement is not an endorsement. ';
-    const link = document.createElement('a'); link.href = '#profile'; link.textContent = 'Network and reward details';
-    note.append(link); parent.append(note);
-  }
 }
