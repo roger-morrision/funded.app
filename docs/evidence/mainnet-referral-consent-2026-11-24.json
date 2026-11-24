@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-24T04:18:40.375Z",
+  "scope": "Local-only compiled Mainnet-bytecode VM tests; no network transactions, program deployment, signer change or Mainnet approval.",
+  "runnerNote": "The build and all 11 tests completed successfully. A trailing Windows carriage return in the temporary shell wrapper caused a later command-not-found exit after the success summary and binary hash; this was not a build or test failure.",
+  "sourceRevision": "68c526f3bbe4cdc8afcf5e0c9c10028e9f87a97b",
+  "sourceTree": "b94362d3409ff326cdb261c00d3abc546d2593bb",
+  "binary": {
+    "path": "tmp/merge-cleanup-20261124/fixed-bytecode-v3/funded_fee_router.so",
+    "bytes": 1110672,
+    "sha256": "b2e811357cf55dc6624a48b6f630eb6c32ae2c23f3bd6c271d6013c72db70b9c"
+  },
+  "toolchain": "cargo-build-sbf 4.1.0\nplatform-tools v1.54\nrustc 1.89.0",
+  "compilerSha256": "e74835c5f7b9147151f8d1970e4433a3e5c6f95fc9b1c1bcaffdb423b54678bd",
+  "programId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
+  "buildSettings": [
+    "features=mainnet-v3-program",
+    "arch=v0",
+    "platform-tools=v1.54",
+    "opt-level=z",
+    "strip=true",
+    "locked=true"
+  ],
+  "suite": {
+    "name": "protocol_guard",
+    "passed": 11,
+    "failed": 0,
+    "ignored": 0,
+    "log": "tmp/merge-cleanup-20261124/protocol-guard.log"
+  },
+  "finding": "The operator could choose a genuine automation record and redirect uncapped referral categories 2-4 without creator consent.",
+  "correction": "Mainnet categories 2-4 require a creator signature at approval and payment. The operations automation path and Devnet authorization behavior remain unchanged.",
+  "assertions": [
+    "Operator-only approvals and payments rejected for every referral tier",
+    "Rejected attempts preserve tracked balances, approval and withdrawal state",
+    "Creator-signed payments deliver exact simulated vault and recipient balance deltas",
+    "Duplicate payments rejected without state changes"
+  ],
+  "baseline": {
+    "reviewedExistingLog": "tmp/mainnet-referral-consent-20261124/baseline-regression.log",
+    "executedInThisPass": false,
+    "previousBinarySha256": "3f8aaffc8b308df74cafe7fff22ad37e0ee2a33e28f747468804c36c66024e50",
+    "result": "The existing baseline log reproduces an operator-only category-2 payout."
+  },
+  "remainingGates": [
+    "Rebuild and freeze the final integrated release candidate",
+    "Independent human source and binary approval",
+    "Mainnet RPC relay instruction filtering remains unresolved",
+    "Financial integration, recovery and capacity acceptance remain separate gates"
+  ]
+}
