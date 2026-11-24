@@ -1,4 +1,4 @@
-import { verifiedPaidListings } from '../../features/home/paid-listings.js';
+import { confirmedListings } from '../../features/listing/confirmed-listings.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createHomeFeedController(appState) {
@@ -7,20 +7,22 @@ export function createHomeFeedController(appState) {
   let paidListingsRequest = 0;
   let tickerScrollRemainder = 0;
 
-  async function loadHomePaidListings() {
+  async function loadHomePaidListings({fresh=false} = {}) {
     const request = ++paidListingsRequest;
-    paidListingsStatus = 'loading';
+    paidListings = confirmedListings.merge(paidListings, appState.EXPLORE_CLUSTER);
+    paidListingsStatus = fresh && paidListings.length ? 'ready' : 'loading';
     if (appState.homeLaunchTab === 'paid-listing') appState.renderHomeLaunchBoard();
     try {
-      const result = await appState.apiRequest('/api/listings', { signal: AbortSignal.timeout(8000) });
+      const result = await appState.apiRequest(fresh ? `/api/listings?confirmed=${Date.now()}` : '/api/listings', { signal: AbortSignal.timeout(8000) });
       if (!result.available || result.data?.cluster !== appState.EXPLORE_CLUSTER || !Array.isArray(result.data.listings))
         throw new Error('Verified paid listings are unavailable.');
       if (request !== paidListingsRequest) return;
-      paidListings = verifiedPaidListings(result.data.listings, appState.EXPLORE_CLUSTER);
+      paidListings = confirmedListings.merge(result.data.listings, appState.EXPLORE_CLUSTER);
       paidListingsStatus = 'ready';
     } catch {
       if (request !== paidListingsRequest) return;
-      paidListingsStatus = 'unavailable';
+      paidListings = confirmedListings.merge([], appState.EXPLORE_CLUSTER);
+      paidListingsStatus = paidListings.length ? 'ready' : 'unavailable';
     }
     if (appState.homeLaunchTab === 'paid-listing') appState.renderHomeLaunchBoard();
   }

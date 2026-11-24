@@ -1,5 +1,6 @@
 import { linkWalletText } from './src/features/shared/wallet-links.js';
 import { mountAdminListingButton } from './src/features/listing/admin-listing-button.js';
+import { confirmedListings } from './src/features/listing/confirmed-listings.js';
 import { openListingShare } from './src/features/listing/listing-share.js';
 import { Buffer } from 'buffer';
 import bs58 from 'bs58';
@@ -43,6 +44,7 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   const live = byId('list-live-items');
   let config = null;
   let listings = [];
+  let listingsRequest = 0;
   let listingsAvailable = false;
   let listingsChecked = false;
   let configChecked = false;
@@ -55,7 +57,14 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
   let pendingNotice = null;
   let retainedPending = null;
   const updateAdminListing = mountAdminListingButton({ anchor: payButton, getSession, connectWallet, setStatus: message => setStatus(message),
-    onListed: async listing => { await refreshListings(); draw(); if (listing?.mint) void openListingShare(listing); } });
+    onListed: async listing => { publishListing(listing); await refreshListings({fresh:true}); draw(); void openListingShare(listing); } });
+  function publishListing(listing) {
+    confirmedListings.remember(listing, cluster);
+    listings = confirmedListings.merge(listings, cluster);
+    listingsAvailable = true; listingsChecked = true;
+    renderListings(); draw();
+    window.dispatchEvent(new CustomEvent('funded:listing-verified', {detail:listing}));
+  }
   function readPending() {
     try {
       const pending = readPendingListing();
@@ -265,11 +274,13 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
     live.dispatchEvent(new CustomEvent('funded:token-logos', { bubbles: true }));
     void loadPaidListingMetrics(live, apiRequest);
   }
-  async function refreshListings() {
+  async function refreshListings({fresh=false} = {}) {
+    const request = ++listingsRequest;
     try {
-      const result = await apiRequest('/api/listings', { signal: AbortSignal.timeout(8000) });
+      const result = await apiRequest(fresh ? `/api/listings?confirmed=${Date.now()}` : '/api/listings', { signal: AbortSignal.timeout(8000) });
+      if (request !== listingsRequest) return false;
       if (!result.available || result.data?.cluster !== cluster || !Array.isArray(result.data.listings)) throw new Error('Listing index unavailable.');
-      listings = result.data.listings;
+      listings = confirmedListings.merge(result.data.listings, cluster);
       listingsAvailable = true;
       listingsChecked = true;
       const pending = readPending();
@@ -282,7 +293,12 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       if (mintValue() && listings.some(item => item.mint === mintValue() && item.onchainVerified === true)) queueLookup();
       else draw();
       return true;
-    } catch { listings = []; listingsAvailable = false; listingsChecked = true; live.textContent = 'The verified listing index is unavailable.'; setStatus('The public listing index is unavailable. Payment is paused.'); draw(); return false; }
+    } catch {
+      if (request !== listingsRequest) return false;
+      listings = confirmedListings.merge([], cluster); listingsAvailable = false; listingsChecked = true;
+      if (listings.length) renderListings(); else live.textContent = 'The verified listing index is unavailable.';
+      setStatus('The public listing index is unavailable. Payment is paused.'); draw(); return false;
+    }
   }
   async function refreshConfig() {
     try {
@@ -361,10 +377,10 @@ export function initPaidListing({ getSolana, getConnection, getSession, assertSe
       try { clearPendingListing(pending); retainedPending = null; pendingNotice = null; }
       catch (error) { retainedPending = pending; setPendingStatus(`Listing receipt verified, but recovery cleanup is incomplete: ${error.message}`, pending); return; }
       setStatus('Listing verified and live in Launch Directory.', pending.signature);
+      publishListing(result.data);
       appendShareAction(result.data);
       void openListingShare(result.data);
-      await refreshListings();
-      window.dispatchEvent(new Event('funded:listing-verified'));
+      await refreshListings({fresh:true});
     } catch (error) { setPendingStatus(`Signed burn receipt verification is pending: ${error.message} Do not submit another burn.`, pending); }
     finally { busy = false; draw(); }
   }

@@ -98,7 +98,7 @@ export function initializeHomeFeed(appState) {
     if (event.target.closest('[data-paid-listing-retry]')) void appState.loadHomePaidListings();
   });
   window.addEventListener('funded:listing-verified', () => {
-    if (appState.homeLaunchTab === 'paid-listing') void appState.loadHomePaidListings();
+    void appState.loadHomePaidListings({fresh:true});
   });
   // app-source-end
 
