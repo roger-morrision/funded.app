@@ -55,6 +55,7 @@ import { createReferralIdentityRoutes } from './routes/referral-identity.mjs';
 import { applyHttpPolicy, invalidRequest, publicError, transientDependencyCode } from './http-policy.mjs';
 import { readJsonBody } from './request-body.mjs';
 import { createSolUsdQuoteReader } from './price-quote.mjs';
+import { createDisplaySolUsdQuoteReader } from './display-sol-usd-quote.mjs';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
 import { createCommunityClaimService } from './community-claim-service.mjs';
@@ -173,6 +174,7 @@ function json(res, status, body) { const encoded = JSON.stringify(body); res.wri
 async function readSolUsdQuote() {
   return readProviderSolUsdQuote(process.env.SOL_USD_PRICE || process.env.SOLANA_USD_PRICE);
 }
+const readDisplaySolUsdQuote=createDisplaySolUsdQuoteReader({readPrimary:readSolUsdQuote});
 function id(prefix) { return `${prefix}_${Date.now()}_${randomBytes(8).toString('hex')}`; }
 function clientKey(req) {
   const remote = req.socket.remoteAddress || 'local';
@@ -398,7 +400,7 @@ const { handleShareVisit, handleReferralActivity } = createReferralActivityRoute
 const { handleServiceStatus, handleOperationsStatus, handleKeeperStatus } = createServiceStatusRoutes({
   store, solanaCluster, solanaRpcUrl, automaticRewardStore, launchPolicyConfig,
   keeperKeypair, v3RouterConfig, birdeyeApiKey, pumpApiUrl, xOAuthConfigured,
-  readSolUsdQuote, requireAuthorized, respond: json,
+  readSolUsdQuote, readDisplaySolUsdQuote, requireAuthorized, respond: json,
 });
 
 const handleDevWalletRoutes = createDevWalletRoutes({ devMode, devWalletKeypair, body, respond: json });
