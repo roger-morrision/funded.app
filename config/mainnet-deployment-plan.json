@@ -36,7 +36,7 @@
   "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
   "mainnetActivationAuthorized": false,
   "productionReleaseRevision": null,
-  "referenceArtifactStatus": "Current ExUNA contract candidate is tracked in config/mainnet-review-candidate.json (1110672 bytes, b2e811357cf55dc6624a48b6f630eb6c32ae2c23f3bd6c271d6013c72db70b9c). Independent review, finalized full ProgramData hash, integrated release identity and live financial acceptance remain outstanding.",
+  "referenceArtifactStatus": "Current ExUNA contract candidate is tracked in config/mainnet-review-candidate.json (1110672 bytes, b2e811357cf55dc6624a48b6f630eb6c32ae2c23f3bd6c271d6013c72db70b9c). Owner-selected Claude Desktop AI review approves this candidate and application bfa004c61b214db7c8723d76ac274cc721c2db21 within scope, with conditions before Mainnet activation. Finalized full ProgramData hash, exact operational admission and live financial acceptance remain outstanding.",
   "reviewCandidateReference": "config/mainnet-review-candidate.json",
   "currentPlaceholderBuild": {
     "variant": "productionBuildCheck",
@@ -85,8 +85,9 @@
   "initializationBudgetLamports": null,
   "tokenLaunchAndLiquidityBudgetLamports": null,
   "canaryBudgetLamports": null,
-  "independentReviewer": null,
-  "independentReviewReference": null,
+  "independentReviewer": "Claude Desktop (AI second review; owner-selected and accepted)",
+  "independentReviewReference": "docs/reviews/production-candidate-claude-2026-11-24.md",
+  "independentReviewScope": "Conditional source/binary and application review, not Mainnet activation or live financial acceptance. The executable release manifest remains unadmitted.",
   "referenceArtifacts": [
     {
       "variant": "merged-v3-size-optimized",

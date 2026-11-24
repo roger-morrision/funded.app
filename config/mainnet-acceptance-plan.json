@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "blocked-awaiting-production-inventory-and-review",
+  "status": "blocked-awaiting-deployment-admission-and-live-financial-evidence",
   "cluster": "mainnet-beta",
   "mainnetActivationAuthorized": false,
   "upgradeable": true,
@@ -11,8 +11,9 @@
   "payerSignerReference": ".secrets/mainnet-release-wallets/deployment-payer-keypair.json",
   "maximumTotalSpendLamports": null,
   "maximumPriorityFeeLamports": "0",
-  "independentReviewReference": null,
-  "independentReviewer": null,
+  "independentReviewReference": "docs/reviews/production-candidate-claude-2026-11-24.md",
+  "independentReviewer": "Claude Desktop (AI second review; owner-selected and accepted)",
+  "independentReviewScope": "Conditional source/binary and application review; no live acceptance case is marked passed by this review.",
   "requiredCases": [
     {
       "id": "admin-operations-withdrawal",

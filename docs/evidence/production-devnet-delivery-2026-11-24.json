@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "applicationRevision": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+  "ci": {
+    "url": "https://github.com/roger-morrision/funded.app/actions/runs/45375425080",
+    "conclusion": "success",
+    "run": 45375425080
+  },
+  "deployment": {
+    "release": "bfa004c61b214db7c8723d76ac274cc721c2db21-237bf197-33f2-47d1-ae59-ac9bc15e90b7",
+    "revision": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+    "ready": true,
+    "rollbackAvailable": true
+  },
+  "runtimeVerification": {
+    "at": "2026-11-24T10:41:58.155Z",
+    "ready": true,
+    "services": [
+      {
+        "service": "app",
+        "image": "sha256:87621bb89f8666ba2301525f8b7424dfcc6887bf4ce11b5178b3ed6625cf3a3d",
+        "build": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "revision": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy",
+        "frontendRevision": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "frontendDigest": "fd7717b223e68217b2b6cbbdc56dda29c3b6ec568f4a98f7a57c58eb7ec49ee4"
+      },
+      {
+        "service": "fee-collector",
+        "image": "sha256:87621bb89f8666ba2301525f8b7424dfcc6887bf4ce11b5178b3ed6625cf3a3d",
+        "build": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "revision": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "buyback-worker",
+        "image": "sha256:87621bb89f8666ba2301525f8b7424dfcc6887bf4ce11b5178b3ed6625cf3a3d",
+        "build": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "revision": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "agency-buyback-worker",
+        "image": "sha256:87621bb89f8666ba2301525f8b7424dfcc6887bf4ce11b5178b3ed6625cf3a3d",
+        "build": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "revision": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "signer",
+        "image": "sha256:87621bb89f8666ba2301525f8b7424dfcc6887bf4ce11b5178b3ed6625cf3a3d",
+        "build": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "revision": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "service": "price-signer",
+        "image": "sha256:87621bb89f8666ba2301525f8b7424dfcc6887bf4ce11b5178b3ed6625cf3a3d",
+        "build": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "revision": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+        "cluster": "devnet",
+        "state": "running",
+        "health": "healthy"
+      }
+    ],
+    "errors": []
+  },
+  "configurationComparison": {
+    "at": "2026-11-24T10:39:38.958Z",
+    "revision": "bfa004c61b214db7c8723d76ac274cc721c2db21",
+    "prior": "2b986213a67f68aa180af9630561e6cd1342937b",
+    "ready": true,
+    "scope": "Compared full resolved configurations; only release service image/revision and frontend identity differ. Other bind/config content compared by SHA256; secret references, infrastructure images, networks, volumes, policies and resource limits preserved."
+  },
+  "browser": {
+    "at": "2026-11-24T10:42:21.228Z",
+    "origin": "https://funded.vip",
+    "scope": "Live public UI: startup, page search, destination focus, Help and viewport overflow. All non-read requests blocked; no wallet or transaction.",
+    "results": [
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "passed": true,
+        "scriptErrors": [],
+        "screenshot": "tmp/deploy-production-integration-20261124/live-1280.png"
+      },
+      {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "passed": true,
+        "scriptErrors": [],
+        "screenshot": "tmp/deploy-production-integration-20261124/live-390.png"
+      }
+    ]
+  },
+  "reviewReference": "docs/reviews/production-candidate-claude-2026-11-24.md",
+  "mainnetActivated": false,
+  "scope": "Devnet application delivery; no Mainnet deployment, private signer activation or financial acceptance claim."
+}
