@@ -12,6 +12,7 @@ import {PublicKey} from '@solana/web3.js';
 
 const protectedKey = new PublicKey(JSON.parse(readFileSync(new URL('../../config/mainnet-deployment-plan.json', import.meta.url))).mainnetProgramId);
 const env = {FUNDED_MAINNET_NON_PROGRAM_WRITES:'true'};
+const programData = PublicKey.findProgramAddressSync([protectedKey.toBuffer()], new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111'))[0];
 const payer = Keypair.generate(), recipient = Keypair.generate().publicKey;
 const blockhash = Keypair.generate().publicKey.toBase58(), tableKey = Keypair.generate().publicKey;
 function payload({target = SystemProgram.programId, account = recipient, v0 = false, lookup = false, encoding = 'base64'} = {}) {
@@ -37,7 +38,7 @@ test('non-program policy admits legacy and v0 transactions in both RPC encodings
   }}),false);
 });
 test('non-program policy blocks protected direct and CPI accounts including lookup tables', async () => {
-  for (const v0 of [false,true]) for (const request of [payload({v0,target:protectedKey}),payload({v0,account:protectedKey})])
+  for (const v0 of [false,true]) for (const request of [payload({v0,target:protectedKey}),payload({v0,account:protectedKey}),payload({v0,account:programData})])
     assert.equal(await rpcSubmissionBlocked('mainnet-beta',request,{env}),true);
   assert.equal(await rpcSubmissionBlocked('mainnet-beta',payload({v0:true,lookup:true,account:protectedKey}),{env,readAccounts:async()=>proof(protectedKey)}),true);
   assert.equal(await rpcSubmissionBlocked('mainnet-beta',payload(),{env:{...env,FUNDED_V3_FEE_ROUTER_PROGRAM_ID:recipient.toBase58()}}),true);
@@ -87,6 +88,7 @@ for (const layer of ['proxy','gateway','failover']) test(`${layer} never forward
   try {
     assert.equal(await send(payload({target:protectedKey})),403);
     assert.equal(await send(payload({account:protectedKey})),403);
+    assert.equal(await send(payload({account:programData})),403);
     assert.equal(await send(payload({v0:true,lookup:true,account:protectedKey})),403);
     assert.equal(calls.filter(request=>request.method==='sendTransaction').length,0);
     lookupProof=proof();

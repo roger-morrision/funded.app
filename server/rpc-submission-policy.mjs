@@ -5,6 +5,7 @@ import {rpcWriteBlocked} from './network-write-policy.mjs';
 
 const plan = JSON.parse(readFileSync(new URL('../config/mainnet-deployment-plan.json', import.meta.url)));
 const release = JSON.parse(readFileSync(new URL('../config/mainnet-program-release.json', import.meta.url)));
+const upgradeableLoader = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 const programSettings = ['FUNDED_MAINNET_PROGRAM_ID', 'FUNDED_V3_FEE_ROUTER_PROGRAM_ID',
   'FUNDED_FEE_ROUTER_PROGRAM_ID', 'FUNDED_DEVELOPER_TOKEN_LOCK_PROGRAM_ID', 'FUNDED_DEVELOPER_LOCK_PROGRAM_ID',
   'VITE_FUNDED_V3_FEE_ROUTER_PROGRAM_ID', 'VITE_FUNDED_FEE_ROUTER_PROGRAM_ID'];
@@ -19,6 +20,10 @@ export async function rpcSubmissionBlocked(cluster, request, {env = process.env,
     const protectedKeys = new Set([plan.mainnetProgramId, release.programId,
       ...programSettings.map(name => env[name])].filter(Boolean).map(key => new PublicKey(key).toBase58()));
     if (!plan.mainnetProgramId) return true;
+    // Loader SetAuthority can name only ProgramData, without the executable
+    // program account. Protect the canonical metadata account as well.
+    for (const key of [...protectedKeys]) protectedKeys.add(
+      PublicKey.findProgramAddressSync([new PublicKey(key).toBuffer()], upgradeableLoader)[0].toBase58());
     if (!Array.isArray(request.params) || request.params.length < 1 || request.params.length > 2) return true;
     const [encoded, options = {}] = request.params;
     if (!options || typeof options !== 'object' || Array.isArray(options) || typeof encoded !== 'string'

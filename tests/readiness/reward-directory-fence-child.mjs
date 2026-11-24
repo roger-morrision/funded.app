@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {join,dirname} from 'node:path';
+import {join,dirname,sep} from 'node:path';
 import {syncBuiltinESMExports} from 'node:module';
 import {createHash} from 'node:crypto';
 assert.equal(process.platform,'linux','Directory fence evidence requires actual Linux.');
-const mode=process.argv[2],base=fs.mkdtempSync('/app/data/directory-fence-'),path=join(base,'new-parent','new-child','ledger.json');
+const root=fs.realpathSync(process.env.FUNDED_DIRECTORY_FENCE_ROOT||'/app/data');
+const mode=process.argv[2],base=fs.mkdtempSync(join(root,'directory-fence-')),path=join(base,'new-parent','new-child','ledger.json');
 const identity=s=>createHash('sha256').update(JSON.stringify(Object.values(s.schedules||{}).map(p=>[p.id,p.manifest?.root,p.payoutAttempts,p.payments]))).digest('hex');
 const realOpen=fs.promises.open,realRename=fs.promises.rename,events=[];let armed=false,renamed=false;
 fs.promises.open=async function(p,...args){
-  const name=String(p),directory=args[0]==='r'&&name.startsWith('/app/data');
+  const name=String(p),directory=args[0]==='r'&&(name===root||name.startsWith(root+sep));
   if(armed&&mode==='open-fail'&&directory)throw Object.assign(Error('DIR_OPEN_FAILURE'),{code:'EACCES'});
   const handle=await realOpen(p,...args),isDirectory=(await handle.stat()).isDirectory(),sync=handle.sync,close=handle.close;
   handle.sync=async function(){
