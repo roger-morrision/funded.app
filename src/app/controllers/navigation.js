@@ -93,7 +93,7 @@ export function createNavigationController(appState) {
     const selectors = route === 'overview'
       ? ['.hero-section h1']
       : route === 'launch'
-        ? ['#launch-title']
+        ? ['#launch-route-title', '#launch-title']
         : ['#route-guide:not([hidden]) #route-guide-title', routeTarget ? `${routeTarget} h1, ${routeTarget} h2` : ''];
     const heading = selectors.filter(Boolean)
       .flatMap(selector => [...document.querySelectorAll(selector)])

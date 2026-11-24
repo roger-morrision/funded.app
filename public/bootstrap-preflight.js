@@ -28,6 +28,7 @@ try {
   document.addEventListener('funded:bootstrap-failed', showStartupFailure);
   window.setTimeout(() => {
     if (document.body?.dataset.bootstrapState !== 'loading') return;
+    document.body.dataset.bootstrapSlow = 'true';
     const message = document.querySelector('[data-bootstrap-message]');
     if (message) message.textContent = 'Still loading. You can wait or reload to try again.';
   }, 10_000);

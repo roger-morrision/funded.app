@@ -11,7 +11,7 @@ globalThis.global ??= globalThis;
 await loadBootstrapModules([
   { name: 'App', required: true, load: async () => {
     try {
-      const response = await fetch('/api/fee-policy', { credentials:'same-origin', cache:'no-store' });
+      const response = await fetch('/api/fee-policy', { credentials:'same-origin', cache:'no-store', signal:AbortSignal.timeout(15_000) });
       if (!response.ok) throw new Error('The current fee policy is unavailable.');
       // Revision 0 is the unpublished file fallback; keep the approved split shown on Home.
       const policy = await response.json();

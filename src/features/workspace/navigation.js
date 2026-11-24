@@ -6,6 +6,7 @@ import { productHelpTopics } from '../help/product-guidance.js';
 import { helpTopicForLocation } from '../help/page-guidance.js';
 import { candidateHref,creatorSearchCandidates } from '../experience/search-model.js';
 import { apiRequest } from '../../../client.js';
+import { commandSearchCandidates, commandHref } from '../growth/command-actions.js';
 
 export function navigation() {
   $$('[data-icon]').forEach(item => item.innerHTML = icon(item.dataset.icon));
@@ -63,34 +64,42 @@ export function navigation() {
   const globalSearch = $('#global-search');
   const searchResults = $('#header-search-results', searchDialog);
   const searchHelp = $('#header-search-help', searchDialog);
+  searchResults.setAttribute('aria-label', 'Pages, actions and launch search results');
+  modalSearch.setAttribute('aria-describedby', 'header-search-help');
+  modalSearch.placeholder = 'Token, page, creator, address or transaction';
   const defaultSearchHelp = searchHelp.textContent;
   let candidates = [];
   let creatorCandidates=[],creatorQuery='',creatorTimer=null,creatorVersion=0;
   // A pasted address that is a token mint (any launchpad or DEX) opens its token page, ahead of the wallet profile.
-  let tokenCandidates=[],tokenQuery='';
+  let tokenCandidates=[],tokenQuery='',tokenVersion=0;
   let activeCandidate = -1;
+  let selectionMoved = false;
+  let searchNavigationPending = false;
+  const destination = candidate => commandHref(candidate) || candidateHref(candidate);
   const renderSearchResults = ({ preserveSelection = false } = {}) => {
     const selectedMint = preserveSelection && activeCandidate >= 0 ? candidates[activeCandidate]?.mint : null;
     candidates = window.fundedVerifiedSearchCandidates?.(modalSearch.value) || [];
     if(modalSearch.value.trim()===tokenQuery&&tokenCandidates.length)candidates=[...tokenCandidates,...candidates.filter(row=>!tokenCandidates.some(token=>token.mint===row.mint))];
     if(modalSearch.value.trim()===creatorQuery)candidates=[...candidates,...creatorCandidates];
+    candidates = [...commandSearchCandidates(modalSearch.value), ...candidates];
     if (preserveSelection) activeCandidate = selectedMint ? candidates.findIndex(candidate => candidate.mint === selectedMint) : -1;
     else activeCandidate = candidates.length ? 0 : -1;
     if (selectedMint && activeCandidate < 0) {
       searchHelp.textContent = 'Your selected result is no longer in the current list. Choose another result or press Enter to search Explore.';
     } else if (!preserveSelection) searchHelp.textContent = defaultSearchHelp;
-    $('#header-search-results-title', searchDialog).textContent = modalSearch.value.trim() ? 'SEARCH RESULTS' : 'EXPLORE TOKENS';
+    $('#header-search-results-title', searchDialog).textContent = modalSearch.value.trim() ? 'PAGES, ACTIONS & TOKENS' : 'EXPLORE TOKENS';
     searchResults.replaceChildren();
     if (!candidates.length) {
-      const empty = node('p', 'header-search-empty', modalSearch.value.trim() ? 'No matching tokens. Press Enter to search Explore.' : 'No tokens available right now.');
+      const empty = node('p', 'header-search-empty', modalSearch.value.trim() ? 'No matching results. Press Enter to search Explore.' : 'No tokens available right now.');
       searchResults.append(empty);
     }
     candidates.forEach((candidate, index) => {
       const link = node('a', 'header-search-result');
       link.id = `header-search-result-${index}`;
-      link.href = candidateHref(candidate);
+      link.href = destination(candidate);
       link.setAttribute('role', 'option');
       link.setAttribute('aria-selected', String(index === activeCandidate));
+      link.tabIndex = -1; // The combobox owns keyboard focus; arrows select options.
       const token = node('span', 'header-search-token');
       const avatar = node('span', 'header-search-avatar', String(candidate.symbol || 'T').slice(0, 1).toUpperCase());
       avatar.setAttribute('aria-hidden', 'true');
@@ -101,7 +110,7 @@ export function navigation() {
       if (candidate.freshness) { const age=node('small', 'market-freshness', candidate.freshness); age.dataset.inlineStatus=''; market.append(age); }
       token.append(avatar, identity);
       link.append(token, market);
-      link.addEventListener('click', () => searchDialog.close());
+      link.addEventListener('click', () => { searchNavigationPending = true; searchDialog.close(); });
       searchResults.append(link);
       if (candidate.logoUri && /^https:\/\//.test(candidate.logoUri)) {
         const image = document.createElement('img'); image.alt = ''; image.referrerPolicy = 'no-referrer'; image.src = candidate.logoUri;
@@ -130,15 +139,15 @@ export function navigation() {
       clearTimeout(creatorTimer);const version=++creatorVersion,query=modalSearch.value.trim();creatorQuery=query;creatorCandidates=[];
       if(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query)&&tokenQuery!==query){
         tokenQuery=query;tokenCandidates=[];
+        const requestVersion=++tokenVersion;
         apiRequest(`/api/tokens/market?mints=${encodeURIComponent(query)}`,{signal:AbortSignal.timeout(8000)}).then(result=>{
           const row=(result?.data?.items||result?.items||[]).find(item=>item.mint===query);
-          if(!row?.symbol||tokenQuery!==query||!searchDialog.open||modalSearch.value.trim()!==query)return;
+          if(!row?.symbol||requestVersion!==tokenVersion||tokenQuery!==query||!searchDialog.open||modalSearch.value.trim()!==query)return;
           const price=Number(row.priceUsd);
           tokenCandidates=[{mint:query,name:String(row.name||row.symbol).slice(0,80),symbol:String(row.symbol).slice(0,20),logoUri:row.logoUri||null,
             marketCap:Number.isFinite(price)&&price>0?`$${price<0.01?price.toPrecision(3):price.toLocaleString('en-US',{maximumFractionDigits:4})}`:'Token',stage:'Open token page'}];
-          // Auto-select the token candidate so Enter opens the token page
-          activeCandidate = 0;
-          renderSearchResults({ preserveSelection: false });
+          // A delayed lookup must not replace an explicit keyboard selection.
+          renderSearchResults({ preserveSelection: selectionMoved });
         }).catch(()=>{});
       }
       if(query.length<2||query.length>80||/^[1-9A-HJ-NP-Za-km-z]{32,88}$/.test(query))return;
@@ -146,20 +155,23 @@ export function navigation() {
         let result;try{result=await apiRequest(`/api/creators?${new URLSearchParams({q:query})}`,{signal:AbortSignal.timeout(8000)});}catch{}
         if(version!==creatorVersion||!searchDialog.open||modalSearch.value.trim()!==query)return;
         const next=result?.available?creatorSearchCandidates(result.data):[];
-        if(JSON.stringify(next)!==JSON.stringify(creatorCandidates)){creatorCandidates=next;renderSearchResults({preserveSelection:true});}
+        if(JSON.stringify(next)!==JSON.stringify(creatorCandidates)){creatorCandidates=next;renderSearchResults({preserveSelection:selectionMoved});}
         if(!searchHelp.textContent.startsWith('Your selected result is no longer'))searchHelp.textContent=defaultSearchHelp+(result?.available?' · Creator directory checked.':' · Creator directory unavailable; loaded tokens and wallets remain searchable.');
       },300);
     }
   searchTrigger.addEventListener('click', () => {
     modalSearch.value = globalSearch?.value || '';
+    selectionMoved = false;
+    searchNavigationPending = false;
+    tokenQuery = ''; tokenCandidates = []; tokenVersion++;
     renderSearchResults();
     searchDialog.showModal();
     lookupCreators();
     modalSearch.focus();
     modalSearch.select();
   });
-  modalSearch.addEventListener('input',()=>{lookupCreators();renderSearchResults();});
-  document.addEventListener('funded:verified-search-index', () => { if (searchDialog.open) renderSearchResults({ preserveSelection: true }); });
+  modalSearch.addEventListener('input',()=>{selectionMoved=false;lookupCreators();renderSearchResults();});
+  document.addEventListener('funded:verified-search-index', () => { if (searchDialog.open) renderSearchResults({ preserveSelection: selectionMoved }); });
   modalSearch.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -168,6 +180,7 @@ export function navigation() {
     }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     event.preventDefault();
+    selectionMoved = true;
     if (candidates.length) {
       const next = activeCandidate < 0 ? event.key === 'ArrowDown' ? 0 : candidates.length - 1
         : (activeCandidate + (event.key === 'ArrowDown' ? 1 : candidates.length - 1)) % candidates.length;
@@ -177,7 +190,7 @@ export function navigation() {
   $('.header-search-close', searchDialog).addEventListener('click', () => searchDialog.close());
   $('form', searchDialog).addEventListener('submit', event => {
     event.preventDefault();
-    if (activeCandidate >= 0) { location.assign(candidateHref(candidates[activeCandidate])); return; }
+    if (activeCandidate >= 0) { searchResults.querySelector(`#header-search-result-${activeCandidate}`)?.click(); return; }
     const query = modalSearch.value.trim();
     searchDialog.close();
     const applyQuery = () => {
@@ -191,34 +204,44 @@ export function navigation() {
     } else applyQuery();
   });
   searchDialog.addEventListener('click', event => { if (event.target === searchDialog) searchDialog.close(); });
-  searchDialog.addEventListener('close', () => { if (searchTrigger.getClientRects().length) searchTrigger.focus(); });
+  searchDialog.addEventListener('close', () => { if (!searchNavigationPending && searchTrigger.getClientRects().length) searchTrigger.focus(); });
   const helpTrigger = node('button', 'help-topics-trigger', 'Help');
   helpTrigger.id = 'help-topics-trigger';
   helpTrigger.type = 'button';
   helpTrigger.setAttribute('aria-label', 'Open help topics');
   helpTrigger.setAttribute('aria-controls', 'help-topics-panel');
   helpTrigger.setAttribute('aria-expanded', 'false');
-  const helpPanel = node('aside', 'help-topics-panel');
+  const helpPanel = node('dialog', 'help-topics-panel');
   helpPanel.id = 'help-topics-panel';
   helpPanel.hidden = true;
   helpPanel.setAttribute('role', 'dialog');
+  helpPanel.setAttribute('aria-modal', 'true');
   helpPanel.setAttribute('aria-label', 'richpad.fun help topics');
   helpPanel.innerHTML = `<header><div><strong>richpad.fun</strong><small>Solana help topics</small></div><button type="button" aria-label="Close help topics">${icon('close')}</button></header><p class="help-topics-intro">Guides and answers. Live chat is unavailable.</p><div class="help-topics-choices">${Object.entries(productHelpTopics()).map(([id,topic])=>`<button type="button" data-help-topic="${id}" aria-pressed="false">${topic.title}</button>`).join('')}</div><div class="help-topics-answer" role="status" aria-live="polite"><strong>How can we help?</strong><p>Choose a topic to see guidance.</p><a href="#docs">Open the help guide →</a></div>`;
+  let helpReturnTo = null;
   const setHelpOpen = open => {
-    helpPanel.hidden = !open;
-    helpTrigger.setAttribute('aria-expanded', String(open));
-    $('#help-menu-trigger')?.setAttribute('aria-expanded', String(open));
     if (open) {
+      if (!helpPanel.open) helpReturnTo = document.activeElement;
+      helpPanel.hidden = false;
+      if (!helpPanel.open) helpPanel.showModal();
+      helpTrigger.setAttribute('aria-expanded', 'true');
+      $('#help-menu-trigger')?.setAttribute('aria-expanded', 'true');
       helpPanel.querySelector(`[data-help-topic="${helpTopicForLocation(location)}"]`)?.click();
       helpPanel.scrollTop = 0;
       helpPanel.querySelector('header button').focus();
     }
-    else {
-      const menu = $('#help-menu-trigger');
-      (helpTrigger.getClientRects().length ? helpTrigger
-        : menu?.getClientRects().length && !menu.closest('[inert]') ? menu : $('#open-menu'))?.focus();
-    }
+    else helpPanel.close();
   };
+  helpPanel.addEventListener('close', () => {
+      helpPanel.hidden = true;
+      helpTrigger.setAttribute('aria-expanded', 'false');
+      $('#help-menu-trigger')?.setAttribute('aria-expanded', 'false');
+      const menu = $('#help-menu-trigger');
+      (helpReturnTo?.isConnected && helpReturnTo.getClientRects().length && !helpReturnTo.closest('[inert]') ? helpReturnTo
+        : helpTrigger.getClientRects().length ? helpTrigger
+        : menu?.getClientRects().length && !menu.closest('[inert]') ? menu : $('#open-menu'))?.focus();
+      helpReturnTo = null;
+  });
   helpTrigger.addEventListener('click', () => setHelpOpen(helpPanel.hidden));
   helpPanel.querySelector('.help-topics-intro').textContent = 'Find your way to participate and earn. Understand rewards, eligibility, claims, and token protections. Issue reports are available in Profile.';
   helpPanel.querySelector('.help-topics-choices').before(helpPanel.querySelector('.help-topics-answer'));
@@ -235,6 +258,10 @@ export function navigation() {
   $('#sidebar a[href="#docs"]')?.after(menuHelp);
   helpPanel.querySelector('header button').addEventListener('click', () => setHelpOpen(false));
   helpPanel.addEventListener('click', event => {
+    if (event.target === helpPanel) {
+      const bounds = helpPanel.getBoundingClientRect();
+      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) setHelpOpen(false);
+    }
     const choice = event.target.closest('[data-help-topic]');
     if (choice) {
       const topic = productHelpTopics()[choice.dataset.helpTopic];
@@ -250,7 +277,6 @@ export function navigation() {
     }
     if (event.target.closest('.help-topics-answer a')) setHelpOpen(false);
   });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !helpPanel.hidden) setHelpOpen(false); });
   window.addEventListener('hashchange', () => { if (!helpPanel.hidden) setHelpOpen(false); });
   document.body.append(helpTrigger, helpPanel);
   const mobile = node('nav', 'mobile-workspace-nav'); mobile.setAttribute('aria-label', 'Mobile navigation');

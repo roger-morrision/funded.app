@@ -1,0 +1,134 @@
+{
+  "date": "2026-11-24",
+  "recordedAt": "2026-11-24T03:32:45.332Z",
+  "scope": "Local UI/UX readiness fixes; not production or financial acceptance",
+  "build": {
+    "output": "tmp/ui-review-20261124/dist",
+    "status": "passed",
+    "settings": {
+      "schemaVersion": 1,
+      "cluster": "devnet",
+      "exploreCluster": "devnet",
+      "mainnetEnabled": false,
+      "mainnetReadOnly": false,
+      "readOnlyPreview": false,
+      "devWalletEnabled": false,
+      "publicIdentity": {
+        "routerProgram": "",
+        "fundedMint": "",
+        "fundedPool": "",
+        "tradeFeeRecipient": "",
+        "tradeFeeBps": "100",
+        "apiBase": "/"
+      },
+      "sourceDigest": "f2f900ac0123ed150aab4c567cf644e845837a384db18ace8c6b38f589ee25a3"
+    },
+    "configuration": "Isolated Vite environment using mainnet-preview mode with explicit Devnet cluster, Mainnet disabled, development wallets disabled, same-origin read-only API proxy."
+  },
+  "fixes": [
+    {
+      "area": "Search",
+      "result": "Pages and actions share the keyboard-selectable result list with tokens. Enter opens the selected page; reopening restores matches. Delayed token lookup preserves explicit keyboard selection."
+    },
+    {
+      "area": "Help",
+      "result": "Native modal dialog prevents focus entering obscured page content. Escape, close and guide links dismiss it, and focus returns to the actual trigger."
+    },
+    {
+      "area": "Create navigation",
+      "result": "Navigation targets the visible launch route heading instead of the hidden legacy dialog heading."
+    },
+    {
+      "area": "Startup recovery",
+      "result": "Slow-loading and degraded-feature notices are visible. The fee-policy request times out after 15 seconds without enabling controls. Only a usable degraded app offers Continue with available features."
+    },
+    {
+      "area": "Search recovery and destination focus",
+      "result": "A first delayed creator result becomes keyboard-selectable; reopening retries a failed token lookup; page search navigates through the route-focus handler without disrupting existing sidebar handlers. Stale responses from earlier openings cannot replace current token results."
+    }
+  ],
+  "verification": {
+    "browser": {
+      "status": "passed",
+      "label": "mocked",
+      "uniqueChecks": 32,
+      "viewports": [
+        {
+          "width": 1280,
+          "height": 800
+        },
+        {
+          "width": 390,
+          "height": 844
+        },
+        {
+          "width": 320,
+          "height": 568
+        }
+      ],
+      "specs": [
+        "tests/smoke/navigation.spec.mjs",
+        "tests/smoke/startup-recovery.spec.mjs"
+      ],
+      "routeSweep": 19,
+      "command": "SMOKE_BASE_URL=http://127.0.0.1:5187 playwright test tests/smoke/navigation.spec.mjs tests/smoke/startup-recovery.spec.mjs",
+      "results": "Final complete run: 32 passed on the final compiled Devnet preview, without retries. Three new desktop regressions were first reproduced against the prior build. An intermediate sidebar focus regression was corrected before this final run.",
+      "fixtures": "Approved default fee-policy fixture (revision 0); other API data unavailable; targeted in-memory token and creator fixtures; external requests blocked. No wallets or transactions."
+    },
+    "syntax": {
+      "status": "passed",
+      "method": "The earlier pass parsed 1229 files with V8 SourceTextModule. This continuation separately ran node --check for src/features/workspace/navigation.js, src/app/startup/navigation.js and tests/smoke/navigation.spec.mjs. The final source-size check covered 1500 maintained files. This record does not claim a new full npm run check.",
+      "previousInventoryFiles": 1229
+    },
+    "structure": {
+      "status": "passed",
+      "command": "npm run check:structure",
+      "maintainedFiles": 1500
+    },
+    "whitespace": {
+      "status": "passed",
+      "scope": "Files changed for this UI task; unrelated pre-existing CLAUDE.md whitespace preserved"
+    },
+    "initialExploration": {
+      "label": "local-only",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "routes": 18,
+      "scriptErrors": 0,
+      "documentHorizontalOverflow": false,
+      "source": "Local compiled Devnet UI with read-only public API data"
+    },
+    "cceIndex": {
+      "status": "partial",
+      "details": "Bulk cce index encountered a database-is-locked error. Targeted workspace/navigation.js refresh succeeded (40 chunks). A second bulk attempt stalled and was interrupted; no index result was used as execution evidence. Continuation: CCE MCP transport was unavailable, so direct reads were used; targeted CLI refreshes succeeded for both final changed runtime modules. The code relationship graph was also refreshed."
+    }
+  },
+  "claudeReview": {
+    "status": "completed",
+    "sessionTitle": "funded.app Mainnet readiness review",
+    "workspace": "C:/Data/DevApps/funded.app",
+    "observed": "Dated report read from disk; static review only, not professional external approval or a reproducible binary build.",
+    "reportDestination": "docs/reviews/mainnet-independent-review-2026-11-24.md",
+    "constraints": "Read-only source review; preserve uncommitted work; no deployment or transactions; no private keys; distinguish AI second review from professional independent approval."
+  },
+  "limitations": [
+    "Changes are local and uncommitted; not deployed.",
+    "Mocked UI checks do not prove signed financial flows, on-chain payouts, recovery, load capacity or Mainnet readiness.",
+    "Independent source/binary review and existing financial/infrastructure acceptance remain separate release requirements.",
+    "Unrelated existing workspace changes were preserved."
+  ],
+  "reviewFollowUp": {
+    "label": "local-only",
+    "verification": "Direct source inspection; no exploit simulation, Rust tests, or live RPC transaction.",
+    "openFindings": [
+      "High: automation_v3.rs allows the current operator to initialize referral recipients without creator signing; the protected withdrawal path accepts the resulting record.",
+      "Medium: rpcWriteBlocked checks method/cluster/env only; sendTransaction is allowed with FUNDED_MAINNET_NON_PROGRAM_WRITES=true without instruction-level program inspection.",
+      "Low: router-header repair pause consistency remains a review note; not modified in this UI pass."
+    ],
+    "documentationCorrection": "docs/mainnet-nonprogram-site-release.md now distinguishes historically observed but unconsumed environment flags from actual activation controls.",
+    "scope": "No contract or RPC behavior changed; expansion into financial security remediation was asked separately and not assumed.",
+    "releaseGates": "A frozen release candidate, independently reproduced binary, independent human security approval and financial/recovery/capacity acceptance remain outstanding. This UI pass does not fill those gates."
+  }
+}

@@ -2,6 +2,12 @@
 // This gate drops premature input; it never saves or replays a user action.
 const banner = document.querySelector('#bootstrap-status');
 const message = banner.querySelector('[data-bootstrap-message]');
+const dismiss = banner.querySelector('#bootstrap-dismiss');
+dismiss.addEventListener('click', () => {
+  if (document.body.dataset.bootstrapState !== 'degraded') return;
+  banner.hidden = true;
+  document.querySelector('#main-content')?.focus({ preventScroll: true });
+});
 let pending = document.body.dataset.bootstrapState === 'loading';
 let failed = document.body.dataset.bootstrapState === 'failed';
 
@@ -40,6 +46,7 @@ export function appReady() {
   }
   document.querySelector('.app-shell')?.setAttribute('aria-busy', 'false');
   document.body.dataset.bootstrapState = 'ready';
+  delete document.body.dataset.bootstrapSlow;
   const recoveryFocused = banner.contains(document.activeElement);
   banner.hidden = true;
   if (recoveryFocused) document.querySelector('#main-content')?.focus({ preventScroll: true });
@@ -47,6 +54,7 @@ export function appReady() {
 
 export function appFailed() {
   failed = true;
+  dismiss.hidden = true;
   document.body.dataset.bootstrapState = 'failed';
   message.textContent = 'The app could not finish loading. Check your connection and reload to try again.';
   banner.hidden = false;
@@ -55,6 +63,7 @@ export function appFailed() {
 export function optionalFeatureFailed() {
   if (failed || pending) return;
   document.body.dataset.bootstrapState = 'degraded';
+  dismiss.hidden = false;
   message.textContent = 'Some features could not load. The core app is available. Reload to restore the missing features.';
   banner.hidden = false;
 }

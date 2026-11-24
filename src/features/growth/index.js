@@ -10,7 +10,6 @@ import { mountReferralKit, mountInvitedBanner } from './referral-kit.js';
 import { mountTradeSummary } from './trade-summary.js';
 import { mountAlerts } from './alerts.js';
 import { mountPayoutChart, mountCreatorPanel } from './insights.js';
-import { mountCommandActions } from './command-actions.js';
 import { mountSkeletons } from './skeletons.js';
 
 export function mountGrowthFeatures(app, document = globalThis.document) {
@@ -27,7 +26,6 @@ export function mountGrowthFeatures(app, document = globalThis.document) {
     ['alerts', () => mountAlerts(app, document)],
     ['chart', () => mountPayoutChart(document)],
     ['creator', () => mountCreatorPanel(app, document)],
-    ['command', () => mountCommandActions(document)],
     ['skeletons', () => mountSkeletons(document)],
   ]);
   const run = () => {

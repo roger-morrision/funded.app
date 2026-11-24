@@ -30,6 +30,8 @@ html body.product-experience-style #header-search-dialog .header-search-result {
 .help-topics-trigger:hover, .help-topics-trigger:focus-visible { background: #26354d; }
 .help-topics-panel { position: fixed; right: 20px; bottom: 82px; z-index: 91; width: min(355px, calc(100vw - 24px)); max-height: min(600px, calc(100dvh - 96px)); overflow-y: auto; border: 1px solid #26354d; border-radius: 8px; background: #101719; color: #e4e9e6; box-shadow: 0 22px 70px #000c; }
 .help-topics-panel[hidden] { display: none; }
+dialog.help-topics-panel { inset: auto 20px 82px auto; margin: 0; padding: 0; }
+dialog.help-topics-panel::backdrop { background: #0009; }
 .help-topics-panel header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; border-bottom: 1px solid #26354d; background: #111b2e; }
 .help-topics-panel header div { display: grid; gap: 3px; }
 .help-topics-panel header strong { font-size: 14px; }

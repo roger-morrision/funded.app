@@ -1,6 +1,4 @@
 // Ctrl K: besides coins, match pages and actions ("claim", "invite", "create").
-import { el } from './format.js';
-
 export const ACTIONS = [
   ['Create a coin', '#launch', 'launch new token create'],
   ['Claim creator fees', '#payments/creator', 'claim creator rewards fees'],
@@ -25,23 +23,14 @@ export function matchActions(query, limit = 5) {
   return ACTIONS.filter(([title, , keywords]) => words.every(word => `${title} ${keywords}`.toLowerCase().includes(word))).slice(0, limit);
 }
 
-export function mountCommandActions(document = globalThis.document) {
-  const dialog = document.getElementById('header-search-dialog');
-  const input = document.getElementById('header-search-input');
-  const head = dialog?.querySelector('.header-search-results-head');
-  if (!dialog || !input || !head || document.getElementById('header-search-actions')) return Boolean(dialog);
-  const box = el(document, 'nav', 'header-search-actions'); box.id = 'header-search-actions'; box.setAttribute('aria-label', 'Pages and actions'); box.hidden = true;
-  head.before(box);
-  const render = () => {
-    const matches = matchActions(input.value);
-    box.hidden = !matches.length;
-    box.replaceChildren(el(document, 'strong', null, 'Pages & actions'), ...matches.map(([title, href]) => {
-      const link = el(document, 'a', null, title); link.href = href;
-      link.addEventListener('click', () => dialog.close?.());
-      return link;
-    }));
-  };
-  input.addEventListener('input', render);
-  dialog.addEventListener('close', () => { box.hidden = true; });
-  return true;
+export function commandSearchCandidates(query) {
+  return matchActions(query).map(([name, href]) => ({
+    mint: `action:${href}`, type: 'action', name, href, symbol: 'PAGE',
+    subtitle: 'Page or action', marketCap: 'Open page', stage: '',
+  }));
 }
+
+// Only locally defined commands may become fragment destinations.
+export const commandHref = row => row?.type === 'action'
+  && ACTIONS.some(([name, href]) => name === row.name && href === row.href)
+  ? row.href : null;

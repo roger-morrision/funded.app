@@ -99,7 +99,7 @@ export async function initializeNavigation(appState) {
     event.preventDefault();
     if (!event.currentTarget.inert) appState.focusCurrentPageContent();
   });
-  document.querySelectorAll('a[href^="#"]:not(.skip-link)').forEach(link => link.addEventListener('click', () => {
+  function requestLinkFocus(link) {
     const href = link.getAttribute('href');
     if (href !== '#launch' && !link.dataset.info) appState.closeDialog('launch-dialog');
     if (!link.dataset.info && href !== '#referral-faq') {
@@ -110,7 +110,18 @@ export async function initializeNavigation(appState) {
         appState.focusCurrentPageRoute();
       });
     }
-  }));
+  }
+  const boundRouteLinks = new WeakSet();
+  document.querySelectorAll('a[href^="#"]:not(.skip-link)').forEach(link => {
+    boundRouteLinks.add(link);
+    link.addEventListener('click', () => requestLinkFocus(link));
+  });
+  // Preserve existing handlers' ordering while covering later search results.
+  document.addEventListener('click', event => {
+    const link = event.target.closest('a[href^="#"]:not(.skip-link)');
+    if (!link || boundRouteLinks.has(link) || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    requestLinkFocus(link);
+  });
   // app-source-end
 
   // app-source: 867
