@@ -1,0 +1,283 @@
+{
+  "scope": "Market metric accuracy corrections",
+  "releasedRevision": "10683ed9799f86733f44a07dcd78eacb840476fc",
+  "image": "sha256:5c5a30bfb09b34ce7888c6578d312d146a1ceb76bc141066acedf14a5c93b057",
+  "validation": {
+    "rootTests": {
+      "passed": 91,
+      "revision": "ec3fe846412ac24861eb72da80e66c6c78582148"
+    },
+    "focusedRegressionTests": {
+      "passed": 7,
+      "revision": "10683ed9799f86733f44a07dcd78eacb840476fc"
+    },
+    "live": {
+      "checkedAt": "2026-11-24T16:05:38.672Z",
+      "revision": "10683ed9799f86733f44a07dcd78eacb840476fc",
+      "checks": [
+        "Live API reports distinct cap/FDV, fresh holder metadata, current supply, and no inferred burn totals",
+        {
+          "viewport": 1280,
+          "fields": {
+            "coin-strip-market-cap": {
+              "text": "$651,454",
+              "title": ""
+            },
+            "coin-holder-count": {
+              "text": "3,926",
+              "title": "Indexed holder count · Checked 11/24/2026, 11:04:42 PM"
+            },
+            "coin-holder-freshness": {
+              "text": "Checked 11:04 PM",
+              "title": ""
+            },
+            "coin-strip-trades": {
+              "text": "59,399",
+              "title": "Waiting for verified market activity."
+            },
+            "coin-strip-burned": {
+              "text": "Unavailable",
+              "title": ""
+            }
+          }
+        },
+        {
+          "viewport": 1280,
+          "paidListing": "Market cap\n$670.9K\n+2255.00%\n24h volume\n$3.03M\nHolders\n3,949"
+        },
+        {
+          "viewport": 390,
+          "fields": {
+            "coin-strip-market-cap": {
+              "text": "$670,899",
+              "title": ""
+            },
+            "coin-holder-count": {
+              "text": "3,926",
+              "title": "Indexed holder count · Checked 11/24/2026, 11:04:42 PM"
+            },
+            "coin-holder-freshness": {
+              "text": "Checked 11:04 PM",
+              "title": ""
+            },
+            "coin-strip-trades": {
+              "text": "59,425",
+              "title": "Waiting for verified market activity."
+            },
+            "coin-strip-burned": {
+              "text": "Unavailable",
+              "title": ""
+            }
+          }
+        },
+        {
+          "viewport": 390,
+          "paidListing": "Market cap\n$670.9K\n+2255.00%\n24h volume\n$3.03M\nHolders\n3,949"
+        }
+      ],
+      "screenshots": [
+        "jimmy-metrics-1280.png",
+        "jimmy-metrics-390.png"
+      ],
+      "overview": {
+        "cluster": "mainnet-beta",
+        "url": "https://dexscreener.com/solana/fnhwfv49ywctgcdtyf34avn8bixxcgxukqlctkrkp1gq",
+        "mint": "38M2z4UCfZEkUHFzD48vhKQhFhNyRGto8pZbLjNipump",
+        "name": "Jimmy Rustles",
+        "dexId": "pumpswap",
+        "stale": false,
+        "fdvUsd": 651454,
+        "source": "dexscreener",
+        "symbol": "JIMMY",
+        "discord": null,
+        "holders": 3926,
+        "twitter": "https://x.com/JimmyRustlesSOL/status/2124990920072499212?a=JhHltcjubM94C_s0OCU&s=20",
+        "website": "https://archive.4plebs.org/s4s/thread/1665870/",
+        "windows": {
+          "5m": {
+            "buys": 176,
+            "sells": 133,
+            "volumeUsd": 26613.56
+          },
+          "1h": {
+            "buys": 1757,
+            "sells": 1481,
+            "volumeUsd": 192195.96
+          },
+          "6h": {
+            "buys": 6054,
+            "sells": 5118,
+            "volumeUsd": 635968.41
+          },
+          "24h": {
+            "buys": 33607,
+            "sells": 25792,
+            "volumeUsd": 3033776.13
+          }
+        },
+        "cachedAt": "2026-11-24T16:05:21.678Z",
+        "decimals": 6,
+        "imageUri": "https://cdn.dexscreener.com/cms/images/bC92iD43nDsYWROT?width=800&height=800&quality=95&format=auto",
+        "priceUsd": 0.0006976,
+        "telegram": null,
+        "headerUri": "https://cdn.dexscreener.com/cms/images/EzTUsOT2OilUwK5M?width=1500&height=500&quality=95&format=auto",
+        "launchpad": "pump.fun",
+        "quoteMint": "So11111111111111111111111111111111111111112",
+        "observedAt": "2026-11-24T16:05:28.675Z",
+        "buyCount24h": 33607,
+        "holderCount": 3926,
+        "pairAddress": "FnHWfV49ywCtGCDTyf34AVN8BiXxcgXUKqLctkrkP1gQ",
+        "priceNative": 0.00001011,
+        "quoteSymbol": "SOL",
+        "burnedTokens": null,
+        "liquidityUsd": 66161.86,
+        "marketCapUsd": 651454,
+        "sellCount24h": 25792,
+        "supplyTokens": 933814931.01862,
+        "volume24hUsd": 3033776.13,
+        "burnedPercent": null,
+        "pairCreatedAt": 1795468271000,
+        "metricsVersion": 2,
+        "holderCountAsOf": null,
+        "holderCountStale": false,
+        "holderCountSource": "jupiter",
+        "priceChangePercent": 2187,
+        "initialSupplyTokens": null,
+        "burnedSupplyVerified": false,
+        "holderCountCheckedAt": "2026-11-24T16:04:42.664Z"
+      },
+      "holders": {
+        "holderCount": 3926,
+        "holderCountAsOf": null,
+        "holderCountCheckedAt": "2026-11-24T16:04:42.664Z",
+        "holderCountStale": false
+      },
+      "passed": true
+    },
+    "publicBuild": {
+      "checkedAt": "2026-11-24T16:05:25.469Z",
+      "url": "https://richpad.fun",
+      "revision": "10683ed9799f86733f44a07dcd78eacb840476fc",
+      "cluster": "mainnet-beta",
+      "activation": false,
+      "frontendSha256": "e9b88461bc0ea1588c4a9476af7f3552015139978cb0d190a2b4c10c9d4293ec",
+      "publicIdentity": {
+        "routerProgram": "",
+        "fundedMint": "Bv1a7cEj5aRnJQhMw4kRQqAFesMSd5LwcDnUzq52BMmr",
+        "fundedPool": "",
+        "tradeFeeRecipient": "M1HfA8vPXwGGn8uv5p9BZSYjsh4jhxhoMfDx2sGsj4M",
+        "tradeFeeBps": "100",
+        "apiBase": "/"
+      },
+      "verifiedAssets": [
+        {
+          "path": "/index.html",
+          "sha256": "68d783f8f24f485fd1def220a5be43905f319a2df4756ae6d3bd215cf6b4aa2e"
+        },
+        {
+          "path": "/assets/favicon-DEhfWBNm.svg",
+          "sha256": "c3740b5ec988182e1f69751ace802d6a1c5fe8435fe63eea1af6ef56c540306f"
+        },
+        {
+          "path": "/assets/main-BKtf1K-K.js",
+          "sha256": "53c17c510b1254604dc01156bd999529923279bf7009781a8c5e9b65bcc608ca"
+        },
+        {
+          "path": "/assets/rolldown-runtime-BCiCTKAo.js",
+          "sha256": "f85e715d54a11fa37b7774ad77b536896ed01bfdfc98f485b678c81859fc8e2e"
+        },
+        {
+          "path": "/assets/modulepreload-polyfill-BCx2JXrw.js",
+          "sha256": "62c385271ed8bd20b6ae1124c2b3470ede7efe55ffba9996d3f05d93f2b46b0f"
+        },
+        {
+          "path": "/assets/technical-notices-C-SQnvmL.js",
+          "sha256": "3b118b178bfc99d2d15fecd25de7e0913890f255e93efd8078ec032bbf24d78c"
+        },
+        {
+          "path": "/assets/left-navigation-Dpzkq-4_.js",
+          "sha256": "a12e30b10368d62e8ba653431427762d7d5d88871577bfa336a53e95d2042f7c"
+        },
+        {
+          "path": "/assets/live-cache-B8hyPvYb.js",
+          "sha256": "0fe0b63740781751be701665a84167d579d6384e2b5c482d95d0c7157295391a"
+        },
+        {
+          "path": "/assets/ieee754-C4HwXvbR.js",
+          "sha256": "b2370e80eda9c61561e159c0f61d47b6820e72e9d9f8cad3c4fddbc23a6e1212"
+        },
+        {
+          "path": "/assets/buffer-polyfill-1zAIC9LU.js",
+          "sha256": "13d01ba0c8929680c3733c1e0805f290fa72fe194773de5603ff0033f10cd44f"
+        },
+        {
+          "path": "/assets/preload-helper-B2qGNpxG.js",
+          "sha256": "cf6f662e3052281628c50b338e1fd3651d6c49ea9cb26154188c2d4c32f38949"
+        },
+        {
+          "path": "/assets/marketing-agency-D1QAlkg_.js",
+          "sha256": "b440c7cea22125f0f3d7cb555e944d9f051867b3d028e2d67cc4cd502c492b03"
+        },
+        {
+          "path": "/assets/distribution-policy-4UbFfh9l.js",
+          "sha256": "27493cdbd97969f8ac19fe0ee0aa1f15ea2abb5ff0ea7aabed5fac7b6aa983ce"
+        },
+        {
+          "path": "/assets/display-COn2S2k6.js",
+          "sha256": "18e9bce745a2cae87dd6b5b94e1fcb7187d02114596245ca22c9f2198c7595e0"
+        },
+        {
+          "path": "/assets/automatic-rewards-D8n3M_eI.js",
+          "sha256": "8894c96c5efa240764b05def06c82409e3611192bc3097e70077bfaff7876d75"
+        },
+        {
+          "path": "/assets/agency-rules-D9tEnQqF.js",
+          "sha256": "d1c4fd7654b414278f3e21be75b4cd628642d31ac13ea76651bc3b12c91c25bc"
+        },
+        {
+          "path": "/assets/fee-policy-copy-ClJEE9Ga.js",
+          "sha256": "c43664d1795234cb199419fc2a2e2c6acb867d5bb0dfb719bcd2f6173b8df1df"
+        },
+        {
+          "path": "/assets/ui-icons-BG672gSI.js",
+          "sha256": "1cf54863ecea789e274aa83cd49373431c4b8f539ed44e2a9955bb3af91708ef"
+        },
+        {
+          "path": "/assets/wallet-links-IlKIV3lH.js",
+          "sha256": "ad5e5d98a38512cc4ba1e373c34e32f3d825a9ae7d12c604f62d2e01cc79b3ee"
+        },
+        {
+          "path": "/assets/flow-timing-BWXER-l7.js",
+          "sha256": "85d1053ea7d6fb5cbb851ca1a95b44b4341401aaf9b4c3495cd4399c115fc0e7"
+        },
+        {
+          "path": "/assets/public-read-fetch-Dr41N0DW.js",
+          "sha256": "27261771657297771ffbc0ce5cec026749db61ab9055844828979f94bba7bcf3"
+        },
+        {
+          "path": "/assets/client-BEdNJC0J.js",
+          "sha256": "01c248d32e8dd09bdc5d2d8abea6e72f5baaec8471ec1020f659f364f9718de2"
+        },
+        {
+          "path": "/assets/technical-notices-CWxRsyGF.css",
+          "sha256": "e8a9b7a7b65061ed4af5f880ff81531905fd8bec658f6cdda77933580f32fc5e"
+        },
+        {
+          "path": "/assets/left-navigation-D4yxcDuX.css",
+          "sha256": "74b5939100a9f6beeaa091aa151ecc5f73f08d9aad319a921dbc0c35c02ab508"
+        },
+        {
+          "path": "/assets/main-CEY5VTsL.css",
+          "sha256": "28477e7d4d95f5c6fed60888f59fd93498c37f93a88139b9059a813dde246827"
+        }
+      ],
+      "genesis": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d"
+    }
+  },
+  "limitations": [
+    "Holder counts are provider snapshots; source timestamps or fetch timestamps are shown.",
+    "Historical burned supply is unavailable without verified baseline or complete burn history.",
+    "Observed traders and largest trade remain lower bounds from sampled trade history."
+  ],
+  "codeContextIndex": "Targeted reindex attempted; some files could not be updated because the local index database was locked."
+}
