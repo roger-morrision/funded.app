@@ -148,6 +148,17 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
     return {store:selected,result:ownResult};
   }
   const {store}=await verifyJournalSet();
+  let inspecting;
+  const inspectAdmission=()=>{
+    // Coalesce concurrent probes, but never cache a prior successful admission.
+    inspecting??=(async()=>{
+      const fresh=await verifyContext(!recoveryOnly);
+      await verifyJournalSet();
+      return {schemaVersion:1,status:'admitted',cluster:'mainnet-beta',sourceRevision:release.sourceRevision,
+        role:spec.role,mode:recoveryOnly?'recovery-only':'signing',...fresh};
+    })().finally(()=>{inspecting=undefined;});
+    return inspecting;
+  };
   const authentication=async role=>{
     let token;try{token=await loadAuthentication(spec.authenticationReferences[role]);}catch{throw Error('Conversion authentication reference unavailable.');}
     assert(typeof token==='string'&&token.length===64&&/^[a-f0-9]{64}$/.test(token),'Invalid conversion authentication reference.');return token;
@@ -155,7 +166,7 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
   let runtime;
   if(spec.role==='controller'){
     const [token,operatorToken,priceToken]=await Promise.all(roles.map(authentication));
-    runtime=createTokenConversionController({store,connection,config:policy,release,token,now,recoveryOnly,
+    runtime=createTokenConversionController({store,connection,config:policy,release,token,now,recoveryOnly,inspectAdmission,
       priceService:{endpoint:priceOrigin.href,token:priceToken,request},operatorService:{endpoint:operatorOrigin.href,token:operatorToken,request}});
   }else{
     const publicKey=new PublicKey(spec.role==='operator'?policy.authority:policy.priceSigner);let custody;
@@ -166,10 +177,10 @@ export async function prepareTokenConversionRuntime({spec,policy,release,connect
       }).catch(()=>{throw Error('Approved conversion custody reference unavailable or mismatched.');});
       const handle=await custody;await verifyContext(true);return handle.signMessage(args);
     }};
-    runtime=createTokenConversionSigningService({store,connection,config:policy,release,role:spec.role,signer,token:await authentication(spec.role),now,recoveryOnly});
+    runtime=createTokenConversionSigningService({store,connection,config:policy,release,role:spec.role,signer,token:await authentication(spec.role),now,recoveryOnly,inspectAdmission});
   }
   const prepared={...runtime,initialize:async()=>{await verifyContext(!recoveryOnly);return (await verifyJournalSet()).result;},
-    disposeCustody:async()=>privateFileCustody?.close(),
+    disposeCustody:async()=>privateFileCustody?.close(),inspectAdmission,
     recoveryWorker:spec.role==='controller'&&recoveryOnly?createTokenConversionRecoveryWorker({controller:runtime}):undefined,
     admission:{...admission,role:spec.role,mode:recoveryOnly?'recovery-only':'signing'},
     scope:'prepared private runtime; no listener or worker activation, custody is lazy and requires fresh verified context'};

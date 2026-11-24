@@ -218,6 +218,7 @@
     {
       "path": "tests/security/production-conversion-runtime.test.mjs",
       "requiredTests": [
+        "authenticated admission probes recheck every role without custody and reject changed chain context",
         "production launcher integrates three actual HTTP roles with lazy custody and exact-once settlement",
         "production launcher recovers unknown sends after restart without new custody or broadcast",
         "production launcher rejects unreviewed release, drift and signing approval before secret access",

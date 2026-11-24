@@ -19,7 +19,7 @@ export function selectSavedConversionPage({attempts,after=null,limit=32}){
 
 // Passive private controller, not registered with the public API or worker.
 // Holds service authentication references, never an operator/price private key.
-export function createTokenConversionController({store,connection,config,release,priceService,operatorService,token,now=Date.now,recoveryOnly=false}){
+export function createTokenConversionController({store,connection,config,release,priceService,operatorService,token,now=Date.now,recoveryOnly=false,inspectAdmission}){
   assert(typeof recoveryOnly==='boolean','Explicit recovery mode required.');
   config=structuredClone(config);release=structuredClone(release);
   const priceSigner=createTokenConversionRemoteSigner({...priceService,publicKey:config.priceSigner,programId:config.programId,role:'price-attestation'});
@@ -29,6 +29,10 @@ export function createTokenConversionController({store,connection,config,release
   const server=createServer(async(req,res)=>{
     const reply=(code,value)=>conversionReply(res,code,value);
     if(!authorized(req))return reply(401,{error:'Unauthorized.'});
+    if(req.method==='GET'&&req.url==='/admission'&&inspectAdmission){
+      try{return reply(200,await inspectAdmission());}
+      catch{return reply(503,{error:'Fresh conversion admission unavailable.'});}
+    }
     if(req.method!=='POST'||req.url!=='/run')return reply(404,{error:'Not found.'});
     try{
       assert(req.headers['content-type']==='application/json','JSON required.');

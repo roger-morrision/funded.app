@@ -6,7 +6,7 @@ import {conversionAuthorization,conversionReply,conversionJson,conversionObject,
 
 // Passive service factory: no key/env loader, listener, allowlist update or
 // activation. A separately approved custody adapter supplies ONLY its own role.
-export function createTokenConversionSigningService({store,connection,config,release,role,signer,token,now=Date.now,signTimeoutMs=30000,recoveryOnly=false}){
+export function createTokenConversionSigningService({store,connection,config,release,role,signer,token,now=Date.now,signTimeoutMs=30000,recoveryOnly=false,inspectAdmission}){
   assert(typeof recoveryOnly==='boolean','Explicit recovery mode required.');
   assert(['operator','price-attestation'].includes(role),'Exact conversion custody role required.');
   const publicKey=String(role==='operator'?config.authority:config.priceSigner);
@@ -18,6 +18,10 @@ export function createTokenConversionSigningService({store,connection,config,rel
   const server=createServer(async(req,res)=>{
     const reply=(code,value)=>conversionReply(res,code,value);
     if(!authorized(req))return reply(401,{error:'Unauthorized.'});
+    if(req.method==='GET'&&req.url==='/admission'&&inspectAdmission){
+      try{return reply(200,await inspectAdmission());}
+      catch{return reply(503,{error:'Fresh conversion admission unavailable.'});}
+    }
     if(req.method!=='POST'||!['/sign','/reconcile'].includes(req.url))return reply(404,{error:'Not found.'});
     if(recoveryOnly&&req.url==='/sign')return reply(503,{error:'Custody service is recovery-only.'});
     if(busy)return reply(429,{error:'Conversion custody review busy.'});busy=true;

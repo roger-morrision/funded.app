@@ -2,6 +2,29 @@
 
 Product workflows: [all-page guide](product-guide.md). Documentation scope and dated evidence: [index](README.md).
 
+## Preparation recheck — 21 November 2026
+
+**Full program launch remains NO-GO.** The existing public Mainnet site runs the separate non-program mode. A read-only live check returned healthy HTTP responses and build `18d15d6daa1f64a30e4870d627d6d44ede580d4d`; this establishes availability and release identity only. No deployment, wallet connection, network transaction submission, production configuration change or existing wallet-key access was performed during this recheck.
+
+Local fixes now stop signer startup on a corrupt/unreadable journal, validate the entire journal before restoring withdrawal usage, flush signing decisions before returning signatures, and stop further signing after a journal write failure. Read-only Mainnet preparation rejects remote signing credentials and non-program write flags. `FUNDED_SKIP_LOCAL_ENV=true` and whitespace in network selectors can no longer bypass Mainnet secret isolation.
+
+The local review proxy now rejects transaction sends, airdrops, batches, unknown RPC methods and oversized bodies, binds to loopback, and limits upstream waits. Its runner uses its own dynamically allocated port and invokes Node/Playwright without shell argument interpolation. Interactive review failures now produce a failing exit code. The local creator endpoint uses bounded concurrent RPC reads with timeouts and no automatic rate-limit retries. Review exercises that local backend endpoint alongside its browser caller; the older public API does not yet expose it. Browser and backend changes must be delivered together.
+
+Current verification: Node **24.22.3**, **19 security regressions passed**, **36/36 desktop/mobile smoke checks passed**, **26/26 desktop/mobile interaction checks passed**, syntax/source-size checks passed, production and Mainnet review builds passed, and the full npm dependency audit reported zero vulnerabilities. The first browser reproduction returned 34/36 due to the older API's missing creator endpoint. An intermediate run overlapped a rebuild and is excluded; the final 36-case run used the completed bundle. These browser checks use local assets/backend creator code and public upstream reads; they are not financial acceptance tests. CI now requires `npm run test:security`.
+
+A fresh Mainnet-feature build using public test identities passed **7 compiled-bytecode VM tests**: account setup (3), protocol guard (3), and exclusion of Devnet reward entrypoints (1). Its 1,037,544-byte artifact hashes to `3732459954f9e42f83c77c618c1982d60e9a97524446cfc97cacc1345ec20612`. This is a **VM-only, non-deployable fixture**, not independently reviewed production bytecode.
+
+Remaining release blockers are explicit:
+
+- **Engineering:** `launch-flow.js` still rejects Mainnet launch submission; fee-router signer integration, the internal signer service and price-signer bootstrap remain Devnet-only. Complete and review these paths together with production registration, metadata, collection, settlement and payout reconciliation. Changing activation flags alone is not a fix.
+- **Production inputs and independent review:** `config/mainnet-program-release.json` still has no approved program identity, production asset binding, exact source/binary identity or independent reviewer. The full-program deployment inventory remains incomplete. The planning template is not the configuration of the already-running non-program site.
+- **Deployment budget:** read-only official Mainnet RPC reads on 21 November verified the full genesis and finalized slot 472064018. Exact allocation for the current 1,037,544-byte test fixture requires **5,272,435,480 lamports (5.27243548 SOL)** of program/ProgramData rent alone, exceeding the inventory's **5 SOL total cap**. Fees, initialization, liquidity, canary and operating reserves are additional. This is fixture sizing, not a production deployment quote or permission to increase spending; quote the final reviewed artifact and resolve the cap before deployment.
+- **Acceptance and operations:** freeze a clean release, verify the isolated production inventory and budgets, obtain independent review of the exact production artifact, then complete current-release financial/recovery evidence and a capped Mainnet canary. The offline preflight and launch packet correctly exit nonzero with `ready:false`. Historical Devnet receipts and the tests above do not clear these gates.
+
+The fixes are local and uncommitted; pre-existing workspace edits were preserved. Before shipping the signer change, validate its mounted journal without editing or truncating it. If validation fails, stop and reconcile the records; deleting the journal would erase withdrawal accounting.
+
+[Machine-readable recheck evidence, source hashes and rent quote](evidence/go-live-preparation-2026-11-21.json).
+
 ## Deployment and go-live sequence (8 November 2026)
 
 The requested deployment is a **fresh isolated Mainnet installation**. Provision new program and infrastructure identities and production signer references. Start with an empty production financial database and cache; do not copy Devnet launches, balances, receipts, sessions, pending transactions or QA private keys. Select/bootstrap the production FUNDED mint and real canonical pool before freezing the contract build. Record liquidity funding separately from contract rent and deployment fees. The admin recipient and retained upgrade authority must be explicitly selected public addresses. No existing Devnet reset, wallet transfer or deletion is part of this plan.
@@ -24,7 +47,8 @@ Commands available now, from the repository root:
 ```sh
 npm ci
 npm run check
-node --test tests/*.test.mjs
+npm run test:security
+npm run review:local
 npm run build
 npm run build:mainnet-preview
 node scripts/mainnet-readiness-preflight.mjs --config /private/mainnet.env

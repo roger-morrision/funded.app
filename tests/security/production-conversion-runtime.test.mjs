@@ -47,6 +47,26 @@ async function fixture(t,options={}){
 }
 import {tokenPricePolicyHash} from '../../server/token-conversion-sell-review.mjs';
 
+test('authenticated admission probes recheck every role without custody and reject changed chain context',async t=>{
+  const {c,configs,counts,install}=await fixture(t);
+  for(const role of ['operator','price-attestation','controller']){
+    const runtime=await install(role),key=role==='controller'?'worker':role;
+    const endpoint=c.origins[key]+'/admission',headers={authorization:'Bearer '+c.tokens[key]};
+    assert.equal((await fetch(endpoint)).status,401);
+    const good=await fetch(endpoint,{headers});assert.equal(good.status,200);
+    assert.equal(good.headers.get('cache-control'),'no-store');
+    const body=await good.json();assert.equal(body.status,'admitted');assert.equal(body.role,role);
+    assert.equal(body.mode,'signing');assert.equal(body.sourceRevision,configs[role].sourceRevision);
+    assert.equal(body.freshSigningEligible,true);
+    const connection=configs[role].connectionFactory(),prior=connection.getGenesisHash;
+    connection.getGenesisHash=async()=> 'wrong-chain';
+    assert.equal((await fetch(endpoint,{headers})).status,503);
+    await assert.rejects(runtime.inspectAdmission());connection.getGenesisHash=prior;
+    assert.equal((await fetch(endpoint,{headers})).status,200);
+  }
+  assert.equal(counts.custody,0);assert.equal(counts.signatures,0);assert.equal(c.calls.send,0);
+});
+
 test('production launcher integrates three actual HTTP roles with lazy custody and exact-once settlement',async t=>{
   const {c,counts,install}=await fixture(t);
   for(const role of ['operator','price-attestation','controller'])await install(role);

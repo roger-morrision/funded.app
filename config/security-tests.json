@@ -114,6 +114,15 @@
         "current candidate accepts identical contract bytes with current full source provenance",
         "candidate verifier rejects source, compiler, binary, identity and build-input drift"
       ]
+    },
+    {
+      "path": "tests/security/mainnet-candidate-observation.test.mjs",
+      "requiredTests": [
+        "candidate observation discovers exact finalized ProgramData without granting release admission",
+        "candidate observation rejects stale banks, altered ELF, authority, padding and RPC disagreement",
+        "candidate observation distinguishes absent deployment and refuses wrong chain or unselected bytes",
+        "deployment funding reports exact zero balance and refuses malformed or wrong-chain observations"
+      ]
     }
   ]
 }

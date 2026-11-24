@@ -12,7 +12,7 @@ try{
   const bindings=JSON.parse(await readFile(bindingsFile,'utf8'));
   runtime=await prepareProductionConversionService({deployment,bindings,sourceRevision:process.env.FUNDED_BUILD_ID});
   if(mode==='check'){
-    console.log(JSON.stringify({scope:'runtime-admission-only',...runtime.admission,listening:false,transactionsSubmitted:0}));
+    console.log(JSON.stringify({scope:'runtime-admission-only',...await runtime.inspectAdmission(),listening:false,transactionsSubmitted:0}));
     await runtime.close();
   }else{
     console.log(JSON.stringify({event:'production-conversion-listening',...await runtime.start()}));
