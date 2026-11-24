@@ -5,6 +5,7 @@ import {Keypair,SystemProgram,Transaction,TransactionMessage,VersionedTransactio
 import {executeLaunchPlan} from '../../launch-executor.js';
 import {JOURNAL_KEY,readLaunchJournal,recordLaunchEvent,journalRecovery} from '../../launch-journal.js';
 import {createLaunchRecoveryRecorder} from '../../launch-recovery-outcome.js';
+import {recoveryItems} from '../../src/features/experience/recovery-inbox.js';
 
 // In-memory disposable wallets and mocked RPC only; no network or persisted keys.
 function fixture(versioned=false,steps=1){
@@ -146,7 +147,12 @@ test('launch recovery retains earlier finalized steps and unresolved developer b
   for(let i=0;i<75;i++)recordLaunchEvent('other-'+i,{state:'completed'},s);
   const saved=readLaunchJournal(s).find(row=>row.id==='coin');assert(saved);
   assert.match(journalRecovery(saved),/pending-buy/);assert.match(journalRecovery(saved),/uncertain/);
+  const payer=Keypair.generate().publicKey.toBase58();
+  const inbox=recoveryItems(payer,[{...saved,payer,cluster:'devnet',signature:'launch-receipt'}],[]);
+  assert.equal(inbox.length,1);assert.equal(inbox[0].signature,'pending-buy');assert.equal(inbox[0].state,'unknown');
+  assert.equal(recoveryItems(Keypair.generate().publicKey.toBase58(),[{...saved,payer,cluster:'devnet'}],[]).length,0);
   recordLaunchEvent('coin',{state:'confirmed',step:'developer-buy',signature:'pending-buy'},s);
   recordLaunchEvent('coin',{state:'completed'},s);
   assert.match(journalRecovery(readLaunchJournal(s).find(row=>row.id==='coin')),/^Registered/);
+  assert.equal(recoveryItems(payer,[{...readLaunchJournal(s).find(row=>row.id==='coin'),payer,cluster:'devnet'}],[]).length,0);
 });

@@ -2,7 +2,7 @@
 
 Launch execution now waits for recovery records before wallet approval and broadcast. Every send explicitly disables RPC retries. A finalized confirmation must contain an explicit successful result; incomplete responses retain an uncertain outcome and the original signature.
 
-Errors carry public receipt information through the executor, launch flow and UI controller, including failures after coin creation returns. A journal failure cannot replace the transaction outcome with an apparent pre-send failure. Pending developer buys remain visible in the final launch result and recovery history even after coin registration completes.
+Errors carry public receipt information through the executor, launch flow and UI controller, including failures after coin creation returns. A journal failure cannot replace the transaction outcome with an apparent pre-send failure. Pending developer buys remain visible in the final launch result and recovery inbox even after coin registration completes. The inbox links to the unresolved buy receipt, and another launch with the same name and ticker remains blocked until that receipt is resolved.
 
 The journal refuses unreadable or corrupt history instead of replacing it with an empty ledger, verifies writes by reading them back, and retains unresolved rows and signed receipt events beyond the normal history limits. This is browser-local recovery storage, not independently managed durable custody storage; unavailable storage blocks further sends.
 

@@ -5,6 +5,7 @@ import { refreshServiceFees } from '../../features/fees/service-fees-client.js';
 import { readLaunchAgencySelection } from '../../features/marketing/agency-selection.js';
 import { showLaunchSuccess } from '../../features/launch/success-dialog.js';
 import {createLaunchRecoveryRecorder} from '../../../launch-recovery-outcome.js';
+import {pendingLaunchReceipts} from '../../../launch-journal.js';
 
 // Dependencies and mutable application state are read live through appState.
 export function createLaunchSubmitController(appState) {
@@ -88,7 +89,7 @@ export function createLaunchSubmitController(appState) {
         if (!resolved.available || !/^\d{1,24}$/.test(String(resolved.data?.id || '')) || String(resolved.data?.handle || '').toLowerCase() !== xRecipient.toLowerCase()) throw new Error('X account could not be checked. Retry before launching.');
         xUserId = resolved.data.id;
       }
-      const unresolved=appState.readLaunchJournal().find(row=>row.payer===session.address&&row.name===name&&row.symbol===symbol&&row.state!=='completed'&&(['broadcasting','submitted','unknown','confirmed','verification-pending','registration-pending'].includes(row.state)||row.events?.some(event=>event.step==='promotion-burn'&&['broadcasting','submitted','unknown','confirmed'].includes(event.state))));
+      const unresolved=appState.readLaunchJournal().find(row=>row.payer===session.address&&row.name===name&&row.symbol===symbol&&(pendingLaunchReceipts(row).length>0||row.state!=='completed'&&(['broadcasting','submitted','unknown','confirmed','verification-pending','registration-pending'].includes(row.state)||row.events?.some(event=>event.step==='promotion-burn'&&['broadcasting','submitted','unknown','confirmed'].includes(event.state)))));
       if(unresolved)throw new Error('An earlier launch with this name and ticker needs recovery in Portfolio. Check its receipts before creating another coin.');
       if(!appState.freshLaunchReview(reviewedCost))throw new Error('Estimate expired during identity lookup. Refresh and review again before signing.');
       if (launchBurn.requiresBurn && (!appState.currentLaunchTierQuote() || launchBurn.quoteId !== appState.currentLaunchTierQuote().id || launchBurn.amountTokens !== appState.currentLaunchTierQuote().amountTokens))

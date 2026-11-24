@@ -23,8 +23,9 @@
     "launch-flow.js": "d7d7d49f92e90d7f9f5dc518f77f37e5464c3cad17d370d2ceebb7cccad5f4f0",
     "launch-journal.js": "a95176a05a5a068ff9f752985e69e7eb480cbfaf7d3c76f2729cc7bb59338653",
     "config/security-tests.json": "8425371d1f05eb2971f8035e030bd6bdab9315e120e4f91ce3f75a92ccfb99ec",
-    "tests/security/launch-execution-recovery.test.mjs": "ebf08ff1f69a39a9a02a98ae8ab707bc91e3fb4d3fe08fbd78c7dab0319c452b",
+    "tests/security/launch-execution-recovery.test.mjs": "2c0418f11a5b76365fe7257f909a116e2b4b9ea28c19dde322886ca7967ddd44",
     "launch-executor.js": "c16acfea9056ddd2572dafbbf0bc1057378788e80571c7014315b19919fdf267",
-    "src/app/controllers/launch-submit.js": "442030a1f66d5c3b1315d1586c3b93deffa1542c32142c4c5548dc9f056153af"
+    "src/app/controllers/launch-submit.js": "be23ae7f273676ba3891cc5f6e29f1091769c75498fb72b9ac870ba8fd984acd",
+    "src/features/experience/recovery-inbox.js": "859d42a879d5e253830d18c2f80ca1be71e8fadd37dbb7f4896ed4884dd2a0a6"
   }
 }
