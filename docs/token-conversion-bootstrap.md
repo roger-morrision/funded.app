@@ -1,5 +1,9 @@
 # Private conversion runtime preparation
 
+For the executable private process added on 2026-11-24, see
+[production conversion runtime](production-conversion-runtime.md). This document
+describes the underlying preparation factory and its admission boundaries.
+
 `prepareTokenConversionRuntime` prepares the existing controller or role-service
 factory from explicit trusted public references. It defaults to recovery-only,
 returns an unbound server, and installs no listener, timer, public API, production

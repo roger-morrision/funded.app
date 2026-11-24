@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "scope": "Actual private HTTP/custody lifecycle and persistent recovery; exact public ELF/capture inputs with mocked chain. No live financial acceptance.",
+  "files": [
+    {
+      "path": "tests/readiness/token-conversion-sell.test.mjs",
+      "requiredTests": [
+        "captured exact USDC sell builds category 5 with 57 bytes and 41 canonical metas",
+        "captured exact USDC sell builds category 6 with 57 bytes and 41 canonical metas",
+        "captured exact USDC sell builds category 7 with 57 bytes and 41 canonical metas",
+        "wrong sell payload, changed exact input and weaker output cannot be substituted",
+        "only canonical positive u64 input and minimum amounts and supported categories are accepted",
+        "pool, base/quote, user vault, market vault and fee-program metas cannot be redirected",
+        "unexpected signer, writable privileges, volume tails and missing price separation are rejected",
+        "market owner, pool orientation, coin-creator and special-mode changes are rejected",
+        "fee recipient membership and canonical WSOL custody are required",
+        "conversion decoder rejects unsupported layout, discriminator, category and zero amounts"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "requiredTests": [
+        "mocked admitted finalized sell reconciles category 5 with prefund 0",
+        "mocked admitted finalized sell reconciles category 5 with prefund 700000",
+        "mocked admitted finalized sell reconciles category 6 with prefund 0",
+        "mocked admitted finalized sell reconciles category 6 with prefund 700000",
+        "mocked admitted finalized sell reconciles category 7 with prefund 0",
+        "mocked admitted finalized sell reconciles category 7 with prefund 700000",
+        "committed incomplete release cannot admit a program or even read RPC",
+        "wrong genesis, loader, authority and full ProgramData context cannot authenticate proof",
+        "missing or nonfinalized signature status and slot mismatch remain unresolved",
+        "missing or stale finalized account evidence and RPC errors cannot finalize",
+        "signature, frozen message and failed transaction substitution are rejected",
+        "invalid operator or independent price signature cannot authenticate the transaction",
+        "foreign receipt ownership, wrong immutable identity and category credit do not prove payment",
+        "exact USDC debit and token custody must agree with receipt",
+        "prefund and rent cannot inflate credit and WSOL must close",
+        "exact sell CPI accounts, payload and closure are required"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-context.test.mjs",
+      "requiredTests": [
+        "reviewed deployment effective before tx authenticates with fresh finalized context and no account cache",
+        "a later or same-slot reviewed deployment cannot authenticate the older signed transaction",
+        "stale, backwards and malformed finalized program contexts remain unresolved",
+        "missing contextual RPC, malformed deployment header and stale receipt or status context cannot fall back to cached bytes",
+        "later absence checks retain the original deployment interval and require the requested fresh context floor"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-quote.test.mjs",
+      "requiredTests": [
+        "independent sell pricing recomputes captured SDK output and policy floor from finalized raw accounts",
+        "unreviewed market, noncanonical limits and widened slippage or liquidity cannot enter pricing",
+        "wrong genesis, over-order input and absent market prevent any usable price",
+        "pool/global/fee configuration owners and pool custody must authenticate",
+        "reserve token owners, mint decimals, vault authority and frozen accounts cannot be substituted",
+        "empty reserves and inputs exceeding the actual liquidity clip cannot be priced",
+        "backwards or stale finalized snapshots and unavailable reads stay unavailable"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "requiredTests": [
+        "unsigned full conversion review uses actual market/account codecs for category 5 and prefund 0",
+        "unsigned full conversion review uses actual market/account codecs for category 5 and prefund 700000",
+        "unsigned full conversion review uses actual market/account codecs for category 6 and prefund 0",
+        "unsigned full conversion review uses actual market/account codecs for category 6 and prefund 700000",
+        "unsigned full conversion review uses actual market/account codecs for category 7 and prefund 0",
+        "unsigned full conversion review uses actual market/account codecs for category 7 and prefund 700000",
+        "incomplete release and absent independent typed policy review cannot trigger RPC review",
+        "changed policy, policy digest, role separation or requested program cannot enter review",
+        "actual reviewer rejects a pre-signed message and wrong genesis before market reads",
+        "caller quote, reserve and recipient hints cannot replace independent raw market pricing",
+        "paused guard, wrong current operator, inactive price signer and used receipt reject new review",
+        "category spend cannot exceed token balance or its actual settled allocation",
+        "wrong USDC custody or malformed WSOL prefund cannot reach simulation",
+        "extra transfers, changed writable privileges and reordered fee setup are not canonical",
+        "unapproved priority fee, unavailable or changed lookup table cannot be reviewed",
+        "expired blockhash, stale accounting snapshot and protected reserve shortage reject",
+        "simulation failure or mismatched receipt, debit, credit, category or closure cannot produce a review",
+        "deployment changes during simulation cannot escape the final uncached context check"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-journal.test.mjs",
+      "requiredTests": [
+        "durable actual review reserves signs and reconciles category 5 then permits the next nonce",
+        "durable actual review reserves signs and reconciles category 6 then permits the next nonce",
+        "durable actual review reserves signs and reconciles category 7 then permits the next nonce",
+        "same reviewed message is idempotent before and after durable store restart",
+        "unknown old attempts block replacement even outside the rolling budget window",
+        "two locked store instances cannot race past the typed USDC daily bound",
+        "only both valid signatures on the exact durable message can be recorded for submission",
+        "finalized expiry plus absent receipt releases only raw conversion budget and permits a fresh blockhash",
+        "stale program context, unavailable receipt and a live blockhash preserve reservations",
+        "a finalized status without the exact transaction proof cannot clear or release the reservation",
+        "an externally recovered signature cannot bypass unresolved finalized transaction evidence",
+        "a finalized failed attempt releases conversion budget without claiming a fee refund",
+        "clock rollback cannot mutate a signed reservation or authorize a replacement",
+        "legacy context, corrupt reservation and array-shaped attempt storage are rejected without rewriting disk",
+        "no independent policy admission or legacy budget denomination can create a production journal",
+        "a review delayed before the durable write cannot reserve stale signing intent"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-transport.test.mjs",
+      "requiredTests": [
+        "transport unknown submission recovers exact original wire after restart without signing or sending again",
+        "transport saved unsigned reservation is recovery-only after restart",
+        "transport absent recovery attempt cannot fall through to signing",
+        "transport two store instances admit only one signing and broadcast owner",
+        "transport post-publication broadcast fence failure retains identity and forbids retry",
+        "transport callback message mutation cannot redirect a signature",
+        "transport expired price review prevents operator signing",
+        "transport expired operator review preserves signed bytes without broadcast",
+        "transport timed-out signer keeps a durable unknown marker across restart",
+        "transport changed provider signature cannot mark completion",
+        "transport corrupt broadcast marker is rejected before any signer or send",
+        "transport wrong signer identity is refused before journal initialization",
+        "transport delayed signing fence cannot expose a stale price request",
+        "transport delayed broadcast fence cannot send stale signed bytes",
+        "transport actual second review catches changed operator solvency before send",
+        "transport snapshots caller request before the first await",
+        "transport unavailable operator never permits automatic signing replacement",
+        "transport mutated signer handle is checked against the durable role",
+        "transport durably reviews and saves both exact signatures before category 5 send",
+        "transport durably reviews and saves both exact signatures before category 6 send",
+        "transport durably reviews and saves both exact signatures before category 7 send",
+        "transport reserve persistence failure suppresses dependent external action",
+        "transport signing persistence failure suppresses dependent external action",
+        "transport signed persistence failure suppresses dependent external action",
+        "transport broadcast persistence failure suppresses dependent external action",
+        "transport invalid priceSigner signature never broadcasts",
+        "transport invalid operator signature never broadcasts",
+        "transport historical signed journal without a send marker is never automatically broadcast"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-service.test.mjs",
+      "requiredTests": [
+        "HTTP controller missing recovery attempt cannot contact signers",
+        "Private controller pages only saved attempts after restart without signing or broadcast",
+        "Private recovery cursor visits 65 saved attempts without repeating within a page",
+        "Private controller persists recovery progress before retrying an unknown send",
+        "Private recovery refuses a changed persisted context before touching a saved attempt",
+        "Private recovery worker drains only saved attempts across restart without a second send",
+        "Private recovery worker coalesces concurrent ticks and latches a journal fault",
+        "Private recovery worker start is explicit and stop drains its in-flight page",
+        "HTTP authentication rejects controller and both custody requests before review",
+        "HTTP schema and changed message hash refuse without a reservation",
+        "HTTP cached role signature survives backend restart with actual fresh review and no new custody call",
+        "HTTP unknown custody result cannot sign again after backend restart",
+        "HTTP role signature disk failure cannot expose a usable response or invoke the operator",
+        "HTTP postpublication role signature failure is cache-recoverable without another custody signature",
+        "HTTP two backend instances share durable one-time custody admission",
+        "HTTP controller unknown send restarts read-only then attributes the exact original transaction",
+        "HTTP unavailable backend reconciliation cannot erase durable worker proof",
+        "HTTP forged custody signature or identity cannot reach broadcast",
+        "HTTP corrupted cached role signature prevents backend restart without rewriting it",
+        "HTTP service refuses missing production admission or wrong custody identity before review",
+        "HTTP remote custody origin rejects public HTTP and credential-bearing endpoints",
+        "HTTP native redirect refusal does not forward custody authentication",
+        "HTTP oversized request and response remain fail-closed without custody or broadcast",
+        "HTTP custody completion after review expiry persists but does not expose its signature",
+        "HTTP accidentally shared role journal cannot admit both custody signatures",
+        "HTTP conversion independently reviews signs and reconciles category 5 across three journals",
+        "HTTP conversion independently reviews signs and reconciles category 6 across three journals",
+        "HTTP conversion independently reviews signs and reconciles category 7 across three journals",
+        "HTTP price-attestation own wrong-genesis reader refuses a worker-approved request",
+        "HTTP operator own wrong-genesis reader refuses a worker-approved request"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "requiredTests": [
+        "explicit first provisioning binds three absent role journals to the reviewed release",
+        "first provisioning refuses one published role before creating any other journal",
+        "resume refuses each missing or wrong-context role journal before authentication or custody",
+        "partial restore of a valid older role journal cannot erase an unknown signed attempt",
+        "independent pool-supply snapshots may differ while exact signed conversion message agrees",
+        "controller rollback before role signatures refuses resume without custody or new send",
+        "real API worker selector exposes only explicit reviewed read-only recovery pages",
+        "resume refuses a corrupt third journal before authentication or custody",
+        "resume refuses aliased role stores despite distinct public references",
+        "prepared runtime initializers cannot recreate missing signed role journals",
+        "intact three-journal resume recovers saved signed intent and proof without a new send",
+        "bootstrap prepares three real HTTP services and loads each approved role lazily after verified claims",
+        "bootstrap malformed public references or unadmitted policy cannot invoke any resolver",
+        "bootstrap journal failure is sanitized before authentication access",
+        "bootstrap authentication failure is sanitized without custody access",
+        "bootstrap signing mode refuses a paused or rotated current authority before secret access",
+        "bootstrap recovery mode preserves saved proof through pause and operator rotation without custody",
+        "bootstrap program changed after durable signing claim cannot reach custody loader",
+        "bootstrap wrong loaded custody identity cannot produce a signature",
+        "bootstrap context changed during custody resolution prevents use of the loaded handle",
+        "bootstrap defaults controller to recovery without touching custody or listening",
+        "bootstrap defaults operator to recovery without touching custody or listening",
+        "bootstrap defaults price-attestation to recovery without touching custody or listening",
+        "bootstrap genesis fails before authentication or custody access",
+        "bootstrap program-data fails before authentication or custody access",
+        "bootstrap program-owner fails before authentication or custody access",
+        "bootstrap pointer fails before authentication or custody access",
+        "bootstrap stale-program fails before authentication or custody access",
+        "bootstrap stale-accounts fails before authentication or custody access",
+        "bootstrap global-owner fails before authentication or custody access",
+        "bootstrap price-owner fails before authentication or custody access"
+      ]
+    },
+    {
+      "path": "tests/readiness/token-conversion-three-journal-restore.test.mjs",
+      "requiredTests": [
+        "closed three-journal unknown and verified copies survive fresh-process recovery without new signing",
+        "partial corrupt and wrong-context copies fail before authentication; coherent older copy needs an external witness"
+      ]
+    },
+    {
+      "path": "tests/security/production-conversion-runtime.test.mjs",
+      "requiredTests": [
+        "production launcher integrates three actual HTTP roles with lazy custody and exact-once settlement",
+        "production launcher recovers unknown sends after restart without new custody or broadcast",
+        "production launcher rejects unreviewed release, drift and signing approval before secret access",
+        "production launcher rejects reused authentication and drains close during admission",
+        "production launcher refuses missing journals and cannot reopen after close",
+        "production references reject multiline, oversized and symbolic-link credentials"
+      ]
+    },
+    {
+      "path": "tests/security/metadata-storage-verification.test.mjs",
+      "requiredTests": [
+        "metadata probe rechecks identical public bytes without credentials or repeat uploads",
+        "metadata probe saves public CIDs before gateway failure and resumes verification without upload",
+        "metadata verification rejects changed JSON, images, banners and missing pinned checksums"
+      ]
+    }
+  ]
+}

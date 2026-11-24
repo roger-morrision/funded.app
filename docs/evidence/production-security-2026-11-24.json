@@ -1,0 +1,346 @@
+{
+  "scope": "local-only security regressions; not chain or deployment acceptance",
+  "node": "v24.22.2",
+  "counts": {
+    "tests": 63,
+    "passed": 63,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "required": 63,
+  "requiredPassed": 63,
+  "cases": [
+    {
+      "file": "tests/security/metadata-storage-verification.test.mjs",
+      "name": "metadata probe rechecks identical public bytes without credentials or repeat uploads",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/metadata-storage-verification.test.mjs",
+      "name": "metadata probe saves public CIDs before gateway failure and resumes verification without upload",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/metadata-storage-verification.test.mjs",
+      "name": "metadata verification rejects changed JSON, images, banners and missing pinned checksums",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-execution-recovery.test.mjs",
+      "name": "launch executor awaits approval and broadcast journals for legacy and v0 messages",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-execution-recovery.test.mjs",
+      "name": "launch executor stops at asynchronous journal failures and preserves broadcast outcome",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-execution-recovery.test.mjs",
+      "name": "launch executor preserves an unknown send when the recovery writer also fails",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-execution-recovery.test.mjs",
+      "name": "launch executor requires explicit finalized success and never resends during reconciliation",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-execution-recovery.test.mjs",
+      "name": "launch executor rechecks wallet and quote after persistence and rejects malformed expiry",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-execution-recovery.test.mjs",
+      "name": "launch executor rejects wallet message substitution in both wire formats",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-execution-recovery.test.mjs",
+      "name": "launch journal refuses corrupt or unreadable history and verifies its write",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-execution-recovery.test.mjs",
+      "name": "launch journal retains unresolved receipts beyond row and event history limits",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-execution-recovery.test.mjs",
+      "name": "launch recovery retains earlier finalized steps and unresolved developer buys after registration",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-burn-order.test.mjs",
+      "name": "oversized launch fails before promotion burn or wallet approval",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-burn-order.test.mjs",
+      "name": "launch preparation persistence failure stops before mint use or promotion burn",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-burn-order.test.mjs",
+      "name": "launch fee expiry blocks promotion burn before wallet signing",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/launch-burn-order.test.mjs",
+      "name": "launch rejects conflicting reserve custody identities and keeps Mainnet execution disabled",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-launch-readiness.test.mjs",
+      "name": "Mainnet launch reader verifies a finalized public snapshot without granting execution",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-launch-readiness.test.mjs",
+      "name": "Mainnet launch reader rejects missing review and mismatched public roles before RPC",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-launch-readiness.test.mjs",
+      "name": "Mainnet launch reader rejects stale context, wrong chain and altered program or custody accounts",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-launch-readiness.test.mjs",
+      "name": "Mainnet launch routes expose public readiness but refuse registration and reserve activation",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-launch-readiness.test.mjs",
+      "name": "Mainnet launch reader rejects unpublished, stale and mismatched agency policy",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-launch-readiness.test.mjs",
+      "name": "Mainnet launch reads coalesce, expire on timeout and recheck after role rotation",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-launch-readiness.test.mjs",
+      "name": "Mainnet capability integration never loads a signer or admits launches through flags",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-settings-integration.test.mjs",
+      "name": "Mainnet preparation binds existing public settings without enabling runtime writes",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-settings-integration.test.mjs",
+      "name": "Mainnet preparation rejects activation, signer settings, credentials and mismatched identities",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-settings-integration.test.mjs",
+      "name": "Mainnet loader resolves metadata references and never reads the deployment payer key",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-settings-integration.test.mjs",
+      "name": "Mainnet packet rejects fee, payer and metadata configuration drift",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-opening-recovery.test.mjs",
+      "name": "recovers a finalized opening saved before the 300-second deadline after worker restart",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-opening-recovery.test.mjs",
+      "name": "retires an expired unlanded opening without creating another attempt",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-opening-recovery.test.mjs",
+      "name": "keeps an uncertain opening untouched after the deadline while the blockhash remains valid",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-opening-recovery.test.mjs",
+      "name": "keeps a journal pending when a saved opening has status but lacks its receipt",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-opening-recovery.test.mjs",
+      "name": "a recovered opening lets the restarted worker visit all 28 leaves without paying after expiry",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-opening-recovery.test.mjs",
+      "name": "wrong genesis rejects opening reconciliation without changing state or broadcasting",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-opening-recovery.test.mjs",
+      "name": "changed immutable root rejects opening reconciliation without changing state or broadcasting",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-opening-recovery.test.mjs",
+      "name": "rejected opening proof cannot finalize a journal or broadcast",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-opening-recovery.test.mjs",
+      "name": "expired opening with an empty journal cannot prepare or broadcast",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-snapshot.test.mjs",
+      "name": "reconstructs migration-slot holdings with a finalized base 0 slots later",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-snapshot.test.mjs",
+      "name": "reconstructs migration-slot holdings with a finalized base 255 slots later",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-snapshot.test.mjs",
+      "name": "reconstructs migration-slot holdings with a finalized base 256 slots later",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-snapshot.test.mjs",
+      "name": "requires archival evidence when the finalized tip is 257 slots past migration",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-snapshot.test.mjs",
+      "name": "requires archival evidence when the holder base advances past the 256-slot window",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-snapshot.test.mjs",
+      "name": "rejects a finalized block list missing interior history",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-snapshot.test.mjs",
+      "name": "rejects a finalized block list missing base history",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-snapshot.test.mjs",
+      "name": "rejects a finalized block list missing all history",
+      "status": "passed"
+    },
+    {
+      "file": "tests/community-snapshot.test.mjs",
+      "name": "rejects an unavailable block advertised in the finalized block list",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security-runner.test.mjs",
+      "name": "security gate accepts actual required passing cases with exact counts",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security-runner.test.mjs",
+      "name": "security gate fails zero file discovery",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security-runner.test.mjs",
+      "name": "security gate fails an empty module despite Node file-wrapper success",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security-runner.test.mjs",
+      "name": "security gate fails all-skipped required coverage",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security-runner.test.mjs",
+      "name": "security gate fails a skipped required case even when another case passes",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security-runner.test.mjs",
+      "name": "security gate fails a required TODO case",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security-runner.test.mjs",
+      "name": "security gate fails an actual failing case",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security-runner.test.mjs",
+      "name": "security gate fails a missing required name despite another passing test",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security-runner.test.mjs",
+      "name": "security gate fails a missing inventory file",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/rpc-submission.test.mjs",
+      "name": "non-program policy admits legacy and v0 transactions in both RPC encodings",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/rpc-submission.test.mjs",
+      "name": "non-program policy blocks protected direct and CPI accounts including lookup tables",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/rpc-submission.test.mjs",
+      "name": "non-program policy rejects malformed bytes and unresolved or invalid lookup evidence",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/rpc-submission.test.mjs",
+      "name": "disabled submissions perform no lookup and Devnet behavior is unchanged",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/rpc-submission.test.mjs",
+      "name": "proxy never forwards protected static or lookup submissions and permits ordinary writes",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/rpc-submission.test.mjs",
+      "name": "gateway never forwards protected static or lookup submissions and permits ordinary writes",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/rpc-submission.test.mjs",
+      "name": "failover never forwards protected static or lookup submissions and permits ordinary writes",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-review-candidate.test.mjs",
+      "name": "current candidate accepts identical contract bytes with current full source provenance",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/mainnet-review-candidate.test.mjs",
+      "name": "candidate verifier rejects source, compiler, binary, identity and build-input drift",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "success": true,
+  "nodeSummary": {
+    "success": true,
+    "counts": {
+      "tests": 63,
+      "failed": 0,
+      "passed": 63,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "topLevel": 63,
+      "suites": 0
+    },
+    "duration_ms": 3376.843094
+  }
+}

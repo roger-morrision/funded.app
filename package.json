@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:production-integration": "node scripts/check-production-integration.mjs",
+    "metadata:verify-storage": "node scripts/verify-metadata-storage.mjs",
     "mainnet:prepare-config": "node scripts/prepare-mainnet-config.mjs",
     "mainnet:packet": "node scripts/mainnet-launch-packet.mjs",
     "mainnet:staging": "node scripts/start-mainnet-staging.mjs",

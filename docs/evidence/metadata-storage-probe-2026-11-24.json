@@ -1,0 +1,14 @@
+{
+  "mint": "8bFauxUbbE3w7FrCQZrJMZBw1Z8zgPHp8eQ8BLqPycUx",
+  "creatorWallet": "HDWoYZwzDfWBqVNpQdsSpxzE4gfHJBLGqZ7LEWbcNJrk",
+  "cluster": "devnet",
+  "name": "Funded storage verification",
+  "symbol": "VERIFY",
+  "imageSha256": "",
+  "description": "Disposable storage verification fixture. No token was created; no monetary value.",
+  "pinnedMetadata": {
+    "image": "https://gateway.pinata.cloud/ipfs/bafkreidtb576xguodb7aynmbcnjkh23z6jsw5xl7mfjw6ezb3am5owvv3a",
+    "fallbackImageSha256": "730f7feb9a8e187e0c35811352a3eb79f2656edd7f61536f1321d819d75ab5d8",
+    "uri": "https://gateway.pinata.cloud/ipfs/bafkreic2g7zf7hrhtyplq2vp5aensy5tfd4iolxpgf2zux3kfbfh7cma2m"
+  }
+}

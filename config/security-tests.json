@@ -3,6 +3,14 @@
   "scope": "Current-source community opening/replay/history rejection coverage plus fail-closed security runner; local mocked fixtures, not full security audit or chain acceptance.",
   "files": [
     {
+      "path": "tests/security/metadata-storage-verification.test.mjs",
+      "requiredTests": [
+        "metadata probe rechecks identical public bytes without credentials or repeat uploads",
+        "metadata probe saves public CIDs before gateway failure and resumes verification without upload",
+        "metadata verification rejects changed JSON, images, banners and missing pinned checksums"
+      ]
+    },
+    {
       "path": "tests/security/launch-execution-recovery.test.mjs",
       "requiredTests": [
         "launch executor awaits approval and broadcast journals for legacy and v0 messages",

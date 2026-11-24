@@ -1,0 +1,896 @@
+{
+  "scope": "Local production conversion HTTP, exact message/signature, durable journal and recovery acceptance with actual candidate ELF and mocked chain; not live Mainnet acceptance",
+  "node": "v24.22.2",
+  "counts": {
+    "tests": 173,
+    "passed": 173,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "required": 172,
+  "requiredPassed": 172,
+  "cases": [
+    {
+      "file": "tests/readiness/token-conversion-sell.test.mjs",
+      "name": "captured exact USDC sell builds category 5 with 57 bytes and 41 canonical metas",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell.test.mjs",
+      "name": "captured exact USDC sell builds category 6 with 57 bytes and 41 canonical metas",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell.test.mjs",
+      "name": "captured exact USDC sell builds category 7 with 57 bytes and 41 canonical metas",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell.test.mjs",
+      "name": "wrong sell payload, changed exact input and weaker output cannot be substituted",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell.test.mjs",
+      "name": "only canonical positive u64 input and minimum amounts and supported categories are accepted",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell.test.mjs",
+      "name": "pool, base/quote, user vault, market vault and fee-program metas cannot be redirected",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell.test.mjs",
+      "name": "unexpected signer, writable privileges, volume tails and missing price separation are rejected",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell.test.mjs",
+      "name": "market owner, pool orientation, coin-creator and special-mode changes are rejected",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell.test.mjs",
+      "name": "fee recipient membership and canonical WSOL custody are required",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell.test.mjs",
+      "name": "conversion decoder rejects unsupported layout, discriminator, category and zero amounts",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "mocked admitted finalized sell reconciles category 5 with prefund 0",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "mocked admitted finalized sell reconciles category 5 with prefund 700000",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "mocked admitted finalized sell reconciles category 6 with prefund 0",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "mocked admitted finalized sell reconciles category 6 with prefund 700000",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "mocked admitted finalized sell reconciles category 7 with prefund 0",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "mocked admitted finalized sell reconciles category 7 with prefund 700000",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "committed incomplete release cannot admit a program or even read RPC",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "wrong genesis, loader, authority and full ProgramData context cannot authenticate proof",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "missing or nonfinalized signature status and slot mismatch remain unresolved",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "missing or stale finalized account evidence and RPC errors cannot finalize",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "signature, frozen message and failed transaction substitution are rejected",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "invalid operator or independent price signature cannot authenticate the transaction",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "foreign receipt ownership, wrong immutable identity and category credit do not prove payment",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "exact USDC debit and token custody must agree with receipt",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "prefund and rent cannot inflate credit and WSOL must close",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-proof.test.mjs",
+      "name": "exact sell CPI accounts, payload and closure are required",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-context.test.mjs",
+      "name": "reviewed deployment effective before tx authenticates with fresh finalized context and no account cache",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-context.test.mjs",
+      "name": "a later or same-slot reviewed deployment cannot authenticate the older signed transaction",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-context.test.mjs",
+      "name": "stale, backwards and malformed finalized program contexts remain unresolved",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-context.test.mjs",
+      "name": "missing contextual RPC, malformed deployment header and stale receipt or status context cannot fall back to cached bytes",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-context.test.mjs",
+      "name": "later absence checks retain the original deployment interval and require the requested fresh context floor",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-quote.test.mjs",
+      "name": "independent sell pricing recomputes captured SDK output and policy floor from finalized raw accounts",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-quote.test.mjs",
+      "name": "unreviewed market, noncanonical limits and widened slippage or liquidity cannot enter pricing",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-quote.test.mjs",
+      "name": "wrong genesis, over-order input and absent market prevent any usable price",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-quote.test.mjs",
+      "name": "pool/global/fee configuration owners and pool custody must authenticate",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-quote.test.mjs",
+      "name": "reserve token owners, mint decimals, vault authority and frozen accounts cannot be substituted",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-quote.test.mjs",
+      "name": "empty reserves and inputs exceeding the actual liquidity clip cannot be priced",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-quote.test.mjs",
+      "name": "backwards or stale finalized snapshots and unavailable reads stay unavailable",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "unsigned full conversion review uses actual market/account codecs for category 5 and prefund 0",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "unsigned full conversion review uses actual market/account codecs for category 5 and prefund 700000",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "unsigned full conversion review uses actual market/account codecs for category 6 and prefund 0",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "unsigned full conversion review uses actual market/account codecs for category 6 and prefund 700000",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "unsigned full conversion review uses actual market/account codecs for category 7 and prefund 0",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "unsigned full conversion review uses actual market/account codecs for category 7 and prefund 700000",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "incomplete release and absent independent typed policy review cannot trigger RPC review",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "changed policy, policy digest, role separation or requested program cannot enter review",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "actual reviewer rejects a pre-signed message and wrong genesis before market reads",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "caller quote, reserve and recipient hints cannot replace independent raw market pricing",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "paused guard, wrong current operator, inactive price signer and used receipt reject new review",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "category spend cannot exceed token balance or its actual settled allocation",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "wrong USDC custody or malformed WSOL prefund cannot reach simulation",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "extra transfers, changed writable privileges and reordered fee setup are not canonical",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "unapproved priority fee, unavailable or changed lookup table cannot be reviewed",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "expired blockhash, stale accounting snapshot and protected reserve shortage reject",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "simulation failure or mismatched receipt, debit, credit, category or closure cannot produce a review",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-sell-review.test.mjs",
+      "name": "deployment changes during simulation cannot escape the final uncached context check",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "durable actual review reserves signs and reconciles category 5 then permits the next nonce",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "durable actual review reserves signs and reconciles category 6 then permits the next nonce",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "durable actual review reserves signs and reconciles category 7 then permits the next nonce",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "same reviewed message is idempotent before and after durable store restart",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "unknown old attempts block replacement even outside the rolling budget window",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "two locked store instances cannot race past the typed USDC daily bound",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "only both valid signatures on the exact durable message can be recorded for submission",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "finalized expiry plus absent receipt releases only raw conversion budget and permits a fresh blockhash",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "stale program context, unavailable receipt and a live blockhash preserve reservations",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "a finalized status without the exact transaction proof cannot clear or release the reservation",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "an externally recovered signature cannot bypass unresolved finalized transaction evidence",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "a finalized failed attempt releases conversion budget without claiming a fee refund",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "clock rollback cannot mutate a signed reservation or authorize a replacement",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "a review delayed before the durable write cannot reserve stale signing intent",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "legacy context, corrupt reservation and array-shaped attempt storage are rejected without rewriting disk",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-journal.test.mjs",
+      "name": "no independent policy admission or legacy budget denomination can create a production journal",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport durably reviews and saves both exact signatures before category 5 send",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport durably reviews and saves both exact signatures before category 6 send",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport durably reviews and saves both exact signatures before category 7 send",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport unknown submission recovers exact original wire after restart without signing or sending again",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport saved unsigned reservation is recovery-only after restart",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport historical signed journal without a send marker is never automatically broadcast",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport absent recovery attempt cannot fall through to signing",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport two store instances admit only one signing and broadcast owner",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport reserve persistence failure suppresses dependent external action",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport signing persistence failure suppresses dependent external action",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport signed persistence failure suppresses dependent external action",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport broadcast persistence failure suppresses dependent external action",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport post-publication broadcast fence failure retains identity and forbids retry",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport invalid priceSigner signature never broadcasts",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport invalid operator signature never broadcasts",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport callback message mutation cannot redirect a signature",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport expired price review prevents operator signing",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport expired operator review preserves signed bytes without broadcast",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport timed-out signer keeps a durable unknown marker across restart",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport changed provider signature cannot mark completion",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport corrupt broadcast marker is rejected before any signer or send",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport wrong signer identity is refused before journal initialization",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport delayed signing fence cannot expose a stale price request",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport delayed broadcast fence cannot send stale signed bytes",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport actual second review catches changed operator solvency before send",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport snapshots caller request before the first await",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport unavailable operator never permits automatic signing replacement",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-transport.test.mjs",
+      "name": "transport mutated signer handle is checked against the durable role",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP conversion independently reviews signs and reconciles category 5 across three journals",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP conversion independently reviews signs and reconciles category 6 across three journals",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP conversion independently reviews signs and reconciles category 7 across three journals",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP controller missing recovery attempt cannot contact signers",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "Private controller pages only saved attempts after restart without signing or broadcast",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "Private recovery cursor visits 65 saved attempts without repeating within a page",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "Private controller persists recovery progress before retrying an unknown send",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "Private recovery refuses a changed persisted context before touching a saved attempt",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "Private recovery worker drains only saved attempts across restart without a second send",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "Private recovery worker coalesces concurrent ticks and latches a journal fault",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "Private recovery worker start is explicit and stop drains its in-flight page",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP authentication rejects controller and both custody requests before review",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP schema and changed message hash refuse without a reservation",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP price-attestation own wrong-genesis reader refuses a worker-approved request",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP operator own wrong-genesis reader refuses a worker-approved request",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP cached role signature survives backend restart with actual fresh review and no new custody call",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP unknown custody result cannot sign again after backend restart",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP role signature disk failure cannot expose a usable response or invoke the operator",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP postpublication role signature failure is cache-recoverable without another custody signature",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP two backend instances share durable one-time custody admission",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP controller unknown send restarts read-only then attributes the exact original transaction",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP unavailable backend reconciliation cannot erase durable worker proof",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP forged custody signature or identity cannot reach broadcast",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP corrupted cached role signature prevents backend restart without rewriting it",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP service refuses missing production admission or wrong custody identity before review",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP remote custody origin rejects public HTTP and credential-bearing endpoints",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP native redirect refusal does not forward custody authentication",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP oversized request and response remain fail-closed without custody or broadcast",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP custody completion after review expiry persists but does not expose its signature",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-service.test.mjs",
+      "name": "HTTP accidentally shared role journal cannot admit both custody signatures",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "file custody stays lazy through bootstrap and invalid requests, then signs after durable review once",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "explicit first provisioning binds three absent role journals to the reviewed release",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "first provisioning refuses one published role before creating any other journal",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "resume refuses each missing or wrong-context role journal before authentication or custody",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "partial restore of a valid older role journal cannot erase an unknown signed attempt",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "independent pool-supply snapshots may differ while exact signed conversion message agrees",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "controller rollback before role signatures refuses resume without custody or new send",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "real API worker selector exposes only explicit reviewed read-only recovery pages",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "resume refuses a corrupt third journal before authentication or custody",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "resume refuses aliased role stores despite distinct public references",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "prepared runtime initializers cannot recreate missing signed role journals",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "intact three-journal resume recovers saved signed intent and proof without a new send",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap defaults controller to recovery without touching custody or listening",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap defaults operator to recovery without touching custody or listening",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap defaults price-attestation to recovery without touching custody or listening",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap prepares three real HTTP services and loads each approved role lazily after verified claims",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap genesis fails before authentication or custody access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap program-data fails before authentication or custody access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap program-owner fails before authentication or custody access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap pointer fails before authentication or custody access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap stale-program fails before authentication or custody access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap stale-accounts fails before authentication or custody access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap global-owner fails before authentication or custody access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap price-owner fails before authentication or custody access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap malformed public references or unadmitted policy cannot invoke any resolver",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap journal failure is sanitized before authentication access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap authentication failure is sanitized without custody access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap signing mode refuses a paused or rotated current authority before secret access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap recovery mode preserves saved proof through pause and operator rotation without custody",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap program changed after durable signing claim cannot reach custody loader",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap wrong loaded custody identity cannot produce a signature",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-bootstrap.test.mjs",
+      "name": "bootstrap context changed during custody resolution prevents use of the loaded handle",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-three-journal-restore.test.mjs",
+      "name": "closed three-journal unknown and verified copies survive fresh-process recovery without new signing",
+      "status": "passed"
+    },
+    {
+      "file": "tests/readiness/token-conversion-three-journal-restore.test.mjs",
+      "name": "partial corrupt and wrong-context copies fail before authentication; coherent older copy needs an external witness",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/production-conversion-runtime.test.mjs",
+      "name": "production launcher integrates three actual HTTP roles with lazy custody and exact-once settlement",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/production-conversion-runtime.test.mjs",
+      "name": "production launcher recovers unknown sends after restart without new custody or broadcast",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/production-conversion-runtime.test.mjs",
+      "name": "production launcher rejects unreviewed release, drift and signing approval before secret access",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/production-conversion-runtime.test.mjs",
+      "name": "production launcher rejects reused authentication and drains close during admission",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/production-conversion-runtime.test.mjs",
+      "name": "production launcher refuses missing journals and cannot reopen after close",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/production-conversion-runtime.test.mjs",
+      "name": "production references reject multiline, oversized and symbolic-link credentials",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/metadata-storage-verification.test.mjs",
+      "name": "metadata probe rechecks identical public bytes without credentials or repeat uploads",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/metadata-storage-verification.test.mjs",
+      "name": "metadata probe saves public CIDs before gateway failure and resumes verification without upload",
+      "status": "passed"
+    },
+    {
+      "file": "tests/security/metadata-storage-verification.test.mjs",
+      "name": "metadata verification rejects changed JSON, images, banners and missing pinned checksums",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "success": true,
+  "nodeSummary": {
+    "success": true,
+    "counts": {
+      "tests": 173,
+      "failed": 0,
+      "passed": 173,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "topLevel": 173,
+      "suites": 0
+    },
+    "duration_ms": 34792.514963
+  }
+}

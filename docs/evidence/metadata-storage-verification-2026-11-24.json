@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "scope": "live-public-storage-only",
+  "cluster": "devnet",
+  "publication": {
+    "verified": true,
+    "uri": "https://gateway.pinata.cloud/ipfs/bafkreic2g7zf7hrhtyplq2vp5aensy5tfd4iolxpgf2zux3kfbfh7cma2m",
+    "image": "https://gateway.pinata.cloud/ipfs/bafkreidtb576xguodb7aynmbcnjkh23z6jsw5xl7mfjw6ezb3am5owvv3a",
+    "storage": "pinata",
+    "checkedAt": "2026-11-24T10:29:35.161Z"
+  },
+  "checkedAt": "2026-11-24T10:29:35.161Z",
+  "transactionsSigned": 0,
+  "transactionsSubmitted": 0,
+  "limitation": "Public byte equality and current availability; not a token launch, permanent retention guarantee or financial acceptance."
+}

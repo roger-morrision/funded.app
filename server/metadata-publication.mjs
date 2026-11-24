@@ -46,6 +46,7 @@ export async function verifyPublishedMetadata(record, {fetchImpl = fetch} = {}) 
     if (!isDeepStrictEqual(JSON.parse(metadata.toString()), expected)) throw new Error('Metadata mismatch');
     const image = await publicBytes(fetchImpl, expected.image, 'image/', 600_000);
     const expectedImageHash = record.imageSha256 || record.pinnedMetadata?.fallbackImageSha256;
+    if(record.pinnedMetadata&&!/^[a-f0-9]{64}$/.test(expectedImageHash||''))throw new Error('Pinned image checksum is missing');
     if (expectedImageHash && hash(image) !== expectedImageHash) throw new Error('Image mismatch');
     if (record.bannerSha256) {
       const banner = await publicBytes(fetchImpl, expected.banner, 'image/', 600_000);
@@ -57,7 +58,7 @@ export async function verifyPublishedMetadata(record, {fetchImpl = fetch} = {}) 
   }
 }
 
-export function createMetadataPublisher({env = process.env, fetchImpl = fetch} = {}) {
+export function createMetadataPublisher({env = process.env, fetchImpl = fetch, onPublished = async()=>{}} = {}) {
   const storage = env.METADATA_STORAGE || 'hosted-devnet';
   if (!['hosted-devnet','pinata'].includes(storage)) throw new Error('METADATA_STORAGE must be hosted-devnet or pinata.');
   return async ({record, image, imageType, banner, bannerType}) => {
@@ -82,6 +83,9 @@ export function createMetadataPublisher({env = process.env, fetchImpl = fetch} =
         ...(!image ? {fallbackImageSha256:hash(fallbackImage)} : {})};
       const pinned = {...record, pinnedMetadata};
       pinnedMetadata.uri = await pin(Buffer.from(JSON.stringify(publicMetadata(pinned))), 'application/json', `${record.mint}.json`);
+      // Retain public CIDs before gateway verification, so an acceptance probe
+      // can recheck an unavailable gateway without uploading the assets again.
+      await onPublished(pinned);
       await verifyPublishedMetadata(pinned, {fetchImpl});
       return pinned;
     } catch {

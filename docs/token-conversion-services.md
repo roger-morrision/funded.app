@@ -1,5 +1,9 @@
 # Private conversion controller and custody-service preparation
 
+The factories below now have a separate
+[production process entry point](production-conversion-runtime.md). Their own
+construction remains passive; runtime deployment and activation are explicit.
+
 This slice connects the actual conversion transport to two authenticated HTTP
 signer backends. It provides passive server factories, not a production launcher,
 public API route, worker registration, key loader or activation setting. Existing
