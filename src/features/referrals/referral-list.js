@@ -15,7 +15,7 @@ export function updateReferralList(data,state='signed-out'){latest=data;emptySta
 
 const lamports=value=>{try{return BigInt(String(value??'0'));}catch{return 0n;}};
 const sol=value=>{const n=Number(lamports(value))/1e9;return n?`${n<0.0001?n.toExponential(1):n.toLocaleString('en-US',{maximumFractionDigits:4})} SOL`:'0 SOL';};
-const sourceLabel=value=>{const text=String(value||'').trim();if(!text)return 'Direct link';return text.toLowerCase()==='x'?'X':text.charAt(0).toUpperCase()+text.slice(1);};
+const sourceLabel=value=>{const text=String(value||'').trim();if(!text||text.toLowerCase()==='direct')return 'Direct link';return text.toLowerCase()==='x'?'X':text.charAt(0).toUpperCase()+text.slice(1);};
 const short=wallet=>`${wallet.slice(0,4)}…${wallet.slice(-4)}`;
 function joined(iso){
   const at=Date.parse(iso||'');if(!Number.isFinite(at))return {text:'—',title:''};
@@ -53,18 +53,24 @@ function render(){
   root.append(summary(rows));
   const wrap=document.createElement('div');wrap.className='referral-list-scroll';
   const table=document.createElement('table');table.className='referral-list-table';
-  table.innerHTML='<thead><tr><th scope="col">Wallet</th><th scope="col">Joined</th><th scope="col">Source</th><th scope="col" class="numeric">Coins created</th><th scope="col" class="numeric">24h volume</th><th scope="col" class="numeric">Fees collected</th><th scope="col" class="numeric">Bonus earned</th><th scope="col" class="numeric">To claim</th><th scope="col">Status</th></tr></thead>';
+  table.innerHTML='<thead><tr><th scope="col">Wallet</th><th scope="col">Invited by</th><th scope="col">Joined</th><th scope="col">Link source</th><th scope="col" class="numeric">Coins created</th><th scope="col" class="numeric">24h volume</th><th scope="col" class="numeric">Fees collected</th><th scope="col" class="numeric">Bonus earned</th><th scope="col" class="numeric">To claim</th><th scope="col">Status</th></tr></thead>';
   const body=document.createElement('tbody');
   for(const row of rows){
     const tr=document.createElement('tr');tr.className='referral-list-row';
     const who=document.createElement('td'),link=document.createElement('a');
     link.href=`/wallet/${encodeURIComponent(row.wallet)}`;link.textContent=short(row.wallet);link.title=row.wallet;
     who.append(link,cell('small','referral-level',row.level===1?'Level 1 · Direct':`Level ${row.level}`));
+    const inviter=cell('td','referral-inviter','');
+    if(MINT.test(row.inviterWallet||'')){
+      const parent=cell('a','',short(row.inviterWallet),row.inviterWallet);
+      parent.href=`/wallet/${encodeURIComponent(row.inviterWallet)}`;
+      inviter.append(parent,cell('small','referral-level',row.inviterWallet===latest.wallet?'You':`Level ${row.level-1}`));
+    }else inviter.textContent='Unavailable';
     const date=joined(row.joinedAt);
     const volume=volumes.get(row.wallet);
     const [status,statusClass]=claimState(row);
     const statusCell=document.createElement('td');statusCell.append(cell('span',`referral-claim-chip ${statusClass}`,status));
-    tr.append(who,cell('td','',date.text,date.title),cell('td','',sourceLabel(row.source)),
+    tr.append(who,inviter,cell('td','',date.text,date.title),cell('td','',sourceLabel(row.source)),
       cell('td','numeric is-trades',String(row.coinsCreated||0)),
       cell('td','numeric is-volume',volume==null?'…':volume==='unavailable'?'—':sol(volume),volume==='unavailable'?'24h trades could not be read':'Last 24 hours, finalized Pump and PumpSwap trades'),
       cell('td','numeric is-cap',sol(row.feesCollectedLamports)),cell('td','numeric is-earned',sol(row.bonusPaidLamports)),
@@ -109,7 +115,7 @@ export function mountReferralList(){
   const history=root.querySelector('.referral-ledger-panel');if(!history)return;
   const panels=document.createElement('section');panels.id='referral-views';history.before(panels);
   const list=document.createElement('article');list.className='panel';list.id='referral-network-panel';
-  list.innerHTML='<h3>My referral list</h3><p>Your direct referrals and two further levels: when they joined, what they created and traded, and the bonus you earned from them.</p><div id="my-referral-list" aria-live="polite"></div>';
+  list.innerHTML='<h3>My referral list</h3><p>Your direct referrals and two further levels: who invited each wallet, when they joined, what they created and traded, and the bonus you earned from them.</p><div id="my-referral-list" aria-live="polite"></div>';
   panels.append(history,list);
   tabs(panels,[{key:'payouts',label:'Rewards & payouts',panel:history},{key:'referrals',label:'My referral list',panel:list}],'Referral dashboard');
   window.addEventListener('funded:reward-identity-change',()=>{volumes.clear();updateReferralList(null);});

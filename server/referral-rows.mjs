@@ -32,7 +32,7 @@ export function referralRows({ state, wallet, network, qualified, cleanShareSour
         if (payout) earned += lamports(payout.amount); else claimable += lamports(owed.amount);
       }
     }
-    return { wallet: address, level, qualified: qualified.has(address),
+    return { wallet: address, level, inviterWallet: parents.get(address) || null, qualified: qualified.has(address),
       joinedAt: joined?.capturedAt || null, source: joined?.source ? cleanShareSource(joined.source) : null,
       coinsCreated: mints.size, feesCollectedLamports: String(fees),
       bonusPaidLamports: String(earned), bonusClaimableLamports: String(claimable) };
