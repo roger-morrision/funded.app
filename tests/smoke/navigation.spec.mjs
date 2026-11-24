@@ -38,20 +38,20 @@ async function openHelp(page) {
 }
 
 test('search opens a matching page with Arrow and Enter', async ({ page }) => {
-  const input = await openSearch(page, 'create');
-  const option = page.getByRole('option', { name: /Create a coin/ });
+  const input = await openSearch(page, 'docs');
+  const option = page.getByRole('option', { name: /Docs & help/ });
   await expect(option).toHaveAttribute('aria-selected', 'true');
   await input.press('ArrowDown');
   await input.press('Enter');
-  await expect(page).toHaveURL(/#launch$/);
+  await expect(page).toHaveURL(/#docs$/);
   await expect(page.locator('#header-search-dialog')).not.toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Launch your token. Share its success.', level: 1 })).toBeVisible();
+  await expect(page.locator('#docs-guide-article')).toBeVisible();
 });
 
-test('Create navigation focuses its visible heading', async ({ page }) => {
+test('Portfolio navigation focuses its visible heading', async ({ page }) => {
   if (page.viewportSize().width <= 700) await page.locator('#open-menu').click();
-  await page.locator('#sidebar a[href="#launch"]').click();
-  await expect(page.getByRole('heading', { name: 'Launch your token. Share its success.', level: 1 })).toBeFocused();
+  await page.locator('#sidebar a[href="#portfolio"]').click();
+  await expect(page.getByRole('heading',{name:'Your holdings. Your rewards. Together.',level:1})).toBeFocused();
 });
 
 test('search navigation focuses the destination heading', async ({ page }) => {
@@ -62,9 +62,10 @@ test('search navigation focuses the destination heading', async ({ page }) => {
 });
 
 test('a delayed first creator result can be opened with Enter', async ({ page }) => {
+  const settings = await (await page.request.get('/build-settings.json')).json();
   await page.route('**/api/creators?*', route => route.fulfill({
     contentType: 'application/json',
-    body: JSON.stringify({ cluster: 'devnet', creators: [{ id: '927419', name: 'Aurora Fixture', handle: 'aurora_fixture' }] }),
+    body: JSON.stringify({ cluster: settings.cluster, creators: [{ id: '927419', name: 'Aurora Fixture', handle: 'aurora_fixture' }] }),
   }));
   const input = await openSearch(page, 'Aurora Fixture');
   const option = page.getByRole('option', { name: /Aurora Fixture/ });
@@ -94,10 +95,10 @@ test('reopening search retries a failed token lookup', async ({ page }) => {
 });
 
 test('search restores page matches when reopened with an existing query', async ({ page }) => {
-  await page.locator('#explore-search').fill('create');
+  await page.locator('#explore-search').fill('docs');
   for (let attempt = 0; attempt < 2; attempt++) {
     await page.locator('#header-search-trigger').click();
-    await expect(page.getByRole('option', { name: /Create a coin/ })).toBeVisible();
+    await expect(page.getByRole('option', { name: /Docs & help/ })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.locator('#header-search-trigger')).toBeFocused();
   }

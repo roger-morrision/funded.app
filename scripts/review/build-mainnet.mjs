@@ -3,7 +3,7 @@
 import { spawnSync } from 'node:child_process';
 
 const env = {
-  ...process.env,
+  ...process.env, NODE_ENV: 'production',
   VITE_API_BASE_URL: '/', VITE_SOLANA_CLUSTER: 'mainnet-beta', VITE_EXPLORE_CLUSTER: 'mainnet-beta',
   VITE_ALLOW_MAINNET: 'true', VITE_MAINNET_READ_ONLY: 'false',
   VITE_DEV_MODE: 'false', VITE_DEV_AUTOCONNECT: 'false',
