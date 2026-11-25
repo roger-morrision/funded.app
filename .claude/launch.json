@@ -40,7 +40,7 @@
       "runtimeExecutable": "C:/Program Files/nodejs/node.exe",
       "runtimeArgs": [
         "tmp/devnet-dev/static-web.mjs",
-        "C:/Users/Tuan/AppData/Local/Temp/claude/236f1cce232460e6/101494fd-a8c0-4203-a88d-61b03f791d42/scratchpad/devnet-dist",
+        "tmp/devnet-dev/dist",
         "5174"
       ],
       "port": 5174
@@ -59,7 +59,7 @@
       "runtimeExecutable": "C:/Program Files/nodejs/node.exe",
       "runtimeArgs": [
         "tmp/mainnet-ui-preview.mjs",
-        "C:/Users/Tuan/AppData/Local/Temp/claude/236f1cce232460e6/101494fd-a8c0-4203-a88d-61b03f791d42/scratchpad/mainnet-dist",
+        "tmp/mainnet-ui-preview/dist",
         "5199"
       ],
       "port": 5199
