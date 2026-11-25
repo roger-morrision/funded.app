@@ -1,9 +1,11 @@
 import { initializeAppState } from '../runtime.js';
 import {initializeFeaturedTokens} from '../../features/home/featured.js';
+import {initializeHeroBenefitsCarousel} from '../../features/home/hero-benefits-carousel.js';
 
 // Startup runs in the order declared in start.js.
 export function initializeHomeFeed(appState) {
   initializeFeaturedTokens(appState);
+  initializeHeroBenefitsCarousel();
   const followingActive=()=>document.body.classList.contains('page-route-overview')&&document.querySelector('.home-launch-board')?.dataset.discovery==='following';
   const refreshFollowing=()=>{
     if(!followingActive())return;

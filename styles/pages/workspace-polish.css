@@ -327,7 +327,6 @@ html body #main-content .hero-benefit-tags span { display:inline;margin:0 0 0 4p
 html body #main-content .hero-benefit-tags small { display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--cp-line);font-size:11px;line-height:1.5;color:var(--cp-muted);overflow-wrap:anywhere; }
 @media(min-width:901px) { html body #main-content .hero-benefit-tags { max-width:none;margin:0; } }
 @media(min-width:1200px) { html body #main-content .hero-benefit-tags { grid-template-columns:repeat(4,minmax(0,1fr)); } }
-@media(max-width:560px) { html body #main-content .hero-benefit-tags { grid-template-columns:minmax(0,1fr); } }
 
 @keyframes explore-card-vibration {
   0%,100% { transform:translateX(0) rotate(0); }

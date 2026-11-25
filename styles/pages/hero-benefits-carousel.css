@@ -1,0 +1,9 @@
+/* Phones: swipeable, auto-advancing strip showing 3 hero benefit cards at a time,
+   instead of the stacked single column. Linked last so it wins the cascade. */
+@media (max-width: 560px) {
+  html body #main-content .hero-benefit-tags { display:flex;flex-wrap:nowrap;grid-template-columns:none;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:8px;padding-bottom:2px; }
+  html body #main-content .hero-benefit-tags::-webkit-scrollbar { display:none; }
+  html body #main-content .hero-benefit-tags li { flex:0 0 calc((100% - 16px)/3);scroll-snap-align:start; }
+  html body #main-content .hero-benefit-tags strong { display:block;font-size:11px; }
+  html body #main-content .hero-benefit-tags span { display:block;margin:3px 0 0;font-size:11px; }
+}
