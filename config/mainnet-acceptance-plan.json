@@ -7,7 +7,7 @@
   "releaseRevision": null,
   "programId": null,
   "programDataSha256": null,
-  "upgradeAuthority": "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi",
+  "upgradeAuthority": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
   "payerSignerReference": ".secrets/mainnet-release-wallets/deployment-payer-keypair.json",
   "maximumTotalSpendLamports": null,
   "maximumPriorityFeeLamports": "0",
@@ -86,5 +86,5 @@
     "program": "No automatic downgrade, authority change, buffer closure or account migration. Require a separately reviewed compatible recovery transaction.",
     "devnet": "Keep the existing Devnet environment and database isolated and available."
   },
-  "adminWallet": "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi"
+  "adminWallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC"
 }

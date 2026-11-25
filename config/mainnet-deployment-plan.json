@@ -20,7 +20,7 @@
   },
   "selectedPublicIdentities": {
     "deploymentPayer": "E9tQpKSi29HczaYdJKbiPLf2uhYEbNhq19muExsRdmgL",
-    "adminUpgrade": "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi",
+    "adminUpgrade": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
     "program": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
     "automationOperator": "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
     "priceAttestor": "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
@@ -58,7 +58,7 @@
   ],
   "separateLegacyRouterRequired": false,
   "separateEscrowRequired": false,
-  "upgradeAuthority": "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi",
+  "upgradeAuthority": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
   "mainnetProgramId": "ExUNAWehW776wp6Aw8noYkuGDMvgdHYKdk7jGm6PXghZ",
   "mainnetAppOrigin": "https://richpad.fun",
   "productionRpcSecretPath": ".secrets/mainnet-helius-rpc.url",
@@ -128,7 +128,7 @@
     "Point both V3-router and developer-escrow roles to the same verified production program and full ProgramData hash.",
     "Run the separately approved capped canary before enabling Mainnet application writes. Preserve the Devnet deployment."
   ],
-  "adminWallet": "5ThgFz4yFPX6fQ8mdaPjtKXeYYA6RwEMjkC2vaPMA6oi",
+  "adminWallet": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
   "rpcProvider": "helius-free",
   "publicRpcUrl": "https://api.mainnet-beta.solana.com",
   "marketDataProvider": "birdeye",
