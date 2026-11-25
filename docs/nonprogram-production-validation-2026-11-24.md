@@ -1,6 +1,6 @@
 # richpad.fun nonprogram release verification — 2026-11-24
 
-Production serves commit `4d22c433486e784dac3a36580a24900902c1e2aa`. Jimmy's listing, administrator boost badge, trader ranking and sampled-trader explanation were checked on the live desktop and mobile layouts.
+This historical record covers release `4d22c433486e784dac3a36580a24900902c1e2aa`, deployed November 24. Later metric verification is recorded in [metric-accuracy-2026-11-24.json](evidence/metric-accuracy-2026-11-24.json); the completed follow-up audit is recorded in [nonprogram-production-2026-11-25.json](evidence/nonprogram-production-2026-11-25.json). Jimmy's listing, administrator boost badge, trader ranking and sampled-trader explanation were checked on the live desktop and mobile layouts.
 
 ## Shipped fixes
 

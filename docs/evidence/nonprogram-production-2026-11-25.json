@@ -1,0 +1,1286 @@
+{
+  "recordedAt": "2026-11-25T02:32:26.600Z",
+  "scope": "Nonprogram browser and unsigned trading continuation",
+  "sourceRevision": "53ca3fa98d017b580e2a046234d8d80b15e9a073",
+  "releaseImage": "sha256:044c370a8d839d0c3f4e41c3b4c448a77c2ff621d9f5112c90bac68ec6fd903e",
+  "change": "Replaced incorrect no Richpad fees wording in external token creator-fee status with an unverified creator-owner status.",
+  "browser": {
+    "revision": "10683ed9799f86733f44a07dcd78eacb840476fc",
+    "scope": "Live public pages and guest persistence; mocked service-outage, search-result and leaderboard-index scenarios",
+    "stats": {
+      "startTime": "2026-11-25T02:20:36.293Z",
+      "duration": 572556.1950000001,
+      "expected": 78,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "project": "desktop",
+        "file": "leaderboard-refresh.spec.mjs",
+        "title": "an open empty leaderboard picks up a newly indexed trade without a reload",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 25747
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "leaderboard-refresh.spec.mjs",
+        "title": "an open empty leaderboard picks up a newly indexed trade without a reload",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 20964
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "search opens a matching page with Arrow and Enter",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2457
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "search opens a matching page with Arrow and Enter",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 4523
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "Portfolio navigation focuses its visible heading",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2820
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "Portfolio navigation focuses its visible heading",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7553
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "search navigation focuses the destination heading",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2914
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "search navigation focuses the destination heading",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 4053
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "a delayed first creator result can be opened with Enter",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 5002
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "a delayed first creator result can be opened with Enter",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7001
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "reopening search retries a failed token lookup",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3058
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "reopening search retries a failed token lookup",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3047
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "search restores page matches when reopened with an existing query",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2371
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "search restores page matches when reopened with an existing query",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 4222
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "unmatched search preserves the query in Explore",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2237
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "unmatched search preserves the query in Explore",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3486
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "late token lookup preserves an explicit wallet selection",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2972
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "late token lookup preserves an explicit wallet selection",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 4400
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "help contains focus, blocks the background and restores its trigger",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2380
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "help contains focus, blocks the background and restores its trigger",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 4313
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "help guide links navigate and dismiss the overlay",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2296
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "help guide links navigate and dismiss the overlay",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3358
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "help and search fit a narrow phone",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3349
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "help and search fit a narrow phone",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3429
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "navigation.spec.mjs",
+        "title": "public routes stay usable during a service outage",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 5568
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "navigation.spec.mjs",
+        "title": "public routes stay usable during a service outage",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3758
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "nonprogram.spec.mjs",
+        "title": "guest favorites survive reload and can be removed",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7343
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "nonprogram.spec.mjs",
+        "title": "guest favorites survive reload and can be removed",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7093
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "nonprogram.spec.mjs",
+        "title": "referral links preserve first touch across navigation and reload",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3424
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "nonprogram.spec.mjs",
+        "title": "referral links preserve first touch across navigation and reload",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 5621
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "nonprogram.spec.mjs",
+        "title": "token trading controls and boost dialog remain usable without signing",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 4376
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "nonprogram.spec.mjs",
+        "title": "token trading controls and boost dialog remain usable without signing",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 5786
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7639
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 8897
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#explore",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7937
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#explore",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9641
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#top100",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7948
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#top100",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9016
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#portfolio",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7955
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#portfolio",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 8562
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#rewards",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9377
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#rewards",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 8738
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#payments",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 13217
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#payments",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9568
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#calls",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 11102
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#calls",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9928
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#creators",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 8878
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#creators",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 10269
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#referrals",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7287
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#referrals",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9056
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#bonuses",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7796
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#bonuses",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9649
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#airdrops",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 7836
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#airdrops",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9947
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#leaderboard",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9121
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#leaderboard",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9815
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#list",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 8657
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#list",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9095
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#buybacks",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 10068
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#buybacks",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9651
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "page /#docs",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9290
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "page /#docs",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9116
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "Airdrops keeps the wallet gate and searchable directory attached",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3775
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "Airdrops keeps the wallet gate and searchable directory attached",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3810
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "token page for an Explore coin",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 8863
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "token page for an Explore coin",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 8244
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "wallet page for a recent caller",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9707
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "wallet page for a recent caller",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9163
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "pages.spec.mjs",
+        "title": "Top 100 keeps its sort in the address",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 8083
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "pages.spec.mjs",
+        "title": "Top 100 keeps its sort in the address",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 10166
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "startup-recovery.spec.mjs",
+        "title": "slow startup exposes recovery and removes it after readiness",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2588
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "startup-recovery.spec.mjs",
+        "title": "slow startup exposes recovery and removes it after readiness",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 3181
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "startup-recovery.spec.mjs",
+        "title": "an unavailable fee policy keeps actions gated with visible recovery",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2085
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "startup-recovery.spec.mjs",
+        "title": "an unavailable fee policy keeps actions gated with visible recovery",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2613
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "startup-recovery.spec.mjs",
+        "title": "a stalled fee policy times out instead of leaving a frozen app",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 16826
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "startup-recovery.spec.mjs",
+        "title": "a stalled fee policy times out instead of leaving a frozen app",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 17981
+          }
+        ]
+      },
+      {
+        "project": "desktop",
+        "file": "startup-recovery.spec.mjs",
+        "title": "optional module failure shows guidance while core navigation works",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 2152
+          }
+        ]
+      },
+      {
+        "project": "mobile",
+        "file": "startup-recovery.spec.mjs",
+        "title": "optional module failure shows guidance while core navigation works",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 5047
+          }
+        ]
+      }
+    ]
+  },
+  "postDeployment": {
+    "publicBuild": {
+      "checkedAt": "2026-11-25T02:31:47.451Z",
+      "url": "https://richpad.fun",
+      "revision": "53ca3fa98d017b580e2a046234d8d80b15e9a073",
+      "cluster": "mainnet-beta",
+      "activation": false,
+      "frontendSha256": "aecc4378dc4a9fcc6925c0f819388d537105ee0d71480e69ce1e5911cbd37230",
+      "publicIdentity": {
+        "routerProgram": "",
+        "fundedMint": "Bv1a7cEj5aRnJQhMw4kRQqAFesMSd5LwcDnUzq52BMmr",
+        "fundedPool": "",
+        "tradeFeeRecipient": "M1HfA8vPXwGGn8uv5p9BZSYjsh4jhxhoMfDx2sGsj4M",
+        "tradeFeeBps": "100",
+        "apiBase": "/"
+      },
+      "verifiedAssets": [
+        {
+          "path": "/index.html",
+          "sha256": "bbb8e951eabe08143eabf331b9ae96cbb22fc4e7dde1b243081e465c6157909a"
+        },
+        {
+          "path": "/assets/favicon-DEhfWBNm.svg",
+          "sha256": "c3740b5ec988182e1f69751ace802d6a1c5fe8435fe63eea1af6ef56c540306f"
+        },
+        {
+          "path": "/assets/main-Wo_2i3Y3.js",
+          "sha256": "3429a8885396ed3e823461cee36c59b2b7f72d830f2862b7c6011ec7da5cdffb"
+        },
+        {
+          "path": "/assets/rolldown-runtime-BCiCTKAo.js",
+          "sha256": "f85e715d54a11fa37b7774ad77b536896ed01bfdfc98f485b678c81859fc8e2e"
+        },
+        {
+          "path": "/assets/modulepreload-polyfill-BCx2JXrw.js",
+          "sha256": "62c385271ed8bd20b6ae1124c2b3470ede7efe55ffba9996d3f05d93f2b46b0f"
+        },
+        {
+          "path": "/assets/technical-notices-C-SQnvmL.js",
+          "sha256": "3b118b178bfc99d2d15fecd25de7e0913890f255e93efd8078ec032bbf24d78c"
+        },
+        {
+          "path": "/assets/left-navigation-Dpzkq-4_.js",
+          "sha256": "a12e30b10368d62e8ba653431427762d7d5d88871577bfa336a53e95d2042f7c"
+        },
+        {
+          "path": "/assets/live-cache-B8hyPvYb.js",
+          "sha256": "0fe0b63740781751be701665a84167d579d6384e2b5c482d95d0c7157295391a"
+        },
+        {
+          "path": "/assets/ieee754-C4HwXvbR.js",
+          "sha256": "b2370e80eda9c61561e159c0f61d47b6820e72e9d9f8cad3c4fddbc23a6e1212"
+        },
+        {
+          "path": "/assets/buffer-polyfill-1zAIC9LU.js",
+          "sha256": "13d01ba0c8929680c3733c1e0805f290fa72fe194773de5603ff0033f10cd44f"
+        },
+        {
+          "path": "/assets/preload-helper-B2qGNpxG.js",
+          "sha256": "cf6f662e3052281628c50b338e1fd3651d6c49ea9cb26154188c2d4c32f38949"
+        },
+        {
+          "path": "/assets/marketing-agency-D1QAlkg_.js",
+          "sha256": "b440c7cea22125f0f3d7cb555e944d9f051867b3d028e2d67cc4cd502c492b03"
+        },
+        {
+          "path": "/assets/distribution-policy-4UbFfh9l.js",
+          "sha256": "27493cdbd97969f8ac19fe0ee0aa1f15ea2abb5ff0ea7aabed5fac7b6aa983ce"
+        },
+        {
+          "path": "/assets/display-COn2S2k6.js",
+          "sha256": "18e9bce745a2cae87dd6b5b94e1fcb7187d02114596245ca22c9f2198c7595e0"
+        },
+        {
+          "path": "/assets/automatic-rewards-D8n3M_eI.js",
+          "sha256": "8894c96c5efa240764b05def06c82409e3611192bc3097e70077bfaff7876d75"
+        },
+        {
+          "path": "/assets/agency-rules-D9tEnQqF.js",
+          "sha256": "d1c4fd7654b414278f3e21be75b4cd628642d31ac13ea76651bc3b12c91c25bc"
+        },
+        {
+          "path": "/assets/fee-policy-copy-ClJEE9Ga.js",
+          "sha256": "c43664d1795234cb199419fc2a2e2c6acb867d5bb0dfb719bcd2f6173b8df1df"
+        },
+        {
+          "path": "/assets/ui-icons-BG672gSI.js",
+          "sha256": "1cf54863ecea789e274aa83cd49373431c4b8f539ed44e2a9955bb3af91708ef"
+        },
+        {
+          "path": "/assets/wallet-links-IlKIV3lH.js",
+          "sha256": "ad5e5d98a38512cc4ba1e373c34e32f3d825a9ae7d12c604f62d2e01cc79b3ee"
+        },
+        {
+          "path": "/assets/flow-timing-BWXER-l7.js",
+          "sha256": "85d1053ea7d6fb5cbb851ca1a95b44b4341401aaf9b4c3495cd4399c115fc0e7"
+        },
+        {
+          "path": "/assets/public-read-fetch-Dr41N0DW.js",
+          "sha256": "27261771657297771ffbc0ce5cec026749db61ab9055844828979f94bba7bcf3"
+        },
+        {
+          "path": "/assets/client-BEdNJC0J.js",
+          "sha256": "01c248d32e8dd09bdc5d2d8abea6e72f5baaec8471ec1020f659f364f9718de2"
+        },
+        {
+          "path": "/assets/technical-notices-CWxRsyGF.css",
+          "sha256": "e8a9b7a7b65061ed4af5f880ff81531905fd8bec658f6cdda77933580f32fc5e"
+        },
+        {
+          "path": "/assets/left-navigation-D4yxcDuX.css",
+          "sha256": "74b5939100a9f6beeaa091aa151ecc5f73f08d9aad319a921dbc0c35c02ab508"
+        },
+        {
+          "path": "/assets/main-CEY5VTsL.css",
+          "sha256": "28477e7d4d95f5c6fed60888f59fd93498c37f93a88139b9059a813dde246827"
+        }
+      ],
+      "genesis": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d"
+    },
+    "metrics": {
+      "checkedAt": "2026-11-25T02:31:23.576Z",
+      "revision": "53ca3fa98d017b580e2a046234d8d80b15e9a073",
+      "checks": [
+        "Live API reports distinct cap/FDV, fresh holder metadata, current supply, and no inferred burn totals",
+        {
+          "viewport": 1280,
+          "fields": {
+            "coin-strip-market-cap": {
+              "text": "$1,648,096",
+              "title": ""
+            },
+            "coin-holder-count": {
+              "text": "5,719",
+              "title": "Indexed holder count · Source updated 11/25/2026, 9:06:43 AM"
+            },
+            "coin-holder-freshness": {
+              "text": "As of 09:06 AM",
+              "title": ""
+            },
+            "coin-strip-trades": {
+              "text": "52,180",
+              "title": "Waiting for verified market activity."
+            },
+            "coin-strip-burned": {
+              "text": "Unavailable",
+              "title": ""
+            }
+          }
+        },
+        {
+          "viewport": 1280,
+          "paidListing": "Market cap\n$1.65M\n+411.00%\n24h volume\n$2.78M\nHolders\n5,719"
+        },
+        {
+          "viewport": 390,
+          "fields": {
+            "coin-strip-market-cap": {
+              "text": "$1,648,096",
+              "title": ""
+            },
+            "coin-holder-count": {
+              "text": "5,719",
+              "title": "Indexed holder count · Source updated 11/25/2026, 9:06:43 AM"
+            },
+            "coin-holder-freshness": {
+              "text": "As of 09:06 AM",
+              "title": ""
+            },
+            "coin-strip-trades": {
+              "text": "52,180",
+              "title": "Waiting for verified market activity."
+            },
+            "coin-strip-burned": {
+              "text": "Unavailable",
+              "title": ""
+            }
+          }
+        },
+        {
+          "viewport": 390,
+          "paidListing": "Market cap\n$1.6M\n+369.00%\n24h volume\n$2.79M\nHolders\n5,719"
+        }
+      ],
+      "screenshots": [
+        "jimmy-metrics-1280.png",
+        "jimmy-metrics-390.png"
+      ],
+      "overview": {
+        "cluster": "mainnet-beta",
+        "url": "https://dexscreener.com/solana/fnhwfv49ywctgcdtyf34avn8bixxcgxukqlctkrkp1gq",
+        "mint": "38M2z4UCfZEkUHFzD48vhKQhFhNyRGto8pZbLjNipump",
+        "name": "Jimmy Rustles",
+        "dexId": "pumpswap",
+        "stale": false,
+        "fdvUsd": 1648096,
+        "source": "dexscreener",
+        "symbol": "JIMMY",
+        "discord": null,
+        "holders": 5719,
+        "twitter": "https://x.com/JimmyRustlesSOL/status/2124990920072499212?a=JhHltcjubM94C_s0OCU&s=20",
+        "website": "https://archive.4plebs.org/s4s/thread/1665870/",
+        "windows": {
+          "5m": {
+            "buys": 162,
+            "sells": 165,
+            "volumeUsd": 14229.42
+          },
+          "1h": {
+            "buys": 1468,
+            "sells": 1315,
+            "volumeUsd": 131151.93
+          },
+          "6h": {
+            "buys": 11547,
+            "sells": 9431,
+            "volumeUsd": 1277096.58
+          },
+          "24h": {
+            "buys": 28891,
+            "sells": 23289,
+            "volumeUsd": 2780920.21
+          }
+        },
+        "cachedAt": "2026-11-25T02:30:45.150Z",
+        "decimals": 6,
+        "imageUri": "https://cdn.dexscreener.com/cms/images/bC92iD43nDsYWROT?width=800&height=800&quality=95&format=auto",
+        "priceUsd": 0.001764,
+        "telegram": null,
+        "headerUri": "https://cdn.dexscreener.com/cms/images/EzTUsOT2OilUwK5M?width=1500&height=500&quality=95&format=auto",
+        "launchpad": "pump.fun",
+        "quoteMint": "So11111111111111111111111111111111111111112",
+        "observedAt": "2026-11-25T02:31:25.097Z",
+        "buyCount24h": 28891,
+        "holderCount": 5719,
+        "pairAddress": "FnHWfV49ywCtGCDTyf34AVN8BiXxcgXUKqLctkrkP1gQ",
+        "priceNative": 0.00002575,
+        "quoteSymbol": "SOL",
+        "burnedTokens": null,
+        "liquidityUsd": 109470.95,
+        "marketCapUsd": 1648096,
+        "sellCount24h": 23289,
+        "supplyTokens": 933810210.70501,
+        "volume24hUsd": 2780920.21,
+        "burnedPercent": null,
+        "pairCreatedAt": 1795468271000,
+        "metricsVersion": 2,
+        "holderCountAsOf": "2026-11-25T02:06:43Z",
+        "holderCountStale": false,
+        "holderCountSource": "geckoterminal",
+        "priceChangePercent": 411,
+        "initialSupplyTokens": null,
+        "burnedSupplyVerified": false,
+        "holderCountCheckedAt": "2026-11-25T02:31:25.086Z"
+      },
+      "holders": {
+        "holderCount": 5719,
+        "holderCountAsOf": "2026-11-25T02:06:43Z",
+        "holderCountCheckedAt": "2026-11-25T02:31:25.086Z",
+        "holderCountStale": false
+      },
+      "passed": true
+    },
+    "unsignedTrading": {
+      "checkedAt": "2026-11-25T02:31:41.409Z",
+      "scope": "Unsigned live Jupiter route preparation; no wallet signing or chain submission",
+      "wallet": "AHzwTZWFHEbet3KhaXGbQzsL7RcrXkcMxaDHYME9wT7C",
+      "checks": [
+        {
+          "side": "buy",
+          "amount": "0.01",
+          "status": 200,
+          "quote": {
+            "inAmount": "10000000",
+            "outAmount": "401762321",
+            "otherAmountThreshold": "397744698",
+            "priceImpactPct": "0.0167538266901219885346410033",
+            "routes": [
+              "Pump.fun Amm"
+            ]
+          },
+          "decimals": 6,
+          "swapProgram": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+          "lookupTableCount": 1
+        },
+        {
+          "side": "sell",
+          "amount": "1",
+          "status": 200,
+          "quote": {
+            "inAmount": "1000000",
+            "outAmount": "24454",
+            "otherAmountThreshold": "24210",
+            "priceImpactPct": "0.0001986024195860272512156882",
+            "routes": [
+              "Pump.fun Amm"
+            ]
+          },
+          "decimals": 6,
+          "swapProgram": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+          "lookupTableCount": 1
+        },
+        {
+          "name": "zero amount rejected",
+          "status": 400
+        }
+      ],
+      "revision": "53ca3fa98d017b580e2a046234d8d80b15e9a073",
+      "passed": true
+    }
+  },
+  "cleanup": {
+    "openPullRequests": 0,
+    "branches": [
+      "main"
+    ],
+    "worktrees": [
+      "C:/Data/DevApps/funded.app"
+    ],
+    "unrelatedWorkingChanges": "Preserved"
+  },
+  "limitations": [
+    "Browser recovery and index catch-up scenarios use mocked API responses.",
+    "Unsigned quotes and transaction preparation do not prove financial settlement.",
+    "No live transaction was signed or submitted in this continuation. A user-provided sell signature is still needed for live sell settlement verification.",
+    "Signed local admin, favorites and referral persistence tests and the user-performed live admin listing, boost and buy are documented in the November 24 verification; those live writes were not repeated.",
+    "Holder counts are provider snapshots and retain their source timestamp; sampled trader statistics are not complete trader totals."
+  ],
+  "codeContextIndex": "Targeted source reindex completed; final wording-change index exited successfully."
+}
