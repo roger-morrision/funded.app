@@ -52,7 +52,7 @@ export async function loadIndexedCoin(appState, mint, loadId, marketRequest) {
       if (pair && symbolNode && current()) symbolNode.insertAdjacentHTML('afterend', pairChipMarkup(data, appState.escapeHtml).replace('<span class="pair-chip', '<span id="coin-pair-chip" class="pair-chip'));
     };
     showPair(); void loadPairQuotes().then(() => { if (current()) showPair(); });
-    appState.setCoinFact?.('#coin-fee-owner', 'External token · no Richpad fees', 'clear');
+    appState.setCoinFact?.('#coin-fee-owner', 'Creator fee owner not verified', 'unknown');
     appState.setCoinFact?.('#coin-metadata-status', data.name ? 'Indexed metadata' : 'Metadata unavailable', data.name ? 'clear' : 'warn');
     for (const [selector, href] of [['#coin-website-link', data.website], ['#coin-x-link', data.twitter], ['#coin-telegram-link', data.telegram], ['#coin-discord-link', data.discord]]) {
       const link = document.querySelector(selector); if (link && typeof href === 'string' && href.startsWith('https://')) { link.href = href; link.hidden = false; }
