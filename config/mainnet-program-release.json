@@ -13,10 +13,11 @@
     "sha256": "b2e811357cf55dc6624a48b6f630eb6c32ae2c23f3bd6c271d6013c72db70b9c"
   },
   "independentReview": {
-    "reviewer": null,
-    "reference": null,
-    "sourceRevision": null,
-    "binarySha256": null
+    "reviewer": "Hermes Agent (AI second review; not an external professional security audit)",
+    "reference": "docs/reviews/mainnet-independent-review-hermes-2026-11-25.md",
+    "sourceRevision": "68c526f3bbe4cdc8afcf5e0c9c10028e9f87a97b",
+    "binarySha256": "b2e811357cf55dc6624a48b6f630eb6c32ae2c23f3bd6c271d6013c72db70b9c",
+    "conclusion": "Conditional YES, not an unconditional clearance: open items are a documented risk-acceptance for the category-1 automation-operator key, a rounding-drift reconciliation, CPI account-validation hardening before enabling buyback/conversions, and running the Rust test suite against the candidate binary."
   },
   "developerLockPeriodsSeconds": [
     21600,
