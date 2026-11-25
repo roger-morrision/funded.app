@@ -13,6 +13,13 @@ import { normalizeDevnetMetadataOrigin } from '../devnet-metadata.js';
 export function createPageDelivery({ staticRoot, store, solanaCluster, respond, readTokenName = async () => null }) {
   // index.html changes only with a new build; keep it in memory for a minute.
   let templateCache = null, homeHtml = null;
+  // The admin page path is a server secret, never a hardcoded/committed value:
+  // this repo is public, so a literal path in source gives no real obscurity.
+  // Set FUNDED_ADMIN_PAGE_PATH in the deployment's own env/secrets to move it.
+  const adminPagePath = (() => {
+    const raw = String(process.env.FUNDED_ADMIN_PAGE_PATH || '').replace(/^\/+|\/+$/g, '');
+    return raw ? `/${raw}` : '/admin';
+  })();
   const readTemplate = async () => {
     if (!templateCache || Date.now() - templateCache.at > 60_000) templateCache = { at: Date.now(), html: await readFile(resolve(staticRoot, 'index.html'), 'utf8') };
     return templateCache.html;
@@ -110,9 +117,9 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond, 
       res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});return end(res, page);
     }
     // Service status is an admin panel; the old public /status link lands there.
-    if (readRequest && /^\/status\/?$/.test(url.pathname)) { res.writeHead(302, { location: '/admin#admin-service-status', 'cache-control': 'no-store' }); return end(res); }
+    if (readRequest && /^\/status\/?$/.test(url.pathname)) { res.writeHead(302, { location: `${adminPagePath}#admin-service-status`, 'cache-control': 'no-store' }); return end(res); }
     if (readRequest && /^\/welcome\/?$/.test(url.pathname)) return await serveStatic('/welcome.html', res);
-    if (readRequest && (url.pathname === '/admin' || url.pathname === '/admin/')) return await serveStatic('/admin.html', res);
+    if (readRequest && (url.pathname === adminPagePath || url.pathname === `${adminPagePath}/`)) return await serveStatic('/admin.html', res);
     if (readRequest && ['/', '/explore', '/explore/'].includes(url.pathname)) {
       // The public home HTML is the same for every visitor: rebuild it at most every 10 s.
       if (!homeHtml || Date.now() - homeHtml.at > 10_000) {

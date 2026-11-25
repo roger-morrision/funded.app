@@ -33,6 +33,7 @@ export function createStore(filePath = resolve(process.cwd(), 'data', 'funded-st
     state.pairLaunches ||= {};
     state.mainnetTradeCursor ||= {};
     state.adminWithdrawalIntents ||= {};
+    state.operationsPayoutRequests ||= {};
     state.adminJwtRevocations ||= {};
     state.adminWithdrawalRequests ||= {};
     state.outflowWatch ||= {};

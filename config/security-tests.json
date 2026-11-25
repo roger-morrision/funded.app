@@ -11,6 +11,19 @@
       ]
     },
     {
+      "path": "tests/security/operations-payout-policy.test.mjs",
+      "requiredTests": [
+        "a requested operations payout cannot be claimed before an approval",
+        "a different admin approving unlocks exactly one matching claim, consumed once",
+        "the requesting admin cannot approve their own request",
+        "an approval only unlocks the exact mint, recipient and amount it names",
+        "only category 1 may use this approval flow",
+        "a mint cannot have two open requests at once",
+        "a cancelled request can never be approved or claimed",
+        "a request above the per-request cap is rejected"
+      ]
+    },
+    {
       "path": "tests/security/metadata-storage-verification.test.mjs",
       "requiredTests": [
         "metadata probe rechecks identical public bytes without credentials or repeat uploads",

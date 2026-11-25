@@ -20,6 +20,7 @@ import {createV3RewardFundingRoutes} from './v3-reward-funding.mjs';
 import {handleAdminBoostPricing} from '../admin-boost-pricing.mjs';
 import {createAdminWallets} from '../admin-wallets.mjs';
 import {createAdminWithdrawals} from '../admin-withdrawals.mjs';
+import {createOperationsPayoutPolicy} from '../operations-payout-policy.mjs';
 import {createAdminJwt} from '../admin-jwt.mjs';
 import { clientAddress } from '../client-address.mjs';
 import { handleAdminAppLimits } from '../app-limits.mjs';
@@ -82,9 +83,17 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
   const inventory=createAdminWallets({env,keeperKeypair,v3AuthorityKeypair,referralPayoutKeypair});
   const roleAddresses=inventory.roles;
   const handleWithdrawals=createAdminWithdrawals({store,env,connection,roles:roleAddresses,signerFor:inventory.signerFor});
+  const operationsPayouts=createOperationsPayoutPolicy({store,env});
+  // Everything else in this file stays Devnet-only until individually reviewed
+  // for Mainnet; only admin sign-in and the OTP-gated operations-payout
+  // approval flow (server/operations-payout-policy.mjs) are allowed through.
+  const MAINNET_ALLOWED_PATHS=new Set(['/api/admin/challenge','/api/admin/session','/api/admin/email-confirmation','/api/admin/logout',
+    '/api/admin/operations-payouts/requests','/api/admin/operations-payouts/request',
+    '/api/admin/operations-payouts/approve','/api/admin/operations-payouts/cancel']);
   return async function handleAdminRoutes(req, res, url) {
     if (!url.pathname.startsWith('/api/admin/')) return false;
-    if (solanaCluster !== 'devnet') return json(res, 403, { error:'This admin workspace is Devnet-only.' });
+    if (solanaCluster !== 'devnet' && !MAINNET_ALLOWED_PATHS.has(url.pathname))
+      return json(res, 403, { error:'This admin workspace is Devnet-only.' });
     res.setHeader('cache-control', 'no-store');
     const path = url.pathname;
     if(!['GET','HEAD','OPTIONS'].includes(req.method)&&url.search)
@@ -98,7 +107,7 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
       if (!wallet || !allowed().has(wallet)) return json(res, 403, { error:'This wallet is not configured as an administrator.' });
       const nonce = randomBytes(24).toString('hex');
       const expiresAt = Date.now() + CHALLENGE_MS;
-      const message = `richpad.fun Devnet admin sign-in\nOrigin: ${origin()}\nWallet: ${wallet}\nNonce: ${nonce}\nExpires: ${new Date(expiresAt).toISOString()}`;
+      const message = `richpad.fun ${solanaCluster==='mainnet-beta'?'Mainnet':'Devnet'} admin sign-in\nOrigin: ${origin()}\nWallet: ${wallet}\nNonce: ${nonce}\nExpires: ${new Date(expiresAt).toISOString()}`;
       challenges.set(nonce, { wallet, message, expiresAt });
       if (challenges.size > 500) for (const [id, row] of challenges) if (row.expiresAt <= Date.now()) challenges.delete(id);
       return json(res, 200, { nonce, message, expiresAt:new Date(expiresAt).toISOString() });
@@ -148,6 +157,25 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
         req[ADMIN_EMAIL_AUTHORIZED]=proof;
       }catch(error){return json(res,error.status||503,{error:error.status?error.message:'Admin verification audit is unavailable. No action was executed.',
         ...(error.status===403?{code:'ADMIN_EMAIL_CONFIRMATION_FAILED'}:{})});}
+    }
+    if(path==='/api/admin/operations-payouts/requests'&&req.method==='GET')
+      return json(res,200,{limits:operationsPayouts.limits(),requests:await operationsPayouts.list()});
+    if(path==='/api/admin/operations-payouts/request'&&req.method==='POST'){
+      try{
+        const input=await body(req)||{};
+        const row=await operationsPayouts.request({admin:session.wallet,mint:validWallet(input.mint),
+          quoteMint:input.quoteMint?validWallet(input.quoteMint):null,category:1,
+          recipient:validWallet(input.recipient),amount:Number(input.amountLamports)});
+        return json(res,201,row);
+      }catch(error){return json(res,error.status||503,{error:error.message});}
+    }
+    if((path==='/api/admin/operations-payouts/approve'||path==='/api/admin/operations-payouts/cancel')&&req.method==='POST'){
+      try{
+        const input=await body(req)||{},requestId=String(input.requestId||'');
+        const row=path.endsWith('/approve')?await operationsPayouts.approve({admin:session.wallet,requestId})
+          :await operationsPayouts.cancel({admin:session.wallet,requestId});
+        return json(res,200,row);
+      }catch(error){return json(res,error.status||503,{error:error.message});}
     }
     if(req.method==='POST'&&path==='/api/admin/v3-allocations/transfer'){
       const input=await body(req),mint=validWallet(input.mint),signature=String(input.collectionSignature||'');

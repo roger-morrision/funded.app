@@ -3,6 +3,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import { PUMP_SDK, bondingCurvePda } from '@pump-fun/pump-sdk';
 import { collectAndSettleTokenFees, convertTokenBudgetToSol, fundTokenHolderRewards, pendingTokenFees,
   payTokenCreatorWallet, payTokenProtocolBudget, readDirectedTokenBudget } from './v3-token-keeper.mjs';
+import { createOperationsPayoutPolicy } from './operations-payout-policy.mjs';
 import { createRewardScheduler } from './reward-scheduler.mjs';
 import { ensureMintAutomationV3 } from './mint-automation-v3.mjs';
 import { v3ReferralUpline } from './v3-referral-entitlement.mjs';
@@ -31,6 +32,11 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
   const finalizedConnection = new Connection(solanaRpcUrl, 'finalized');
   const programId = env.FUNDED_V3_FEE_ROUTER_PROGRAM_ID;
   const scheduler = createRewardScheduler({ store: automaticRewardStore, chain: {}, indexer: { capture: async () => { throw new Error('unused'); } } });
+  // On Mainnet, category 1 (operations) may only pay out a request an admin
+  // approved via email OTP (see server/operations-payout-policy.mjs); the
+  // top-level Devnet-only guard above means this never triggers today, but it
+  // stays wired in for whenever this worker gains Mainnet support.
+  const operationsPayouts = createOperationsPayoutPolicy({ store, env });
   const minimumCollect = BigInt(env.FUNDED_V3_PAIRED_MIN_COLLECT_UNITS || '1000');
   const minimumRelease = BigInt(env.FUNDED_V3_PAIRED_MIN_RELEASE_UNITS || '1000');
   const minimumProtocol = BigInt(env.FUNDED_V3_PAIRED_MIN_PROTOCOL_UNITS || '1');
@@ -125,6 +131,10 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
         const recipient = recipients[category - 1];
         const amount = budget.ledger.paid[category] - budget.ledger.withdrawn[category];
         if (!recipient || new PublicKey(recipient).equals(PublicKey.default) || amount < minimumProtocol) continue;
+        if (category === 1 && solanaCluster === 'mainnet-beta') {
+          const approved = await operationsPayouts.claim({ mint: launch.mint, quoteMint, category, recipient, amount: amount.toString() });
+          if (!approved) continue;
+        }
         const paid = await payTokenProtocolBudget({ connection: finalizedConnection, programId, keeper, creator,
           mint: launch.mint, quoteMint, category, recipient, amount });
         (row.protocolPaid ||= []).push(paid);

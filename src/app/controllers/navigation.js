@@ -167,7 +167,8 @@ export function createNavigationController(appState) {
   // app-source: 863
   function syncPageRoute(){
     if(location.hash==='#status'||/^\/status\/?$/.test(location.pathname)){
-      location.replace('/admin#admin-service-status');return;
+      const adminPath='/'+String(import.meta.env.VITE_FUNDED_ADMIN_PAGE_PATH||'admin').replace(/^\/+|\/+$/g,'');
+      location.replace(`${adminPath}#admin-service-status`);return;
     }
     // Older links use internal route keys; show the page's public name instead.
     const publicName = PUBLIC_ROUTE_NAMES[location.hash.slice(1)];
