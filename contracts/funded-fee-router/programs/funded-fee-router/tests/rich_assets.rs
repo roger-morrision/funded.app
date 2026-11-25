@@ -53,6 +53,17 @@ fn fixture()->(LiteSVM,Keypair,Pubkey){
     let data=support::set_upgrade_owner(&mut svm,funded_fee_router::id(),owner.pubkey());(svm,owner,data)
 }
 
+#[cfg(feature = "devnet-v3-program")]
+#[test]
+fn revision_probe_requires_no_custody_accounts_and_preserves_program_data(){
+    let (mut svm,payer,program_data)=fixture();
+    let before=svm.get_account(&program_data).unwrap();
+    let ix=Instruction{program_id:funded_fee_router::id(),accounts:vec![],
+        data:funded_fee_router::instruction::ProgramRevision{}.data()};
+    send(&mut svm,&payer,&[&payer],ix).unwrap();
+    assert_eq!(svm.get_account(&program_data).unwrap(),before);
+}
+
 #[test]
 fn asset_admin_can_rotate_after_immutability_and_handoff_preserves_history(){
     let (mut svm,owner,program_data)=fixture();let (mint,pool)=asset(&mut svm);

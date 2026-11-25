@@ -1,0 +1,518 @@
+{
+  "at": "2026-11-19T07:53:38.606Z",
+  "status": "blocked-pending-wallet-signatures",
+  "cluster": "devnet",
+  "build": "9eab751f3af811613d77416ccf2fef8b22396ce5",
+  "enforcement": "all",
+  "positiveTransfersVerified": false,
+  "broadcastTransactions": 0,
+  "checks": [
+    {
+      "at": "2026-11-19T07:52:14.933Z",
+      "type": "creator-prepare",
+      "path": "/api/tokens/GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb/v3-creator-wallet-payout/5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+      "http": 202,
+      "data": {
+        "status": "awaiting-creator-signature",
+        "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+        "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+        "amountLamports": "142336",
+        "recipient": "DiS3aX96RXtA2A4u86DGtZHsbk6SZaKH8fRBv4onsr6J",
+        "lastValidBlockHeight": 511032103
+      }
+    },
+    {
+      "at": "2026-11-19T07:52:14.941Z",
+      "type": "creator-required-signers",
+      "signers": [
+        "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+        "DiS3aX96RXtA2A4u86DGtZHsbk6SZaKH8fRBv4onsr6J"
+      ],
+      "digest": "e8112f1658e7e6ca2ac18e45cf9340ae74b8c2211d42affcb42a79654201b110",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:18.586Z",
+      "type": "referral-prepare",
+      "level": 1,
+      "path": "/api/tokens/GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb/v3-referral-payout/5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS/1",
+      "http": 202,
+      "data": {
+        "status": "awaiting-recipient-signature",
+        "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+        "level": 1,
+        "amount": "2134",
+        "expiresAt": "2026-11-19T07:56:32.381Z",
+        "recipient": "FAoYzAizKjMxH5h3hW4QHRDPrbUbiYDXaGqe8ZMdqAsh",
+        "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS"
+      }
+    },
+    {
+      "at": "2026-11-19T07:52:20.936Z",
+      "type": "referral-invalid-signature",
+      "level": 1,
+      "http": 401,
+      "error": "The referral recipient must sign this claim."
+    },
+    {
+      "at": "2026-11-19T07:52:23.544Z",
+      "type": "referral-prepare",
+      "level": 2,
+      "path": "/api/tokens/GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb/v3-referral-payout/5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS/2",
+      "http": 202,
+      "data": {
+        "status": "awaiting-recipient-signature",
+        "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+        "level": 2,
+        "amount": "890",
+        "expiresAt": "2026-11-19T07:56:38.158Z",
+        "recipient": "Dodtyx5Dftb6co5AdN4Js97SAsvWWStCACQyZLPR9DXa",
+        "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS"
+      }
+    },
+    {
+      "at": "2026-11-19T07:52:25.981Z",
+      "type": "referral-invalid-signature",
+      "level": 2,
+      "http": 401,
+      "error": "The referral recipient must sign this claim."
+    },
+    {
+      "at": "2026-11-19T07:52:29.279Z",
+      "type": "referral-prepare",
+      "level": 3,
+      "path": "/api/tokens/GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb/v3-referral-payout/5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS/3",
+      "http": 202,
+      "data": {
+        "status": "awaiting-recipient-signature",
+        "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+        "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+        "level": 3,
+        "recipient": "H6KKVK7J83kD6pPduEQCB1WiGgHTzRxzkYhuFWVqYp7c",
+        "amount": "534",
+        "expiresAt": "2026-11-19T07:57:29.268Z"
+      }
+    },
+    {
+      "at": "2026-11-19T07:52:32.230Z",
+      "type": "referral-invalid-signature",
+      "level": 3,
+      "http": 401,
+      "error": "The referral recipient must sign this claim."
+    },
+    {
+      "at": "2026-11-19T07:52:33.275Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-operations",
+      "kind": "non-admin-destination",
+      "http": 403,
+      "error": "treasury-destination-not-admin",
+      "digest": "eab979dc4b5bcdd7a42d007409510a351b0a2303d1270a4368a1f1bd2890ca6a",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:33.864Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-operations",
+      "kind": "wrong-fee-payer",
+      "http": 403,
+      "error": "treasury-destination-not-admin",
+      "digest": "a9d3fac52e20a712935de90d1c0cd288e60d92332ef2319c0d0b2a595addfe46",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:34.464Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-operations",
+      "kind": "over-cap",
+      "http": 403,
+      "error": "treasury-tx-cap",
+      "digest": "562fd6d9ddf11b65ad7d4ed6b5eb8e336640d531b6d9e35f8ff3ce5de2891f2e",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:35.138Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-revenue",
+      "kind": "non-admin-destination",
+      "http": 403,
+      "error": "treasury-destination-not-admin",
+      "digest": "74ff4166db09f96cd634bb6696114f1a930e3cd1331e319fc452ce48e5ea142c",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:35.735Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-revenue",
+      "kind": "wrong-fee-payer",
+      "http": 403,
+      "error": "treasury-destination-not-admin",
+      "digest": "731d5914d7b0f69dbff6ed82e9e6e043e39e16e983efa96c5b2c1ea6ee668802",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:36.269Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-revenue",
+      "kind": "over-cap",
+      "http": 403,
+      "error": "treasury-tx-cap",
+      "digest": "3186bda8f441d29c80333f882dbdea8594b2f3919fffa0b7f4e1883e0416ca85",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:36.884Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-trade",
+      "kind": "non-admin-destination",
+      "http": 403,
+      "error": "treasury-destination-not-admin",
+      "digest": "f35199883920a8b1f32c470d0680b8456f3aa2dfbd989b1b883d6c441a5a6780",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:37.542Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-trade",
+      "kind": "wrong-fee-payer",
+      "http": 403,
+      "error": "treasury-destination-not-admin",
+      "digest": "de6aa7e0a64be374399963b03b19caaf72a573cce8b29f7b546bd6f6c1cfa55c",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:38.145Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-trade",
+      "kind": "over-cap",
+      "http": 403,
+      "error": "treasury-tx-cap",
+      "digest": "4e0616c88a9d9b93ea6d3b6b500d0afbc4912500de36e08e37f9f7121b810bf0",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:38.744Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-boost",
+      "kind": "non-admin-destination",
+      "http": 403,
+      "error": "treasury-destination-not-admin",
+      "digest": "0bea87811aa108f4ca833ca63929328a4b95ce0b58603ad5409fd9188d3df5e9",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:39.274Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-boost",
+      "kind": "wrong-fee-payer",
+      "http": 403,
+      "error": "treasury-destination-not-admin",
+      "digest": "f4687c0db90312c71d0e7cb203d03bda1a44e4aa3e9c852b1abcfd2f23ee444e",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:39.669Z",
+      "type": "treasury-policy-rejection",
+      "role": "treasury-boost",
+      "kind": "over-cap",
+      "http": 403,
+      "error": "treasury-tx-cap",
+      "digest": "c7a5b84b81fa816ef4cf6e72082f17946f00980afb202b52fc598cec58c6ddbc",
+      "broadcast": false
+    },
+    {
+      "at": "2026-11-19T07:52:39.675Z",
+      "type": "treasury-missing-admin-session",
+      "http": 401,
+      "error": "Sign in with the configured admin wallet.",
+      "plan": {
+        "source": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+        "amountLamports": 10000
+      }
+    }
+  ],
+  "signerRejections": [
+    {
+      "at": "2026-11-19T07:52:32.690Z",
+      "role": "treasury-operations",
+      "signer": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+      "feePayer": "8oSRjDbiDh56Doe4hqvEx4c8fbFKq8eimKJYtWitXUbV",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "10000",
+      "simulated": false,
+      "violations": [
+        "treasury-destination-not-admin"
+      ],
+      "decision": "refused",
+      "digest": "eab979dc4b5bcdd7a42d007409510a351b0a2303d1270a4368a1f1bd2890ca6a"
+    },
+    {
+      "at": "2026-11-19T07:52:33.280Z",
+      "role": "treasury-operations",
+      "signer": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+      "feePayer": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "15000",
+      "simulated": true,
+      "violations": [
+        "treasury-destination-not-admin"
+      ],
+      "decision": "refused",
+      "digest": "a9d3fac52e20a712935de90d1c0cd288e60d92332ef2319c0d0b2a595addfe46"
+    },
+    {
+      "at": "2026-11-19T07:52:33.869Z",
+      "role": "treasury-operations",
+      "signer": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+      "feePayer": "CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "11000000000",
+      "simulated": false,
+      "violations": [
+        "treasury-tx-cap"
+      ],
+      "decision": "refused",
+      "digest": "562fd6d9ddf11b65ad7d4ed6b5eb8e336640d531b6d9e35f8ff3ce5de2891f2e"
+    },
+    {
+      "at": "2026-11-19T07:52:34.467Z",
+      "role": "treasury-revenue",
+      "signer": "BgWBgNSFTQDreBwTHrWdmjNkkiZfA9QgDHrWwnZvJFWz",
+      "feePayer": "4fBJGsi1UobH15sjiXjzsecUqwZXEKAZazbtNxozbX2b",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "10000",
+      "simulated": false,
+      "violations": [
+        "treasury-destination-not-admin"
+      ],
+      "decision": "refused",
+      "digest": "74ff4166db09f96cd634bb6696114f1a930e3cd1331e319fc452ce48e5ea142c"
+    },
+    {
+      "at": "2026-11-19T07:52:35.141Z",
+      "role": "treasury-revenue",
+      "signer": "BgWBgNSFTQDreBwTHrWdmjNkkiZfA9QgDHrWwnZvJFWz",
+      "feePayer": "BgWBgNSFTQDreBwTHrWdmjNkkiZfA9QgDHrWwnZvJFWz",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "15000",
+      "simulated": true,
+      "violations": [
+        "treasury-destination-not-admin"
+      ],
+      "decision": "refused",
+      "digest": "731d5914d7b0f69dbff6ed82e9e6e043e39e16e983efa96c5b2c1ea6ee668802"
+    },
+    {
+      "at": "2026-11-19T07:52:35.737Z",
+      "role": "treasury-revenue",
+      "signer": "BgWBgNSFTQDreBwTHrWdmjNkkiZfA9QgDHrWwnZvJFWz",
+      "feePayer": "CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "11000000000",
+      "simulated": false,
+      "violations": [
+        "treasury-tx-cap"
+      ],
+      "decision": "refused",
+      "digest": "3186bda8f441d29c80333f882dbdea8594b2f3919fffa0b7f4e1883e0416ca85"
+    },
+    {
+      "at": "2026-11-19T07:52:36.275Z",
+      "role": "treasury-trade",
+      "signer": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+      "feePayer": "6oixS9Y2Jjz23eSeStfkdRZvyzAT6Zi46sj5j9X1FNxo",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "10000",
+      "simulated": false,
+      "violations": [
+        "treasury-destination-not-admin"
+      ],
+      "decision": "refused",
+      "digest": "f35199883920a8b1f32c470d0680b8456f3aa2dfbd989b1b883d6c441a5a6780"
+    },
+    {
+      "at": "2026-11-19T07:52:36.886Z",
+      "role": "treasury-trade",
+      "signer": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+      "feePayer": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "15000",
+      "simulated": true,
+      "violations": [
+        "treasury-destination-not-admin"
+      ],
+      "decision": "refused",
+      "digest": "de6aa7e0a64be374399963b03b19caaf72a573cce8b29f7b546bd6f6c1cfa55c"
+    },
+    {
+      "at": "2026-11-19T07:52:37.545Z",
+      "role": "treasury-trade",
+      "signer": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+      "feePayer": "CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "11000000000",
+      "simulated": false,
+      "violations": [
+        "treasury-tx-cap"
+      ],
+      "decision": "refused",
+      "digest": "4e0616c88a9d9b93ea6d3b6b500d0afbc4912500de36e08e37f9f7121b810bf0"
+    },
+    {
+      "at": "2026-11-19T07:52:38.149Z",
+      "role": "treasury-boost",
+      "signer": "BHRHGiDRGrBXo6PuVvgxuH9nVbaGCLAxrdUKNJxzYb16",
+      "feePayer": "DPJxeMDCR1idyKjc5HD4zVFFEF8SjZx3dWsGf3CLJFK5",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "10000",
+      "simulated": false,
+      "violations": [
+        "treasury-destination-not-admin"
+      ],
+      "decision": "refused",
+      "digest": "0bea87811aa108f4ca833ca63929328a4b95ce0b58603ad5409fd9188d3df5e9"
+    },
+    {
+      "at": "2026-11-19T07:52:38.747Z",
+      "role": "treasury-boost",
+      "signer": "BHRHGiDRGrBXo6PuVvgxuH9nVbaGCLAxrdUKNJxzYb16",
+      "feePayer": "BHRHGiDRGrBXo6PuVvgxuH9nVbaGCLAxrdUKNJxzYb16",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "15000",
+      "simulated": true,
+      "violations": [
+        "treasury-destination-not-admin"
+      ],
+      "decision": "refused",
+      "digest": "f4687c0db90312c71d0e7cb203d03bda1a44e4aa3e9c852b1abcfd2f23ee444e"
+    },
+    {
+      "at": "2026-11-19T07:52:39.280Z",
+      "role": "treasury-boost",
+      "signer": "BHRHGiDRGrBXo6PuVvgxuH9nVbaGCLAxrdUKNJxzYb16",
+      "feePayer": "CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ",
+      "programs": [
+        "11111111111111111111111111111111"
+      ],
+      "outflowLamports": "11000000000",
+      "simulated": true,
+      "violations": [
+        "treasury-tx-cap"
+      ],
+      "decision": "refused",
+      "digest": "c7a5b84b81fa816ef4cf6e72082f17946f00980afb202b52fc598cec58c6ddbc"
+    }
+  ],
+  "localTests": {
+    "passed": 16,
+    "scope": "signer and admin withdrawal unit/HTTP tests; chain and email mocked"
+  },
+  "requiredSignatures": {
+    "creator": {
+      "status": "awaiting-creator-signature",
+      "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+      "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+      "amountLamports": "142336",
+      "recipient": "DiS3aX96RXtA2A4u86DGtZHsbk6SZaKH8fRBv4onsr6J",
+      "lastValidBlockHeight": 511032103
+    },
+    "referrals": [
+      {
+        "status": "awaiting-recipient-signature",
+        "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+        "level": 1,
+        "amount": "2134",
+        "expiresAt": "2026-11-19T07:56:32.381Z",
+        "recipient": "FAoYzAizKjMxH5h3hW4QHRDPrbUbiYDXaGqe8ZMdqAsh",
+        "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS"
+      },
+      {
+        "status": "awaiting-recipient-signature",
+        "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+        "level": 2,
+        "amount": "890",
+        "expiresAt": "2026-11-19T07:56:38.158Z",
+        "recipient": "Dodtyx5Dftb6co5AdN4Js97SAsvWWStCACQyZLPR9DXa",
+        "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS"
+      },
+      {
+        "status": "awaiting-recipient-signature",
+        "mint": "GQz39ywpJkHXeCVcyUxHEYqtkVqC9k66MEjv9a4CSojb",
+        "collectionSignature": "5jrtAhbioq87PkswXEniQthZzDTy3EQ4dXx6X4GyvUn6w6D5Dr2e7b6r4WBgTw9xVZA9rWpiCxh8WqzakJtXDstS",
+        "level": 3,
+        "recipient": "H6KKVK7J83kD6pPduEQCB1WiGgHTzRxzkYhuFWVqYp7c",
+        "amount": "534",
+        "expiresAt": "2026-11-19T07:57:29.268Z"
+      }
+    ],
+    "allowlistedAdmins": [
+      "CG87C9tjCSB9BAoKfoPUM3mLvbg3WAK1NGNQCWi12zcJ",
+      "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC"
+    ],
+    "treasury": {
+      "source": "E5i7NyPdhuQKhAZdTVfk3uDyxSFtcaCte8Tfuh3FkjSB",
+      "amountLamports": 10000,
+      "requirements": [
+        "Signed-in allowlisted admin wallet",
+        "Normal action-bound email confirmation",
+        "Admin co-signature and fee payment"
+      ]
+    }
+  },
+  "transientFailure": {
+    "http": 503,
+    "code": "RPC_RATE_LIMIT",
+    "resolvedOnBoundedRetry": true
+  },
+  "mainnet": [
+    {
+      "name": "/richpad-mainnet-app-1",
+      "build": "18d15d6daa1f64a30e4870d627d6d44ede580d4d",
+      "cluster": "mainnet-beta",
+      "startedAt": "2026-11-19T02:10:18.036728166Z",
+      "health": "healthy",
+      "agencyEnabled": null,
+      "buybacksEnabled": null,
+      "priceSignerConfigured": false,
+      "privateKeyConfigured": false
+    },
+    {
+      "name": "/richpad-mainnet-rpc-gateway-1",
+      "build": "18d15d6daa1f64a30e4870d627d6d44ede580d4d",
+      "cluster": "mainnet-beta",
+      "startedAt": "2026-11-19T02:10:12.287974509Z",
+      "health": "healthy",
+      "agencyEnabled": null,
+      "buybacksEnabled": null,
+      "priceSignerConfigured": false,
+      "privateKeyConfigured": false
+    }
+  ],
+  "limitations": [
+    "Preparing a claim or rejecting invalid signatures does not verify a successful payout.",
+    "No wallet, admin allowlist, email verification, entitlement, spending cap, or Mainnet configuration was changed.",
+    "Prepared transactions and claim challenges expire; refresh them immediately before signing."
+  ]
+}

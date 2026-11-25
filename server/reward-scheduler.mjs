@@ -201,7 +201,7 @@ function publicSchedule(row) {
 
 // protocolWallets: app-owner/authority wallets that hold coins for operational
 // reasons (such as a closed community drop's remainder) and never earn holder rewards.
-export function createRewardScheduler({ store, indexer, chain, quoteReader = null, protocolWallets = [], cluster = chain?.cluster || 'devnet' }) {
+export function createRewardScheduler({ store, indexer, chain, quoteReader = null, protocolWallets = [], cluster = chain?.cluster || 'devnet', captureSnapshots = true }) {
   const protocolExcluded = [...new Set(protocolWallets.map(String).filter(Boolean))];
   async function register(input) {
     return store.transaction(state => {
@@ -470,7 +470,7 @@ export function createRewardScheduler({ store, indexer, chain, quoteReader = nul
   }
 
   async function tick(now = Math.floor(Date.now() / 1000)) {
-    const capture = await captureDue(now);
+    const capture = captureSnapshots ? await captureDue(now) : {captured:[],failures:[]};
     await prepare(now);
     const execution = await execute(now);
     if (capture.failures.length) {

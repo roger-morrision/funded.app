@@ -17,7 +17,9 @@ const autoSettle=discriminator('settle_mint_v3_auto');
 const agencyAutoSettle=discriminator('settle_agency_mint_v3_auto');
 const unchanged = new Set(['disburse_mint_v3','approve_protected_withdrawal_v3',
   'disburse_protected_mint_v3','buyback_mint_v3','disburse_agency_mint_v3',
-  'approve_agency_withdrawal_v3','bill_agency_promotion_v3','buyback_agency_mint_v3'].map(discriminator));
+  'approve_agency_withdrawal_v3','bill_agency_promotion_v3','buyback_agency_mint_v3',
+  // Configurable buybacks change withdrawal counters, never settled totals.
+  'buyback_configured_mint_v3','buyback_configured_agency_mint_v3'].map(discriminator));
 const targets = (total, split) => {
   let prefix = 0n, previous = 0n;
   return [8_000_000, ...protocolGrossUnits(split)].map(units => {

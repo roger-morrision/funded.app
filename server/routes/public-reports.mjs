@@ -9,7 +9,7 @@ import {walletRewardTotals} from '../wallet-reward-totals.mjs';
 // Return true only after sending a response; false lets the router continue.
 export function createPublicReportsRoutes({
   publicState, store, readReceiptEvidence, readPaymentHistory, automaticRewardStore, readFinalizedEvidence, solanaCluster, databaseUrl,
-  analyticsDeadlineMs = 6_000,
+  analyticsDeadlineMs = 6_000, getPrimaryRich,
   respond,
 }) {
   const readSummary = createAnalyticsSummaryReader([
@@ -36,6 +36,7 @@ export function createPublicReportsRoutes({
       if (!input.available) return json(res, 503, { status:'unavailable', retryable:true,
         error:'Analytics is temporarily unavailable. Please try again shortly.' });
       const [state, rewards, evidence, history] = input.values;
+      const primary = getPrimaryRich ? await getPrimaryRich().catch(()=>null) : undefined;
       const launches = Object.values(state.launches || {}).filter(row => row.cluster === solanaCluster
         && row.onchainVerified === true && row.pumpFeeRoute?.scope === 'per-mint-v3');
       const { v3Evidence, ...totals } = v3PublicMetrics(state, evidence, history, rewards, solanaCluster);
@@ -47,7 +48,7 @@ export function createPublicReportsRoutes({
         freshness: evidence.generatedAt || null,
         launches: launches.length,
         ...totals,
-        homeFeeAllocations: homeFeeAllocationSummary(state, v3Evidence, solanaCluster),
+        homeFeeAllocations: homeFeeAllocationSummary(state, v3Evidence, solanaCluster, primary===undefined?undefined:primary?.fundedMint||null),
         creatorProfiles: creatorReputation(launches).length,
       });
     }

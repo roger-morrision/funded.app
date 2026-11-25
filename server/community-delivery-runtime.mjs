@@ -11,7 +11,7 @@ const unavailableRpc=error=>rpcQuotaExhausted(error)||retryableRpcError(error)
 // Runs inside the primary API process. All sends have durable journals and
 // on-chain payment PDAs, so process restarts and manual recovery cannot double pay.
 export function createCommunityDeliveryRuntime({store,automaticRewardStore,solanaCluster,solanaRpcUrl,
-  fundedTokenMint,v3AuthorityKeypair,env=process.env,logger=console,
+  fundedTokenMint,getPrimaryRich,v3AuthorityKeypair,env=process.env,logger=console,
   connection=new SharedRpcConnection(solanaRpcUrl,'finalized'),serviceFactory=createCommunityClaimService,
   deliveryFactory=createCommunityAutoDelivery,findMigration=findRecentCommunityMigration, scanPools=createMigrationCandidateReader(),
   scheduleTimeout=setTimeout,now=Date.now}) {
@@ -43,10 +43,11 @@ export function createCommunityDeliveryRuntime({store,automaticRewardStore,solan
         if(stopped)break;
         try{
           const config=communityProgramForLaunch(launch,env,v3AuthorityKeypair);
-          const service=serviceFactory({connection,store:automaticRewardStore,programId:config.programId,
-            authority:config.authority,eligibilityMint:fundedTokenMint,cluster:solanaCluster,
-            expectedCommunityProgramDataSha256:config.expectedHash,accountSetup:config.accountSetup});
           let record=ledger.communityDrops?.[launch.mint];
+          const eligibilityMint=record?.eligibilityMint||(getPrimaryRich?(await getPrimaryRich()).fundedMint:fundedTokenMint);
+          const service=serviceFactory({connection,store:automaticRewardStore,programId:config.programId,
+            authority:config.authority,eligibilityMint,cluster:solanaCluster,
+            expectedCommunityProgramDataSha256:config.expectedHash,accountSetup:config.accountSetup});
           if(record&&record.snapshotBasis!=='pump-migration'){waiting++;continue;}
           if(record&&preparationOnly)continue;
           if(!record){

@@ -1,0 +1,455 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-25",
+  "checkedAt": "2026-11-25T02:59:16.899Z",
+  "status": "devnet-upgraded-app-aligned-token-rotation-verified",
+  "mainnetTransactions": false,
+  "build": {
+    "ciRun": "https://github.com/roger-morrision/funded.app/actions/runs/45339137899",
+    "sourceRevision": "9ada9f8f3c473430f9d3c1d15fe294cb7df2b747",
+    "contractTree": "4184c08bb6561707b0aca99f2bc8c952834b6adf",
+    "sourceTreeMatchesCurrentCheckout": true
+  },
+  "programs": {
+    "app": {
+      "cluster": "devnet",
+      "program": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "programData": "4hw9GBAx5BicgiGCiw9hKVu1Xs4xWDrdqXSAFzgn4bwa",
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "sourceRevision": "9ada9f8f3c473430f9d3c1d15fe294cb7df2b747",
+      "contractTree": "4184c08bb6561707b0aca99f2bc8c952834b6adf",
+      "binaryBytes": 1170056,
+      "binarySha256": "8846d6e61644db50a941b11a8dafc9b6eb6da5c91578f6a116605ff4048d55aa",
+      "programDataSha256": "fd74a9a17c49e6ae8f64bd42a82e8d8e8f4f706b4c85045745f0a2f4035f3e7e",
+      "upgradeSlot": 526003737,
+      "finalizedSlot": 526003933,
+      "programOwnedAccountsPreserved": null,
+      "statePreservationStatus": "captured-account-deltas-predate-upgrade-complete-owner-inventory-not-proven",
+      "bufferClosed": true,
+      "upgradeAuthorityRetained": true,
+      "baselineAccountsObserved": 2109,
+      "baselineUnchanged": 2106,
+      "baselineChangesPredateUpgrade": 3,
+      "ownerScanConsistency": "inconsistent"
+    },
+    "configurable": {
+      "cluster": "devnet",
+      "program": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
+      "programData": "4ej89f84gD5MD9uoyUWLDWXqAw68yByBwJcyYSiTecf8",
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "sourceRevision": "9ada9f8f3c473430f9d3c1d15fe294cb7df2b747",
+      "contractTree": "4184c08bb6561707b0aca99f2bc8c952834b6adf",
+      "binaryBytes": 1206176,
+      "binarySha256": "55a07af3f185f0dd42c7d80785438ec502e3c74d2382fb7910a7d66827c646e7",
+      "programDataSha256": "06ec1e5bf75e5249b6a174a68066ba13c6a0495eecae45f7841a8047373ee53e",
+      "upgradeSlot": 526007200,
+      "finalizedSlot": 526007203,
+      "programOwnedAccountsPreserved": 34,
+      "bufferClosed": true,
+      "upgradeAuthorityRetained": true
+    }
+  },
+  "transactions": {
+    "legacy-upgrade": {
+      "signature": "2EPLNXh6KvZqrnahJVybHXHe7NYMG1L9uZW4zQgabXhVqdJstHu2rCmsjpRo6osCQDXRNqD2LJehuRMuRGhXmvh5",
+      "slot": 526003737,
+      "feeLamports": 5000,
+      "explorer": "https://explorer.solana.com/tx/2EPLNXh6KvZqrnahJVybHXHe7NYMG1L9uZW4zQgabXhVqdJstHu2rCmsjpRo6osCQDXRNqD2LJehuRMuRGhXmvh5?cluster=devnet"
+    },
+    "configurable-extend": {
+      "signature": "3udbqBMQVCKe9Eqq5E5cMCVA9JwGghM4rDSiQbg8pJUyg23vmwJmmbfKymdFFxr33FNWVTDcFqUGALbBt4vFhp9Q",
+      "slot": 526007186,
+      "feeLamports": 5000,
+      "explorer": "https://explorer.solana.com/tx/3udbqBMQVCKe9Eqq5E5cMCVA9JwGghM4rDSiQbg8pJUyg23vmwJmmbfKymdFFxr33FNWVTDcFqUGALbBt4vFhp9Q?cluster=devnet"
+    },
+    "configurable-upgrade": {
+      "signature": "59FMGEWxk8FQ3UNG2aQAX1aKNyeMomf84yoHMyDN6CUcmDVoCeiKNRcM7RncGzdsHJXjtLs9XJN18o94Y1VETLR5",
+      "slot": 526007200,
+      "feeLamports": 5000,
+      "explorer": "https://explorer.solana.com/tx/59FMGEWxk8FQ3UNG2aQAX1aKNyeMomf84yoHMyDN6CUcmDVoCeiKNRcM7RncGzdsHJXjtLs9XJN18o94Y1VETLR5?cluster=devnet"
+    },
+    "token-switch-revision-3": {
+      "signature": "4Zhpm1NQaaHJcTEqwkUYAGtkxvpGwg5EHRPGZqNkuGba8XUvtjdUWLVzKUgiAofpDaqeC18z9B3P4U5RAeRGGUUK",
+      "slot": 526007336,
+      "feeLamports": 5000,
+      "explorer": "https://explorer.solana.com/tx/4Zhpm1NQaaHJcTEqwkUYAGtkxvpGwg5EHRPGZqNkuGba8XUvtjdUWLVzKUgiAofpDaqeC18z9B3P4U5RAeRGGUUK?cluster=devnet"
+    },
+    "token-restore-revision-4": {
+      "signature": "293XquEjLaJKXfjbdqSBvV6jfLN1G9sApkuzoMrZ2VTrX9asJDzYWNGQ3uKuXoEgAeFUDdddUkHgSa7321z9cefS",
+      "slot": 526007345,
+      "feeLamports": 5000,
+      "explorer": "https://explorer.solana.com/tx/293XquEjLaJKXfjbdqSBvV6jfLN1G9sApkuzoMrZ2VTrX9asJDzYWNGQ3uKuXoEgAeFUDdddUkHgSa7321z9cefS?cluster=devnet"
+    },
+    "temporary-devnet-funding": {
+      "signature": "3Uozxx5nRvukLoNeQJvRKrcfvF2jZBYm7zYiT5KoTm31hDmXQSjZxykXYq7BUXj6pGhUnNre3S4a1EKevFCDzjof",
+      "slot": 526000762,
+      "feeLamports": 5000,
+      "explorer": "https://explorer.solana.com/tx/3Uozxx5nRvukLoNeQJvRKrcfvF2jZBYm7zYiT5KoTm31hDmXQSjZxykXYq7BUXj6pGhUnNre3S4a1EKevFCDzjof?cluster=devnet"
+    },
+    "temporary-devnet-funding-return": {
+      "signature": "FLWdnoMRdHWzHqFRUWC7RyA7k5hB7AEvTxL7JNe18q6S9EFyfC8cnNPrVVgu3iVGH9tmUSsmnEMjiJQK2AMbBmz",
+      "slot": 526007412,
+      "feeLamports": 5000,
+      "explorer": "https://explorer.solana.com/tx/FLWdnoMRdHWzHqFRUWC7RyA7k5hB7AEvTxL7JNe18q6S9EFyfC8cnNPrVVgu3iVGH9tmUSsmnEMjiJQK2AMbBmz?cluster=devnet"
+    }
+  },
+  "tokenRotation": {
+    "cluster": "devnet",
+    "programId": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
+    "programDataSha256": "06ec1e5bf75e5249b6a174a68066ba13c6a0495eecae45f7841a8047373ee53e",
+    "original": {
+      "mint": "8FmsUFC9aPepfDtQ6ffM2eTbDBzCWTypRLvZbx65Nvex",
+      "pool": "9q91H5TaaP4HpPCWNtAy1umf5wR9zM8EXc5nnaUAaqQC",
+      "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "revision": "2",
+      "venue": "0",
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "pendingAuthority": "11111111111111111111111111111111",
+      "configAddress": "9o1t9FZNpqGMzZoEKkT2DvrCzcjSycD8GgfA3J9g9miw"
+    },
+    "simulations": [
+      {
+        "name": "unauthorized-token-change",
+        "status": "rejected-by-devnet-simulation",
+        "broadcast": false,
+        "error": {
+          "InstructionError": [
+            0,
+            {
+              "Custom": 6202
+            }
+          ]
+        },
+        "slot": 526007325,
+        "logs": [
+          "Program 9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf invoke [1]",
+          "Program log: Instruction: ConfigureRichAssets",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program log: AnchorError thrown in programs/funded-fee-router/src/instructions/rich_assets.rs:60. Error Code: InvalidAuthority. Error Number: 6202. Error Message: Only the current RICH administrator or nominated successor may perform this action.",
+          "Program 9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf consumed 28700 of 200000 compute units",
+          "Program 9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf failed: custom program error: 0x183a"
+        ]
+      },
+      {
+        "name": "skipped-configuration-revision",
+        "status": "rejected-by-devnet-simulation",
+        "broadcast": false,
+        "error": {
+          "InstructionError": [
+            0,
+            {
+              "Custom": 6201
+            }
+          ]
+        },
+        "slot": 526007328,
+        "logs": [
+          "Program 9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf invoke [1]",
+          "Program log: Instruction: ConfigureRichAssets",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program log: AnchorError thrown in programs/funded-fee-router/src/instructions/rich_assets.rs:62. Error Code: StaleRevision. Error Number: 6201. Error Message: RICH configuration changed; request a new quote.",
+          "Program 9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf consumed 24168 of 200000 compute units",
+          "Program 9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf failed: custom program error: 0x1839"
+        ]
+      },
+      {
+        "name": "mint-and-pool-mismatch",
+        "status": "rejected-by-devnet-simulation",
+        "broadcast": false,
+        "error": {
+          "InstructionError": [
+            0,
+            {
+              "Custom": 6200
+            }
+          ]
+        },
+        "slot": 526007330,
+        "logs": [
+          "Program 9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf invoke [1]",
+          "Program log: Instruction: ConfigureRichAssets",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program log: AnchorError thrown in programs/funded-fee-router/src/instructions/rich_assets.rs:111. Error Code: InvalidMarket. Error Number: 6200. Error Message: Invalid primary RICH asset or unsupported market.",
+          "Program 9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf consumed 28878 of 200000 compute units",
+          "Program 9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf failed: custom program error: 0x1838"
+        ]
+      }
+    ],
+    "changed": {
+      "mint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+      "pool": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+      "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "revision": "3",
+      "venue": "0",
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "pendingAuthority": "11111111111111111111111111111111",
+      "configAddress": "9o1t9FZNpqGMzZoEKkT2DvrCzcjSycD8GgfA3J9g9miw",
+      "slot": 526007336
+    },
+    "restored": {
+      "mint": "8FmsUFC9aPepfDtQ6ffM2eTbDBzCWTypRLvZbx65Nvex",
+      "pool": "9q91H5TaaP4HpPCWNtAy1umf5wR9zM8EXc5nnaUAaqQC",
+      "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "revision": "4",
+      "venue": "0",
+      "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+      "pendingAuthority": "11111111111111111111111111111111",
+      "configAddress": "9o1t9FZNpqGMzZoEKkT2DvrCzcjSycD8GgfA3J9g9miw",
+      "slot": 526007345
+    },
+    "status": "finalized-token-switch-and-restore",
+    "previousHistoryPreserved": true,
+    "bytecodeUnchangedByTokenRotation": true
+  },
+  "app": {
+    "cluster": "devnet",
+    "revision": "334481307e3261d9ba8add50bd49264ef7eafd7e",
+    "image": "sha256:e5e5eb97e40d54f220ebf4b281b3f82475d30a54ebfbf68c9d2dc0f8f711d19b",
+    "releaseId": "334481307e3261d9ba8add50bd49264ef7eafd7e-afc0134b-a5cd-44a0-b443-0e696759216b",
+    "services": [
+      {
+        "service": "app",
+        "image": "sha256:e5e5eb97e40d54f220ebf4b281b3f82475d30a54ebfbf68c9d2dc0f8f711d19b",
+        "revision": "334481307e3261d9ba8add50bd49264ef7eafd7e",
+        "health": "healthy",
+        "pins": {
+          "FUNDED_DEVELOPER_LOCK_PROGRAM_DATA_SHA256": "fd74a9a17c49e6ae8f64bd42a82e8d8e8f4f706b4c85045745f0a2f4035f3e7e",
+          "FUNDED_V3_PROGRAM_DATA_SHA256": "fd74a9a17c49e6ae8f64bd42a82e8d8e8f4f706b4c85045745f0a2f4035f3e7e"
+        }
+      },
+      {
+        "service": "fee-collector",
+        "image": "sha256:e5e5eb97e40d54f220ebf4b281b3f82475d30a54ebfbf68c9d2dc0f8f711d19b",
+        "revision": "334481307e3261d9ba8add50bd49264ef7eafd7e",
+        "health": "healthy",
+        "pins": {
+          "FUNDED_V3_PROGRAM_DATA_SHA256": "fd74a9a17c49e6ae8f64bd42a82e8d8e8f4f706b4c85045745f0a2f4035f3e7e"
+        }
+      },
+      {
+        "service": "buyback-worker",
+        "image": "sha256:e5e5eb97e40d54f220ebf4b281b3f82475d30a54ebfbf68c9d2dc0f8f711d19b",
+        "revision": "334481307e3261d9ba8add50bd49264ef7eafd7e",
+        "health": "healthy",
+        "pins": {
+          "FUNDED_V3_PROGRAM_DATA_SHA256": "fd74a9a17c49e6ae8f64bd42a82e8d8e8f4f706b4c85045745f0a2f4035f3e7e"
+        }
+      },
+      {
+        "service": "agency-buyback-worker",
+        "image": "sha256:e5e5eb97e40d54f220ebf4b281b3f82475d30a54ebfbf68c9d2dc0f8f711d19b",
+        "revision": "334481307e3261d9ba8add50bd49264ef7eafd7e",
+        "health": "healthy",
+        "pins": {
+          "FUNDED_V3_PROGRAM_DATA_SHA256": "fd74a9a17c49e6ae8f64bd42a82e8d8e8f4f706b4c85045745f0a2f4035f3e7e"
+        }
+      },
+      {
+        "service": "signer",
+        "image": "sha256:e5e5eb97e40d54f220ebf4b281b3f82475d30a54ebfbf68c9d2dc0f8f711d19b",
+        "revision": "334481307e3261d9ba8add50bd49264ef7eafd7e",
+        "health": "healthy",
+        "pins": {}
+      },
+      {
+        "service": "price-signer",
+        "image": "sha256:e5e5eb97e40d54f220ebf4b281b3f82475d30a54ebfbf68c9d2dc0f8f711d19b",
+        "revision": "334481307e3261d9ba8add50bd49264ef7eafd7e",
+        "health": "healthy",
+        "pins": {}
+      }
+    ],
+    "publicChecks": [
+      {
+        "path": "/api/status",
+        "status": 200,
+        "body": {
+          "cluster": "devnet",
+          "build": "334481307e3261d9ba8add50bd49264ef7eafd7e",
+          "status": "operational",
+          "checks": [
+            {
+              "id": "storage",
+              "status": "operational"
+            },
+            {
+              "id": "network",
+              "status": "operational"
+            }
+          ],
+          "observedAt": "2026-11-25T02:59:02.559Z",
+          "scope": "storage-network-and-v3-settlement-evidence",
+          "settlementVerified": false,
+          "settlementEvidence": {
+            "verified": false,
+            "scope": "all-recorded-v3-collections",
+            "recorded": 17,
+            "checked": 0,
+            "reason": "verification-pending",
+            "status": "pending",
+            "refreshing": true,
+            "lastVerified": {
+              "verified": true,
+              "scope": "all-recorded-v3-collections",
+              "recorded": 17,
+              "checked": 17,
+              "checkedAt": "2026-11-25T02:47:16.260Z",
+              "expiresAt": "2026-11-25T02:48:16.260Z",
+              "fresh": false
+            }
+          },
+          "mainnetActivationAuthorized": false,
+          "respondedAt": "2026-11-25T02:59:02.773Z"
+        }
+      },
+      {
+        "path": "/api/v3-launch-config",
+        "status": 200,
+        "body": {
+          "ready": true,
+          "cluster": "devnet",
+          "beneficiaryRoutingOnChainEnforced": true,
+          "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+          "initialAuthority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "protocolSplit": {
+            "operationsPercent": 40,
+            "referralLevelPercents": [
+              3,
+              1.25,
+              0.75
+            ],
+            "communityPercent": 20,
+            "buybackPercent": 25,
+            "agencyPercent": 10
+          },
+          "agency": {
+            "version": "marketing-agency-v1",
+            "configRevision": "12",
+            "buybacks": {
+              "ready": true,
+              "reason": null
+            },
+            "rules": {
+              "marketCapUsd": [
+                1,
+                2
+              ],
+              "communityWindowSeconds": 300,
+              "promotionIntervalSeconds": 300,
+              "source": "on-chain-snapshot"
+            }
+          },
+          "reasons": []
+        }
+      },
+      {
+        "path": "/api/launch-reserve-config",
+        "status": 200,
+        "body": {
+          "cluster": "devnet",
+          "authority": "7epA9KQ5wkwo5wZ5kcY8CfVUvpwVJoAMz2RNqt2ZwK5Y",
+          "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+          "lookupTable": "FqrcLjTPoiMQkhuTF9cg3X8tvPX6RVp1Dpb8XSeyghUW",
+          "developerTokenLock": {
+            "ready": true,
+            "cluster": "devnet",
+            "programId": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+            "programDataSha256": "fd74a9a17c49e6ae8f64bd42a82e8d8e8f4f706b4c85045745f0a2f4035f3e7e",
+            "lockSeconds": 43200,
+            "lockPeriodsSeconds": [
+              300,
+              21600,
+              43200,
+              86400,
+              172800
+            ]
+          }
+        }
+      },
+      {
+        "path": "/api/token-config",
+        "status": 200,
+        "body": {
+          "cluster": "devnet",
+          "fundedMint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+          "pool": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+          "configuration": "environment"
+        }
+      },
+      {
+        "path": "/build-settings.json",
+        "status": 200,
+        "body": {
+          "schemaVersion": 1,
+          "cluster": "devnet",
+          "exploreCluster": "devnet",
+          "mainnetEnabled": false,
+          "mainnetReadOnly": false,
+          "readOnlyPreview": false,
+          "devWalletEnabled": false,
+          "publicIdentity": {
+            "routerProgram": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+            "fundedMint": "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64",
+            "fundedPool": "EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32",
+            "tradeFeeRecipient": "CmhmRtKYExJC76R5nsPV9ovPYacoEQFEL7VhaKRZmLy2",
+            "tradeFeeBps": "100",
+            "apiBase": "/"
+          },
+          "sourceDigest": "b6ef4c814d2ea7e483dc95390a4d4e1c370e5998d2916cbf22420119537f59d1"
+        }
+      }
+    ],
+    "priceSignerProgramDataSha256": "fd74a9a17c49e6ae8f64bd42a82e8d8e8f4f706b4c85045745f0a2f4035f3e7e",
+    "status": "verified-app-contract-alignment",
+    "programDataSha256": "fd74a9a17c49e6ae8f64bd42a82e8d8e8f4f706b4c85045745f0a2f4035f3e7e",
+    "finalizedSlot": 526007483
+  },
+  "independentFinalizedReads": [
+    {
+      "cluster": "devnet",
+      "rpcProvider": "api.devnet.solana.com",
+      "program": "9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm",
+      "programDataSha256": "fd74a9a17c49e6ae8f64bd42a82e8d8e8f4f706b4c85045745f0a2f4035f3e7e",
+      "finalizedSlot": 526005643,
+      "status": "independent-finalized-hash-matched"
+    },
+    {
+      "cluster": "devnet",
+      "rpcProvider": "api.devnet.solana.com",
+      "program": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
+      "programDataSha256": "06ec1e5bf75e5249b6a174a68066ba13c6a0495eecae45f7841a8047373ee53e",
+      "finalizedSlot": 526007355,
+      "status": "independent-finalized-hash-matched"
+    }
+  ],
+  "tests": {
+    "security": {
+      "node": "v24.22.2",
+      "tests": 75,
+      "passed": 75,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "compiledSbf": "CI run 45339137899 passed exact-artifact configurable administration/stale-order checks, custody checks and financial CPI checks; local bank execution, not live trades",
+    "sourceSize": "1546 maintained files passed"
+  },
+  "funding": {
+    "cluster": "devnet",
+    "returnedLamports": 3000000000,
+    "recipient": "3NMjsHsau8uw598UKZqbKq8dhFjGMEYpdx5wU72Kfh1P",
+    "authorityBalance": 3782974971,
+    "exactDeltasVerified": true
+  },
+  "artifactArchive": ".secrets/funded-vip-deployment/contract-artifacts/20261125",
+  "limitations": [
+    "The live app uses the latest compatible devnet-v3-program at 9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm. Configurable asset administration was exercised separately at 9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf; the live app was not migrated to that ABI.",
+    "Legacy program-owner scans disagreed. Direct reads found all 2109 baseline addresses, with three content changes whose latest successful transactions predated the upgrade. Complete owner-inventory preservation is not claimed.",
+    "Negative administration cases were signed Devnet RPC simulations, not broadcast transactions. No new live trade, claim or payout acceptance is claimed.",
+    "Historical offline unsigned fixtures remain pinned to their captured older program bytes. They are not current runtime admission manifests.",
+    "The previous app release still pins the old contract hash. Application-only rollback cannot restore readiness after this code upgrade; any code rollback needs its own new finalized ProgramData hash and coordinated app/signer pins."
+  ]
+}

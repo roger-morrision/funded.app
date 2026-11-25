@@ -1,0 +1,36 @@
+# Keep this read-only chain observer running across app/program releases.
+# Upgrade its pinned image separately after another observer is healthy.
+secrets:
+  solana_devnet_rpc_url:
+    file: ${SOLANA_DEVNET_RPC_SECRET_FILE:-./.secrets/solana-devnet-rpc-url}
+services:
+  holder-indexer:
+    image: ${FUNDED_HOLDER_INDEXER_IMAGE:?Pin the tested holder indexer image}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    cpus: 0.25
+    mem_limit: 256m
+    stop_grace_period: 30s
+    command: [node, scripts/run-holder-indexer.mjs]
+    environment:
+      SOLANA_CLUSTER: devnet
+      SOLANA_RPC_URL_FILE: /run/secrets/solana_devnet_rpc_url
+      AUTOMATIC_REWARD_STORE_PATH: /app/data/automatic-rewards/ledger.json
+    secrets: [solana_devnet_rpc_url]
+    volumes: [funded_reward_ledger:/app/data/automatic-rewards]
+    healthcheck:
+      test: [CMD, node, scripts/run-holder-indexer.mjs, --health]
+      interval: 20s
+      timeout: 10s
+      retries: 4
+      start_period: 90s
+  app:
+    environment:
+      FUNDED_HOLDER_INDEXER_EXTERNAL: 'true'
+    depends_on:
+      holder-indexer:
+        condition: service_healthy

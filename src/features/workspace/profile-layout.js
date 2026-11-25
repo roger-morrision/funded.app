@@ -3,7 +3,7 @@
 // that other modules append later are routed into their section when they appear.
 const SECTIONS = [
   { id: 'wallet', title: 'Wallet', pieces: ['.profile-grid', ':scope > .flow-note', ':scope > .source-note'] },
-  { id: 'preferences', title: 'Preferences', pieces: ['.workspace-preference', '#trade-preferences-details', '#notification-preferences-details'], open: true },
+  { id: 'preferences', title: 'Preferences', pieces: ['.workspace-preference', '#trade-preferences-details', '#notification-preferences-details', '#primary-token-settings'], open: true },
   { id: 'accounts', title: 'Linked accounts & activity', pieces: ['.workspace-shortcuts', ':scope > button'] },
   { id: 'support', title: 'Help & support', pieces: ['#issue-reports-details', '.page-cleanup-guide[data-guide="profile"]', ':scope > .flow-panel'] },
 ];

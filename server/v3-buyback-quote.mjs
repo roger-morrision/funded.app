@@ -27,7 +27,7 @@ export async function quoteV3Buyback({ connection, vault, budgetLamports, cluste
   curveEnabled=false,readCurve=readBuybackCurve,quoteCurve=quoteCurveBuyback }) {
   await assertRpcNetwork(connection,cluster);
   const assets=await loadBuybackAssets(connection,cluster,programId);
-  const richAssets=cluster==='mainnet-beta'?assets:null;
+  const richAssets=assets.revision?assets:null;
   const budget=BigInt(budgetLamports);
   if (budget<MIN_V3_BUYBACK_ORDER_LAMPORTS || budget>BigInt(Number.MAX_SAFE_INTEGER))
     throw Object.assign(new Error('V3 buyback budget must be at least 10,000 lamports and within the bounded range.'), { statusCode:409 });

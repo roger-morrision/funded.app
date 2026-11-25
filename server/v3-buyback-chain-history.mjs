@@ -7,6 +7,7 @@ import { loadFinalizedV3Buyback } from './v3-buyback-proof.mjs';
 import {isDeletedDevnetMint} from './deleted-devnet-mints.mjs';
 import {PUMP_PROGRAM_ID,CURVE_BUY} from './v3-buyback-curve.mjs';
 import {priceConfigAddress} from './buyback-price-signer.mjs';
+import {configuredDevnetProgram} from '../configured-devnet-program.js';
 
 const receiptDiscriminator = createHash('sha256').update('account:MintBuybackV3').digest().subarray(0, 8);
 const policyDiscriminator = Buffer.from('25d0c7eca736c38f', 'hex');
@@ -21,6 +22,8 @@ export async function latestUnindexedV3Burn({ connection, programId,
   if (typeof connection.getProgramAccounts !== 'function'
     || typeof connection.getSignaturesForAddress !== 'function') return null;
   const program = new PublicKey(programId);
+  const configured=Boolean(configuredDevnetProgram('devnet',program));
+  const expectedDiscriminator=configured?createHash('sha256').update('global:buyback_configured_mint_v3').digest().subarray(0,8):instructionDiscriminator;
   const accounts = await connection.getProgramAccounts(program, {
     commitment:'finalized', filters:[{ dataSize:160 }],
   });
@@ -76,7 +79,7 @@ export async function latestUnindexedV3Burn({ connection, programId,
           ? Buffer.from(bs58.decode(ix.data)) : Buffer.from(ix.data || []);
         const indices = ix.accounts || ix.accountKeyIndexes || [];
         const accounts = indices.map(index => keys[index]);
-        if (data.length !== 64 || !data.subarray(0, 8).equals(instructionDiscriminator)
+        if (data.length !== (configured?72:64) || !data.subarray(0, 8).equals(expectedDiscriminator)
           || !data.subarray(8, 40).equals(id) || accounts.length < 34
           || !accounts[1]?.equals(creator) || !accounts[2]?.equals(mint)
           || !accounts[10]?.equals(pubkey)) continue;
@@ -87,7 +90,7 @@ export async function latestUnindexedV3Burn({ connection, programId,
         data.copy(curveData,8,48,56);data.copy(curveData,16,40,48);
         const pumpBuyInstruction = { programId:curve?PUMP_PROGRAM_ID:PUMP_AMM_PROGRAM_ID,
           data:curve?curveData:pumpBuyDiscriminator,
-          keys:accounts.slice(priceSigner?18:16).map(key => ({ pubkey:key, isSigner:false, isWritable:false })) };
+          keys:accounts.slice(priceSigner?18:16,configured?-1:undefined).map(key => ({ pubkey:key, isSigner:false, isWritable:false })) };
         const proof = await verifyBurn({ connection, signature:row.signature,
           programId:program, sourceMint:mint, creator, initialAuthority,
           authority:accounts[0], baseTokenProgram:accounts[11], buybackId:id,priceSigner,

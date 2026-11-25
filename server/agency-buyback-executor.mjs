@@ -12,6 +12,8 @@ import {prepareV3BuybackTransaction} from './v3-buyback-transaction.mjs';
 import {loadFinalizedV3Buyback} from './v3-buyback-proof.mjs';
 import {v3BuybackFeeSetup} from './v3-buyback-setup.mjs';
 import {buybackPriceService,cosignBuyback} from './buyback-price-signer.mjs';
+import {loadBuybackAssets} from './buyback-assets.mjs';
+import {configuredDevnetProgram} from '../configured-devnet-program.js';
 
 // Fixed action key plus contract completion bitmap enforce one purchase per
 // milestone, including when future fees replenish this agent's sub-budget.
@@ -34,7 +36,8 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
   if(!saved&&(!(context.policy.selectedMask&(1<<agent))||context.policy.completedMask&(1<<agent)))return{status:'not-payable',mint,agent};
   const intent=saved?.intent||{cluster:'devnet',mint,programId:String(programId),approvedHash,agent,
     maxBudgetLamports:context.agentRemaining[agent],creator:context.launch.creatorWallet,initialAuthority:context.launch.pumpFeeRoute.initialAuthority};
-  if(intent.mint!==mint||intent.agent!==agent||intent.programId!==String(programId)||intent.approvedHash!==approvedHash
+  const reconcileOnly=intent.approvedHash!==approvedHash;
+  if(intent.mint!==mint||intent.agent!==agent||intent.programId!==String(programId)||(reconcileOnly&&!saved?.signature)
     ||intent.creator!==context.launch.creatorWallet||intent.initialAuthority!==context.launch.pumpFeeRoute.initialAuthority)
     throw new Error('The milestone journal belongs to a different immutable mint policy.');
   if(!saved&&BigInt(intent.maxBudgetLamports)<10000n)return{status:'awaiting-funding',mint,agent};
@@ -48,7 +51,9 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
       observation:{slot:observation.slot,observedAt:observation.observedAt,marketCapUsdMicros:String(observation.marketCapUsdMicros)}};
   }
   const buybackId=createHash('sha256').update(`funded.agency.own-coin.v1:${mint}:${agent}`).digest();
-  return step('execution',()=>journal({store,connection,key,intent,authority,now,prepare:async()=>{
+  // A prior program hash permits proof reconciliation only. Never re-sign or
+  // rebroadcast an old program's attempt against newly deployed bytecode.
+  return step('execution',()=>journal({store,connection,key,intent,authority,now,reconcileOnly,prepare:async()=>{
     const currentState=await step('state-read',()=>store.read());
     const fresh=await step('custody',()=>readContext({connection,state:currentState,mint,programId,approvedHash,authority:authority.publicKey}));
     if(!(fresh.policy.selectedMask&(1<<agent))||fresh.policy.completedMask&(1<<agent)
@@ -59,7 +64,8 @@ export async function runAgencyMilestone({store,connection,mint,agent,programId,
     const vault=deriveAgencyVaultsV3(programId,mint)[7],quoted=await step('quote',()=>quote({observation,vault,budgetLamports:intent.maxBudgetLamports}));
     const agencyExecution={agent,pool:observation.pool,observationSlot:String(observation.slot),observedAt:observation.observedAt,
       marketCapUsdMicros:observation.marketCapUsdMicros,rules:fresh.policy.rules||DEFAULT_AGENCY_RULES,observationHash:Buffer.from(observation.observationHash,'hex')};
-    const built=buildV3BuybackInstruction({programId,sourceMint:mint,creator:intent.creator,authority:authority.publicKey,
+    const richAssets=configuredDevnetProgram('devnet',programId)?await loadBuybackAssets(connection,'devnet',programId):null;
+    const built=buildV3BuybackInstruction({programId,sourceMint:mint,creator:intent.creator,authority:authority.publicKey,richAssets,
       buybackId,agencyPolicy:true,agencyExecution,...quoted,priceSigner:priceService.signer});
     const lookup=await connection.getAddressLookupTable(new PublicKey(lookupAddress),{commitment:'finalized'});
     if(!lookup.value?.key.equals(new PublicKey(lookupAddress))||lookup.value.state.deactivationSlot!==0xffffffffffffffffn)

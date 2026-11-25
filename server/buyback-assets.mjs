@@ -3,6 +3,7 @@ import {PublicKey} from '@solana/web3.js';
 import {reviewedMainnetManifest} from '../mainnet-program.js';
 import {requireSolanaCluster} from '../solana-network.js';
 import {requireConfiguredDevnet} from './configured-devnet-interface.mjs';
+import {configuredDevnetProgram} from '../configured-devnet-program.js';
 
 export const V3_DEVNET_FUNDED_MINT=new PublicKey('C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64');
 export const V3_DEVNET_FUNDED_POOL=new PublicKey('EKKUWqwbZKeq4hdth8kdYuHZBtvxDCu3kZahHATbba32');
@@ -12,9 +13,10 @@ export const V3_DEVNET_FUNDED_POOL=new PublicKey('EKKUWqwbZKeq4hdth8kdYuHZBtvxDC
 export function buybackAssets(cluster='devnet',{programId,richAssets,configuredDevnet=null}={}){
   requireSolanaCluster(cluster);
   if(configuredDevnet)requireConfiguredDevnet(configuredDevnet,{cluster,programId});
-  if(cluster==='devnet'&&!configuredDevnet)return{mint:V3_DEVNET_FUNDED_MINT,pool:V3_DEVNET_FUNDED_POOL};
+  const runtime=configuredDevnetProgram(cluster,programId);
+  if(cluster==='devnet'&&!configuredDevnet&&!runtime)return{mint:V3_DEVNET_FUNDED_MINT,pool:V3_DEVNET_FUNDED_POOL};
   const release=reviewedMainnetManifest();
-  if(!configuredDevnet&&(!release||release.assetConfiguration!=='onchain-v1'||!programId||new PublicKey(programId).toBase58()!==release.programId))
+  if(!configuredDevnet&&!runtime&&(!release||release.assetConfiguration!=='onchain-v1'||!programId||new PublicKey(programId).toBase58()!==release.programId))
     throw new Error('Mainnet buybacks require the reviewed program, FUNDED mint and pool.');
   if(!richAssets||BigInt(richAssets.revision||0)<1n||![0,1].includes(richAssets.venue))throw Error('A finalized RICH configuration is required.');
   return{...richAssets,mint:new PublicKey(richAssets.mint),pool:new PublicKey(richAssets.pool),
@@ -22,5 +24,5 @@ export function buybackAssets(cluster='devnet',{programId,richAssets,configuredD
 }
 
 export async function loadBuybackAssets(connection,cluster,programId){
-  return buybackAssets(cluster,{programId,richAssets:cluster==='mainnet-beta'?await readRichAssets(connection,programId):null});
+  return buybackAssets(cluster,{programId,richAssets:cluster==='mainnet-beta'||configuredDevnetProgram(cluster,programId)?await readRichAssets(connection,programId):null});
 }

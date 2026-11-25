@@ -15,7 +15,7 @@ import { createTokenCreatorRoute } from './token-creator.mjs';
 // Called after the shared request policy, rate limit, and authorization checks.
 // Return true only after sending a response; false lets the router continue.
 export function createTokenMarketRoutes({
-  route, store, clientKey, solanaRpcUrl, solanaCluster,
+  route, store, clientKey, solanaRpcUrl, solanaCluster,getPrimaryRich,
   respond, readMarketActivity = readPumpMarketActivity, env=process.env,
   readWalletTrades = readWalletTradeHistory,
   readRankingQuote = null,
@@ -233,8 +233,9 @@ export function createTokenMarketRoutes({
                 if (solanaCluster === 'mainnet-beta') { metrics = await readMarketFallback(address); if (!metrics) throw Error('Indexed market data unavailable'); }
                 else {
                 await assertRpcNetwork(connection,solanaCluster);
+                const primary=getPrimaryRich?await getPrimaryRich():{fundedMint:env.FUNDED_TOKEN_MINT,pool:env.FUNDED_SWAP_POOL};
                 metrics = await readMarketActivity({ connection, mint, cluster:solanaCluster,
-                  ...(address===env.FUNDED_TOKEN_MINT&&env.FUNDED_SWAP_POOL?{poolAddress:env.FUNDED_SWAP_POOL}:{}) });
+                  ...(address===primary.fundedMint&&primary.pool?{poolAddress:primary.pool}:{}) });
                 if (metrics.coverage === 'unavailable') metrics = await readMarketFallback(address) || metrics;
                 }
               } catch (error) {

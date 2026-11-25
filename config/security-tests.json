@@ -3,6 +3,14 @@
   "scope": "Current-source community opening/replay/history rejection coverage plus fail-closed security runner; local mocked fixtures, not full security audit or chain acceptance.",
   "files": [
     {
+      "path": "tests/security/holder-snapshot-worker.test.mjs",
+      "requiredTests": [
+        "independent holder observer preserves coverage while app and signing are absent",
+        "observer failure creates no synthetic snapshot and prevents overlapping captures",
+        "external sampling mode does not recapture or require a signer to observe holders"
+      ]
+    },
+    {
       "path": "tests/security/metadata-storage-verification.test.mjs",
       "requiredTests": [
         "metadata probe rechecks identical public bytes without credentials or repeat uploads",
@@ -122,6 +130,46 @@
         "candidate observation rejects stale banks, altered ELF, authority, padding and RPC disagreement",
         "candidate observation distinguishes absent deployment and refuses wrong chain or unselected bytes",
         "deployment funding reports exact zero balance and refuses malformed or wrong-chain observations"
+      ]
+    },
+    {
+      "path": "tests/security/program-upgrade.test.mjs",
+      "requiredTests": [
+        "upgrade interface accepts additions and documentation changes without weakening old layouts",
+        "upgrade interface detects removed instructions changed signers seeds layouts and enum order",
+        "upgrade interface fails closed on incomplete unsupported and colliding IDLs",
+        "upgrade planning stays local-only offline and verifies a pinned finalized baseline online",
+        "upgrade preflight rejects wrong network authority loader linkage bytes capacity and stale baselines",
+        "upgrade postcheck requires candidate bytes retained authority and a later finalized deployment",
+        "upgrade artifacts reject tampering identity mismatch path escape and breaking schemas",
+        "upgrade CLI is read-only rejects deployment flags and preserves existing reports"
+      ]
+    },
+    {
+      "path": "tests/security/agency-upgrade-reconciliation.test.mjs",
+      "requiredTests": [
+        "prior-program agency proof reconciliation retains original intent and never submits again",
+        "unresolved prior-program agency signatures cannot rebroadcast expire or prepare",
+        "milestone hash upgrade allows signed proof only while preserving immutable mint policy checks"
+      ]
+    },
+    {
+      "path": "tests/security/configurable-settlement-history.test.mjs",
+      "requiredTests": [
+        "cumulative settlement reconstruction survives both configurable buyback variants",
+        "unknown writable policy instructions still block cumulative settlement payouts"
+      ]
+    },
+    {
+      "path": "tests/security/configurable-devnet-runtime.test.mjs",
+      "requiredTests": [
+        "configured Devnet primary reader follows revisions and never falls back to the environment mint",
+        "configured Devnet browser loads the admitted primary token and fails closed on wrong identity",
+        "configured Devnet signer requires pinned code and server-side asset admission",
+        "configured Devnet buyback builder includes the live asset revision and canonical config account",
+        "primary token preparation rejects stale revisions and wrong administrators before wallet signing",
+        "primary token totals never combine burn units from different mints",
+        "community preparation follows primary rotation while saved eligibility survives unavailable current configuration"
       ]
     }
   ]

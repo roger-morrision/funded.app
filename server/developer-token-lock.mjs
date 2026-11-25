@@ -12,6 +12,7 @@ import candidates from '../config/contract-build-candidates.json' with {type:'js
 import {assertRpcNetwork,requireSolanaCluster} from '../solana-network.js';
 import {reviewedMainnetManifest} from '../mainnet-program.js';
 import {mainnetReleaseVerified} from './mainnet-program.mjs';
+import {configuredDevnetProgram} from '../configured-devnet-program.js';
 
 export async function developerLockConfig({connection,env=process.env,cluster=env.SOLANA_CLUSTER||'devnet',programId:requested,readEvidence=readProgramDataEvidence}) {
   requireSolanaCluster(cluster);
@@ -31,10 +32,11 @@ export async function developerLockConfig({connection,env=process.env,cluster=en
     const evidence=await readEvidence(connection,new PublicKey(programId),mainnet?{cluster,rpcUrl:''}:{});
     const ready=evidence.account?.executable===true&&evidence.sha256===hash
       &&(!mainnet||mainnetReleaseVerified(evidence,programId,hash));
+    const candidate=configuredDevnetProgram(cluster,programId)?candidates.devnetConfigurable:candidates.devnet;
     const selectable=ready&&programId!==DEVELOPER_TOKEN_LOCK_PROGRAM_ID
-      &&candidates.devnet.developerLockPeriodsSeconds&&matchesAgencyBinary(evidence.programData?.data,candidates.devnet);
+      &&candidate.developerLockPeriodsSeconds&&matchesAgencyBinary(evidence.programData?.data,candidate);
     return {ready,cluster,programId,programDataSha256:hash,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS,
-      lockPeriodsSeconds:ready&&mainnet?reviewed.developerLockPeriodsSeconds:selectable?candidates.devnet.developerLockPeriodsSeconds:[DEVELOPER_TOKEN_LOCK_SECONDS],
+      lockPeriodsSeconds:ready&&mainnet?reviewed.developerLockPeriodsSeconds:selectable?candidate.developerLockPeriodsSeconds:[DEVELOPER_TOKEN_LOCK_SECONDS],
       ...(!ready?{reason:'Developer token escrow deployment could not be verified.'}:{})};
   }catch{return {ready:false,programId,lockSeconds:DEVELOPER_TOKEN_LOCK_SECONDS,reason:'Developer token escrow deployment verification is unavailable.'};}
 }

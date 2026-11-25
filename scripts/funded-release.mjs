@@ -233,7 +233,7 @@ async function applyLockedRelease({stateDir,id,rollback=false,priorUnverified=nu
     return{release:release.id,revision:release.revision,ready:true,rollbackAvailable:Boolean(previous)};
 }
 
-export function dockerIO(){
+export function dockerIO({capacityContainer=null}={}){
   const env={...process.env};for(const k of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH','COMPOSE_FILE','COMPOSE_PROFILES','COMPOSE_PROJECT_NAME','COMPOSE_ENV_FILES'])delete env[k];
   const docker=args=>execFileSync('docker',[`--host=${localDockerHost()}`,...args],{env,encoding:'utf8',windowsHide:true,timeout:240000,maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']});
   const containers=async project=>{
@@ -252,7 +252,9 @@ export function dockerIO(){
         requireValue(ready,'Start and verify existing infrastructure before applying a release.');
       }
       const app=current.find(c=>c.Config.Labels['com.docker.compose.service']==='app');
-      const capacity=await deploymentCapacity({container:app.Id,workspace:release.dir,phase:'switch'});
+      // During a drained program cutover, an explicitly selected observer on
+      // the same local Docker daemon can provide the container-root sample.
+      const capacity=await deploymentCapacity({container:capacityContainer||app.Id,workspace:release.dir,phase:'switch'});
       requireValue(capacity.ready,'Deployment capacity is insufficient or unavailable.');
       // Inspect the image filesystem without starting its process or mounting credentials.
       let inspector;const settingsFile=join(release.dir,'image-settings-'+randomUUID()+'.json');

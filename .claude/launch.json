@@ -17,7 +17,7 @@
     },
     {
       "name": "devnet-api",
-      "runtimeExecutable": "node",
+      "runtimeExecutable": "C:/Program Files/nodejs/node.exe",
       "runtimeArgs": [
         "--env-file-if-exists=.env.local",
         "--env-file-if-exists=.env.devnet-qa-wallets.local",
@@ -26,13 +26,49 @@
       "port": 8799
     },
     {
+      "name": "devnet-api-test",
+      "runtimeExecutable": "C:/Program Files/nodejs/node.exe",
+      "runtimeArgs": [
+        "--env-file-if-exists=.env.local",
+        "--env-file-if-exists=.env.devnet-qa-wallets.local",
+        "tmp/devnet-dev/api-test.mjs"
+      ],
+      "port": 8799
+    },
+    {
+      "name": "devnet-static-web",
+      "runtimeExecutable": "C:/Program Files/nodejs/node.exe",
+      "runtimeArgs": [
+        "tmp/devnet-dev/static-web.mjs",
+        "C:/Users/Tuan/AppData/Local/Temp/claude/236f1cce232460e6/101494fd-a8c0-4203-a88d-61b03f791d42/scratchpad/devnet-dist",
+        "5174"
+      ],
+      "port": 5174
+    },
+    {
       "name": "devnet-web",
-      "runtimeExecutable": "node",
+      "runtimeExecutable": "C:/Program Files/nodejs/node.exe",
       "runtimeArgs": [
         "--env-file-if-exists=.env.local",
         "tmp/devnet-dev/web.mjs"
       ],
       "port": 5174
+    },
+    {
+      "name": "mainnet-ui-preview",
+      "runtimeExecutable": "C:/Program Files/nodejs/node.exe",
+      "runtimeArgs": [
+        "tmp/mainnet-ui-preview.mjs",
+        "C:/Users/Tuan/AppData/Local/Temp/claude/236f1cce232460e6/101494fd-a8c0-4203-a88d-61b03f791d42/scratchpad/mainnet-dist",
+        "5199"
+      ],
+      "port": 5199
+    },
+    {
+      "name": "review-mainnet",
+      "runtimeExecutable": "C:/Program Files/nodejs/node.exe",
+      "runtimeArgs": ["tmp/review/serve.mjs"],
+      "port": 5180
     }
   ]
 }

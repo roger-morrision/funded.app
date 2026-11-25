@@ -58,9 +58,8 @@ import { createSolUsdQuoteReader } from './price-quote.mjs';
 import { createDisplaySolUsdQuoteReader } from './display-sol-usd-quote.mjs';
 import { createAutomaticRewardStore } from './automatic-reward-store.mjs';
 import { DEVNET_GENESIS_HASH } from './automatic-reward-chain.mjs';
-import { createCommunityClaimService } from './community-claim-service.mjs';
+import { createCommunityClaimRuntime } from './community-claim-runtime.mjs';
 import { SharedRpcConnection } from './rpc-connection.mjs';
-import { communityProgramForLaunch } from './community-program-config.mjs';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { resolve } from 'node:path';
 import { isIP } from 'node:net';
@@ -133,18 +132,6 @@ publicPostPaths.add('/api/trade/jupiter/build'); publicPostPaths.add('/api/clien
 // Admin authentication (JWT in an HttpOnly cookie) shared by every admin API.
 const adminJwt = createAdminJwt({ cluster: solanaCluster, store });
 const boostPurchasesEnabled = String(process.env.FUNDED_BOOST_ENABLED || '').toLowerCase() === 'true';
-async function communityClaimService(mint) {
-  if (solanaCluster !== 'devnet' || !fundedTokenMint) throw new Error('Solana community claim configuration is unavailable.');
-  const config = communityProgramForLaunch(await store.readLaunch(mint), process.env, v3AuthorityKeypair);
-  return createCommunityClaimService({ connection:new SharedRpcConnection(solanaRpcUrl, 'finalized'), store:automaticRewardStore,
-    programId:config.programId, authority:config.authority,
-    eligibilityMint:fundedTokenMint, cluster:solanaCluster,
-    expectedCommunityProgramDataSha256:config.expectedHash, accountSetup:config.accountSetup,
-    qaCutoffMint:process.env.FUNDED_QA_COMMUNITY_CUTOFF_ENABLED === 'true'
-      ? [process.env.FUNDED_QA_COMMUNITY_MINT,
-        process.env.FUNDED_QA_COMMUNITY_MINTS].filter(Boolean).join(',') : '',
-    qaCutoffAuthority:process.env.FUNDED_QA_COMMUNITY_CUTOFF_AUTHORITY || '' });
-}
 const devnetTestMode = solanaCluster === 'devnet' && process.env.DEVNET_TEST_MODE === 'true';
 const devMode = process.env.NODE_ENV !== 'production' && solanaCluster === 'devnet' && String(process.env.DEV_MODE || '').toLowerCase() === 'true';
 const devWalletRoles = { creator: 'SOLANA_DEVNET_CREATOR_SECRET_KEY', referrer: 'SOLANA_DEVNET_REFERRER_SECRET_KEY', claimant: 'SOLANA_DEVNET_CLAIMANT_SECRET_KEY' };
@@ -269,6 +256,8 @@ const readReceiptEvidence = createReceiptEvidenceReader({ store, cluster: solana
 const readFinalizedEvidence = createReceiptEvidenceReader({ store, cluster: solanaCluster, commitment:'finalized',
   connectionFactory: () => createReceiptRpcConnection(solanaRpcUrl, 'finalized'),
   officialGenesis: () => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash() });
+const communityClaimService=createCommunityClaimRuntime({store,automaticRewardStore,solanaCluster,solanaRpcUrl,
+  getPrimaryRich,v3AuthorityKeypair});
 const readPaymentHistory = createPaymentHistoryReader({ readEvidence:readFinalizedEvidence, rewardsStore:automaticRewardStore, store,
   connectionFactory:() => createReceiptRpcConnection(solanaRpcUrl, 'finalized'), cluster:solanaCluster,
   officialGenesis:() => solanaCluster === 'devnet' ? Promise.resolve(DEVNET_GENESIS_HASH) : new Connection(clusterApiUrl(solanaCluster), 'finalized').getGenesisHash(), v3Only:true });
@@ -323,6 +312,7 @@ const handleReferralIdentityRoutes = createReferralIdentityRoutes({
 });
 
 const handlePublicReportsRoutes = createPublicReportsRoutes({
+  getPrimaryRich,
   publicState, store, readReceiptEvidence, readPaymentHistory, automaticRewardStore, readFinalizedEvidence, solanaCluster, databaseUrl, analyticsDeadlineMs:12_000, respond: json,
 });
 const handleQuoteAssetsRoutes = createQuoteAssetsRoutes({
@@ -337,6 +327,7 @@ const handleLaunchProtectionRoutes=createLaunchProtectionRoutes({store,solanaClu
 const { fetchBirdeye, fetchPump } = createMarketProviders({ birdeyeApiKey, birdeyeBaseUrl, birdeyeChain, birdeyeTimeoutMs, pumpApiUrl });
 const { freeMarketData, tokenCache, readBirdeyeMarket, readMarketFallback } = createMarketDataServices({ fetchBirdeye, solanaCluster });
 const handleTokenMarketRoutes = createTokenMarketRoutes({
+  getPrimaryRich,
   route, store, clientKey, solanaRpcUrl, solanaCluster, respond: json,
   readMarketFallback,
 });
@@ -495,6 +486,6 @@ async function handle(req, res) {
 
 await startShareVisitCleanup({ store });
 startAppListener({port,host,handle,solanaRpcUrl});
-startApiFinancialWorkerServices({solanaCluster,solanaRpcUrl,fundedTokenMint,automaticRewardStore,v3AuthorityKeypair,keeperKeypair,referralPayoutKeypair,dailyBonusRuntime,store});
+startApiFinancialWorkerServices({solanaCluster,solanaRpcUrl,fundedTokenMint,getPrimaryRich,automaticRewardStore,v3AuthorityKeypair,keeperKeypair,referralPayoutKeypair,dailyBonusRuntime,store});
 createLaunchPostEmailWorker({store,connection:new Connection(solanaRpcUrl,'finalized'),cluster:solanaCluster}).start();
 createMigrationPostEmailWatcher({store,connection:new Connection(solanaRpcUrl,'finalized'),cluster:solanaCluster}).start();

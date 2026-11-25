@@ -16,7 +16,7 @@ const pending=row=>({status:'verification-pending',signature:row.signature,key:r
 // outcome can only rebroadcast those same bytes. Replacement requires finalized
 // expiry, an absent transaction, and an absent immutable milestone receipt.
 export async function executeAgencyJournal({store,connection,key,intent,authority,prepare,prove,
-  now=()=>Date.now(),leaseMs=180000,reserveLamports=String(RESERVE)}){
+  now=()=>Date.now(),leaseMs=180000,reserveLamports=String(RESERVE),reconcileOnly=false}){
   if(!/^agency:[1-9A-HJ-NP-Za-km-z]{32,44}:[012]:\d{1,10}$/.test(key)
     ||intent?.cluster!=='devnet'||!/^[a-f0-9]{64}$/.test(String(intent.approvedHash))
     ||typeof prepare!=='function'||typeof prove!=='function'||BigInt(reserveLamports)<RESERVE)
@@ -27,6 +27,7 @@ export async function executeAgencyJournal({store,connection,key,intent,authorit
     state[BUCKET]||={};const existing=state[BUCKET][key];
     if(existing&&(existing.intentHash!==intentHash||allocationAuditHash(existing.intent)!==intentHash))
       throw new Error('The immutable agency execution intent changed.');
+    if(reconcileOnly&&!existing?.signature)throw new Error('Reconciliation requires an existing signed agency attempt.');
     if(existing?.signature||agencyPreparationWait(existing,at))return{owned:false,row:snapshot(existing)};
     const row={...existing,key,intent:snapshot(intent),intentHash,status:'preparing',token,leaseUntil:at+leaseMs,
       createdAt:existing?.createdAt||new Date(at).toISOString()};
@@ -53,6 +54,7 @@ export async function executeAgencyJournal({store,connection,key,intent,authorit
   };
   if(row.signature){
     const verified=await reconcile(row);if(verified)return verified;
+    if(reconcileOnly)return {...pending(row),reason:'A prior-program attempt requires finalized proof; no new submission is authorized.'};
     const outcome=(await connection.getSignatureStatuses([row.signature],{searchTransactionHistory:true})).value?.[0];
     if(outcome?.confirmationStatus==='finalized'&&outcome.err){
       await store.update(state=>{const active=state[BUCKET]?.[key];if(active?.signature===row.signature){

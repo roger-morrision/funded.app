@@ -10,6 +10,7 @@ import { deriveMintPolicyV3, deriveMintVaultsV3 } from '../mint-router-v3.js';
 import {deriveAgencyPolicyV3,deriveAgencyVaultsV3,agencyDiscriminator,agencyU64} from '../agency-mint-router-v3.js';
 
 import {buybackAssets} from './buyback-assets.mjs';
+import {configuredDevnetProgram} from '../configured-devnet-program.js';
 import {isCurveBuy,validateCurveBuy,bondingCurvePda,PUMP_PROGRAM_ID} from './v3-buyback-curve.mjs';
 export {V3_DEVNET_FUNDED_MINT,V3_DEVNET_FUNDED_POOL} from './buyback-assets.mjs';
 const PUMP_BUY = Buffer.from([102, 6, 61, 18, 1, 218, 235, 234]);
@@ -48,7 +49,7 @@ export function buildV3BuybackInstruction({ cluster='devnet', programId, sourceM
   minBaseAmountOut, maxTotalDebit, pumpBuyInstruction,agencyPolicy=false,agencyExecution=null,richAssets=null,configuredDevnet=null }) {
   const program = new PublicKey(programId);
   const assets=buybackAssets(cluster,{programId:program,richAssets,configuredDevnet});
-  const configured=cluster==='mainnet-beta'||configuredDevnet!==null;
+  const configured=cluster==='mainnet-beta'||configuredDevnet!==null||Boolean(configuredDevnetProgram(cluster,program));
   const mint = new PublicKey(sourceMint);
   const baseProgram = new PublicKey(baseTokenProgram);
   if (!baseProgram.equals(TOKEN_PROGRAM_ID) && !baseProgram.equals(TOKEN_2022_PROGRAM_ID))

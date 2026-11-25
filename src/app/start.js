@@ -1,4 +1,5 @@
 import {loadPrimaryRichForApp} from './startup/primary-rich.js';
+import {mountPrimaryTokenSettings} from '../features/workspace/primary-token-settings.js';
 import {initializeTop100} from '../features/explore/top100.js';
 import { initializeInitialState } from './startup/initial-state.js';
 import { initializeProductFlows } from '../features/experience/index.js';
@@ -89,6 +90,7 @@ export async function startApp(appState) {
   initializeCoinChat(appState);
   initializeRewardIdentity(appState);
   initializeProductFlows(appState);
+  mountPrimaryTokenSettings(appState);
   // Wallet restoration can yield while the quote finishes. Render only after
   // token state and all its views are initialized, reusing the early request.
   initializeCoinMarket(appState, solUsdQuote);

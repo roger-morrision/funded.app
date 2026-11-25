@@ -1,0 +1,9 @@
+#primary-token-settings { padding: 1.25rem; margin-top: 1rem; }
+#primary-token-settings summary { font-weight: 700; cursor: pointer; }
+#primary-token-settings form { display: grid; gap: .8rem; margin: 1rem 0; }
+#primary-token-settings label { display: grid; gap: .3rem; }
+#primary-token-settings input, #primary-token-settings select { width: 100%; min-width: 0; padding: .65rem; }
+#primary-token-settings dd { margin: .25rem 0 .75rem; overflow-wrap: anywhere; }
+#primary-token-settings [data-primary-review-summary] { overflow-wrap: anywhere; }
+#primary-token-settings button { padding: .6rem .9rem; margin: .3rem .3rem .3rem 0; }
+#primary-token-settings [data-primary-status] { min-height: 1.5rem; }

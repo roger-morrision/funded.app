@@ -37,16 +37,16 @@
     "assetConfiguration": "onchain-v1"
   },
   "retainedDevnetRuntimeCommitment": {
-    "bytes": 1168496,
-    "sha256": "c320a6139dbcba2daa9ab3e04e0e13435b6ea6ba9a80538097c7c25681298a15"
+    "bytes": 1170056,
+    "sha256": "8846d6e61644db50a941b11a8dafc9b6eb6da5c91578f6a116605ff4048d55aa"
   },
   "devnetConfigurable": {
     "feature": "devnet-v3-program,configurable-rich-assets",
     "programId": "9E7wuzUbNLpauYH5BR6qPmg6mjb5qsZJW96zjLJELfCf",
     "optimization": "z",
     "strip": true,
-    "bytes": 1206176,
-    "sha256": "55a07af3f185f0dd42c7d80785438ec502e3c74d2382fb7910a7d66827c646e7",
+    "bytes": 1206632,
+    "sha256": "bf3d7c28708a9398aaaea5852df1cf76166835cade85b415856d411c031e464f",
     "developerLockPeriodsSeconds": [
       300,
       21600,
@@ -55,6 +55,6 @@
       172800
     ],
     "assetConfiguration": "onchain-v1",
-    "activation": "isolated Devnet program deployed; client and signer remain on the prior program"
+    "activation": "live configurable Devnet app; bytecode upgrade and financial flows verified separately in release evidence"
   }
 }

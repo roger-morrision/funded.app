@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "program:upgrade:check": "node scripts/check-program-upgrade.mjs",
     "test:production-integration": "node scripts/check-production-integration.mjs",
     "metadata:verify-storage": "node scripts/verify-metadata-storage.mjs",
     "mainnet:prepare-config": "node scripts/prepare-mainnet-config.mjs",

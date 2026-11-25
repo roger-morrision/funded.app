@@ -26,14 +26,14 @@ trading, paid listings, boosts, calls, chat and referrals work). Devnet runs onl
   for local build. Prefer these text checks over screenshots.
 
 ## Deploy (only when the user says so)
-- Follow `docs/mainnet-nonprogram-site-release.md`. Build the exact committed source,
-  compare fresh current and candidate inventories, and review the resolved Compose diff.
-- Switch only app and rpc-gateway under a release lock with `--no-deps --no-build --pull never`.
-  Retain the prior image, source, Compose file, secrets, database and backups for rollback.
-- Do not use the historical `tmp/mainnet-deploy/ship.sh`: it changes dependencies,
+- Follow `docs/mainnet-nonprogram-site-release.md`. Build exact committed source,
+  compare fresh current and candidate inventories, and review resolved Compose diff.
+- Switch only app and rpc-gateway under release lock with `--no-deps --no-build --pull never`.
+  Retain prior image, source, Compose file, secrets, database and backups for rollback.
+- Do not use historical `tmp/mainnet-deploy/ship.sh`it changes dependencies,
   transfers secrets and prunes release material.
 - Verify health, public revision, frontend digest, cluster, mint, fee policy and disabled
-  program activation, then run the relevant desktop/mobile and nonprogram flow checks.
+  program activation, then run relevant desktop/mobile and nonprogram flow checks.
 - Server commands: `python tmp/mainnet-deploy/remote-io.py run <script.sh> [timeout]` `put <local> <remote> [mode]`
   `get <remote> <local>`. Set `MSYS_NO_PATHCONV=1` in Git Bash `/` arguments become Windows paths.
 

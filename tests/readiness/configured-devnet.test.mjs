@@ -42,8 +42,10 @@ test('configured agency wire retains 130 bytes and exact revision/config metas f
 
 test('ordinary service request fields cannot enable the offline configured interface',async t=>{
   const f=configuredFixture(t);
-  await assert.rejects(reviewBuyback({...f.reviewArgs(),configuredDevnet:null,request:{...f.current.request,configuredDevnet:f.context}}),/ABI differs/);
-  const legacy=f.build('1',{contextOverride:null});assert.equal(legacy.built.instruction.data.length,64);
+  await assert.rejects(reviewBuyback({...f.reviewArgs(),configuredDevnet:null,request:{...f.current.request,configuredDevnet:f.context}}),/admitted release/);
+  // This program now has explicit live runtime admission. Omitting the offline
+  // context cannot downgrade its wire ABI to the old hardcoded-token variant.
+  const runtime=f.build('1',{contextOverride:null});assert.equal(runtime.built.instruction.data.length,72);
 });
 
 for(const field of ['genesisHash','programId','programDataSha256','elfSha256','contractSourceTree','sourceRevision'])test('changed immutable interface context is rejected: '+field,async t=>{

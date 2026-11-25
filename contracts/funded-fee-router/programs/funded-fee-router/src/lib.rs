@@ -19,8 +19,19 @@ declare_id!("9H1r2nTZs6gQaheYTMaBWpH12JX6dCFj2Rvxg7Lno2Sm");
 #[cfg(all(feature = "devnet-v3-program", feature = "configurable-rich-assets"))]
 include!(concat!(env!("OUT_DIR"), "/devnet_id.rs"));
 
+#[cfg(all(feature = "devnet-v3-program", feature = "configurable-rich-assets"))]
+#[derive(Accounts)]
+pub struct ProgramRevision {}
+
 #[program]
 pub mod funded_fee_router {
+    // Read-only upgrade probe: adds no accounts or authority and does not
+    // change financial instructions or existing account layouts.
+    #[cfg(all(feature = "devnet-v3-program", feature = "configurable-rich-assets"))]
+    pub fn program_revision(_ctx: Context<ProgramRevision>) -> Result<()> {
+        msg!("funded-configurable-abi-v1:20261125.1");
+        Ok(())
+    }
     #[cfg(feature = "configurable-rich-assets")]
     pub fn propose_rich_authority(ctx: Context<ManageRichAuthority>, successor: Pubkey) -> Result<()> {
         instructions::rich_assets::propose_authority(ctx, successor)

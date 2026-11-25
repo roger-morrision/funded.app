@@ -80,6 +80,7 @@ export function startV3HolderRewardWorker({ solanaCluster, solanaRpcUrl,
     ...(solanaCluster === 'devnet' && env.FUNDED_QA_SHORT_REWARD_PERIODS === 'true' ? { maxSnapshotsPerMint:360 } : {}),
     expectedGenesisHash:DEVNET_GENESIS_HASH });
   const scheduler = createRewardScheduler({ store:automaticRewardStore, chain, indexer,
+    captureSnapshots:env.FUNDED_HOLDER_INDEXER_EXTERNAL!=='true',
     protocolWallets:protocolRewardWallets(env, authority.publicKey),
     quoteReader:createHolderRewardQuoteReader({ connection:holderConnection, env }) });
   const migrateFundedV3Programs = async () => {

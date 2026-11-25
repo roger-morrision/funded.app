@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-21T08:00:54.404Z",
+  "status": "blocked",
+  "ready": false,
+  "allIssuesResolved": false,
+  "scope": "local-predeployment-fixes-and-read-only-verification",
+  "deploymentPerformed": false,
+  "networkTransactionsSubmitted": false,
+  "existingWalletKeysRead": false,
+  "source": {
+    "revision": "15426a51491c91a69f2b8e9d7c66d5e14f137a49",
+    "dirty": true,
+    "committed": false,
+    "preexistingEditsPreserved": true,
+    "changedFileHashes": {
+      "server/signer-service.mjs": "f35b18bc6a48be26606f8fb05821e735bbcbce971340d9ff9850b8c791e0fb34",
+      "server/environment.mjs": "ef91c5ff6ba4a0208d8ac5cd7639e7c98385e6198c291936fd37f80e34ac644f",
+      "server/mainnet-staging-policy.mjs": "0e0c022dc5e098ee683cc5fd0fd8e76a56a20b49a9aabd4ca8f6889786b60197",
+      "server/routes/token-creator.mjs": "d7227da3ff4094001cc3e9acce8b164e5ed4eed79baa6e4145c001744b8a672b",
+      "scripts/review/serve.mjs": "e7a1ea066a8ecfa4a99ce3bf44f0b0bb4cc0e96d6dc00e1abfbb69c3d0e2fe1b",
+      "scripts/review/read-only-rpc.mjs": "00e1d91d88097c67a059c5ecaee3466c2d93503a23e28334c34f7a1d884bc033",
+      "scripts/review/with-server.mjs": "62232354bea31726109bffa76864c7ce205a992c3d11a6c9305da6395a082cfd",
+      "scripts/review/build-mainnet.mjs": "c7cc75b700ecc37e900425ad63fe9cab11a208d47b7a2b919667cde4288e3f29",
+      "scripts/review/flows.mjs": "c1fffb3dea176951d60ffe7cd701a53218e8df93558c211abfd79873fdc7f39b",
+      "scripts/mainnet-readiness-preflight.mjs": "6cf436b9a7e36f35d2a03529eae17f7deedde4d6de4e06ae7b74a830af2e51a8",
+      ".github/workflows/ci.yml": "6c37acb4e27411dfe076365469cc215d9d87a4c6d9283a33d814dc4a28fde1b5",
+      "package.json": "5536017efeb4f4d17e3e0ac9428a65f68079766d6f0f3bd7347443054521fb6c",
+      "tests/security/signer-journal.test.mjs": "eb3ec8e4e361d2c5f8af1b5a09d8ff5d987e7bd180594a02c22c37f9f4d40abf",
+      "tests/security/mainnet-isolation.test.mjs": "e3910681f4454c143ae5dbbcb413690609e00c5b2ed39b44bd09d0d9f183a8a8",
+      "tests/security/review-proxy.test.mjs": "f6d8a30f3a592642d4e1f4df5ad96587f4f23c3d82679ddfcc3855f556ffe28a",
+      "tests/security/review-runner.test.mjs": "f4a909833fa3c98d59f8cc9aff9fb5bd3f76daeb0f2ce24eb5976296cb5cc85f",
+      "tests/security/token-creator.test.mjs": "361289874980996019de02741d3c428d851d5c5e57f8c5ecc31b0bd1f27bc00e"
+    }
+  },
+  "verification": {
+    "node": "v24.22.3",
+    "security": {
+      "passed": 19,
+      "failed": 0,
+      "scope": "local-only"
+    },
+    "smoke": {
+      "passed": 36,
+      "failed": 0,
+      "scope": "local-build-and-creator-backend-with-public-read-only-upstream"
+    },
+    "interactions": {
+      "passed": 26,
+      "failed": 0,
+      "scope": "local-no-wallet-desktop-and-mobile"
+    },
+    "syntax": {
+      "passed": true,
+      "files": 1083
+    },
+    "sourceBudgets": {
+      "passed": true,
+      "files": 1336
+    },
+    "builds": {
+      "production": "passed",
+      "mainnetReview": "passed"
+    },
+    "npmAudit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "contract": {
+      "status": "vm-only",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "suites": [
+        "app_account_setup",
+        "protocol_guard",
+        "reward_mainnet_gates"
+      ],
+      "productionIdentities": false,
+      "deployEligible": false,
+      "bytes": 1037544,
+      "sha256": "3732459954f9e42f83c77c618c1982d60e9a97524446cfc97cacc1345ec20612"
+    }
+  },
+  "publicRead": {
+    "origin": "https://richpad.fun",
+    "cluster": "mainnet-beta",
+    "healthStatus": 200,
+    "statusStatus": 200,
+    "build": "18d15d6daa1f64a30e4870d627d6d44ede580d4d",
+    "scope": "availability-and-build-identity-only"
+  },
+  "deploymentRent": {
+    "status": "verified-read-only-rent",
+    "scope": "test-fixture-sizing-not-production-deployment-quote",
+    "generatedAt": "2026-11-21T07:59:54.073Z",
+    "cluster": "mainnet-beta",
+    "genesis": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+    "observedFinalizedSlot": 472064018,
+    "rpc": "https://api.mainnet-beta.solana.com",
+    "bytes": 1037544,
+    "binarySha256": "3732459954f9e42f83c77c618c1982d60e9a97524446cfc97cacc1345ec20612",
+    "programRentLamports": "833120",
+    "programDataRentLamports": "5271602360",
+    "lockedRentLamports": "5272435480",
+    "planTotalCapLamports": "5000000000",
+    "rentFitsCurrentCap": false,
+    "exclusions": [
+      "transaction fees",
+      "initialization",
+      "liquidity",
+      "canary",
+      "operating reserve"
+    ],
+    "deployEligible": false
+  },
+  "blockers": {
+    "code": [
+      "Mainnet launch submission and registration integration",
+      "Mainnet signing, collection, settlement and payout reconciliation"
+    ],
+    "missingProductionInputs": [
+      "mainnetProgramId",
+      "feeRecipient",
+      "fundedMint",
+      "fundedPool",
+      "deploymentPayerSignerReference",
+      "productionDatabaseSecretPath",
+      "metadataSecretPath",
+      "independentReviewer",
+      "independentReviewReference",
+      "freshInfrastructure.databaseReference",
+      "freshInfrastructure.cacheReference",
+      "freshInfrastructure.metadataNamespace",
+      "freshInfrastructure.appDeploymentReference",
+      "freshInfrastructure.backupReference",
+      "freshSignerReferences.automationAuthority",
+      "freshSignerReferences.priceAttestation",
+      "freshSignerReferences.operationsTreasury",
+      "freshSignerReferences.tradeFeeTreasury",
+      "freshSignerReferences.boostTreasury",
+      "freshSignerReferences.revenueTreasury"
+    ],
+    "independentReview": "unavailable",
+    "currentReleaseFinancialAcceptance": "unavailable",
+    "cappedMainnetCanary": "unavailable",
+    "cleanFrozenRelease": false
+  },
+  "excludedRuns": [
+    "Initial 34/36 smoke reproduction: upstream creator endpoint missing",
+    "Intermediate browser runs overlapping a rebuild; not final verification"
+  ],
+  "logHashes": {
+    "tmp/go-live-security-tests-20261121.log": "7e47f2bed5f35da7e29d5494ccbb943e50400dd8f1c837977ae257e48201115e",
+    "tmp/go-live-smoke-final-20261121.log": "d797f0b9c49b8117fb6d065b2f730919064484aba62b10c4638ed7b0bc0c4072",
+    "tmp/go-live-flows-final-20261121.log": "4ac97816800f5b9690aec875696d4e1906485916d4d16cf28279a2c08b4b6e92",
+    "tmp/go-live-final-check-20261121.log": "e26f68c0db7dce25bbba1cd9eaab58524a1e9d5c32ff501679425d6d63a53b2d",
+    "tmp/go-live-build-20261121.log": "e2c795c4a13c50c9d547ecb0528e12c72516db438e87ea34c147459cf7ddedcf",
+    "tmp/go-live-review-build-20261121.log": "f93b44aa98567939a24946a7e2d3c4dfa3015eabf9f91782f093d0f8d3c8a113",
+    "tmp/go-live-contract-check-20261121.log": "f071bdf127ea2cab46c1a79d9a9098e86ff29b2d43f84c926a03cf2a15b33f9b",
+    "tmp/go-live-all-dependencies-20261121.json": "8b7e8e9efd9aad8a5556756eb4531476d1a6990987c9afdd8c5ed940ce5352ec"
+  }
+}
