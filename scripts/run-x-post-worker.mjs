@@ -7,6 +7,7 @@ import { rewardLedgerPath } from '../server/reward-ledger-path.mjs';
 import { createXPostStore } from '../server/x-post-store.mjs';
 import { runXPostWorker } from '../server/x-post-worker.mjs';
 import { createXPublisher } from '../server/x-post-client.mjs';
+import { createXEmailPublisher } from '../server/x-post-email-publisher.mjs';
 import { buildXPost,X_POST_KINDS } from '../server/x-post-content.mjs';
 import { collectXPostEvents, createXPostChainAdapters } from '../server/x-post-events.mjs';
 import { verifyFeeRouterAccount } from '../fee-router.js';
@@ -41,20 +42,25 @@ export function xWorkerConfig(env, args = []) {
   try { if (!['postgres:', 'postgresql:'].includes(new URL(env.DATABASE_URL).protocol)) throw new Error(); }
   catch { throw new Error('DATABASE_URL must be a valid PostgreSQL connection string.'); }
   const execute = args.includes('--execute');
-  if (execute && env.X_POST_ENABLED !== 'true') throw new Error('Live publication requires X_POST_ENABLED=true as well as --execute.');
-  if (execute && env.X_POST_ALLOW_DEVNET !== 'true') throw new Error('Public Devnet posts require explicit X_POST_ALLOW_DEVNET=true authorization.');
-  if (execute && !env.X_POST_ACCESS_TOKEN) throw new Error('Configure a separate X_POST_ACCESS_TOKEN for the selected account.');
+  const deliveryMode=env.X_POST_DELIVERY_MODE||'live';
+  if(!['live','email'].includes(deliveryMode))throw new Error('X_POST_DELIVERY_MODE must be live or email.');
+  // Email delivery never calls the X API: it only needs the admin email config
+  // (checked by createXEmailPublisher), not X's live-publication authorization.
+  const liveExecute = execute && deliveryMode!=='email';
+  if (liveExecute && env.X_POST_ENABLED !== 'true') throw new Error('Live publication requires X_POST_ENABLED=true as well as --execute.');
+  if (liveExecute && env.X_POST_ALLOW_DEVNET !== 'true') throw new Error('Public Devnet posts require explicit X_POST_ALLOW_DEVNET=true authorization.');
+  if (liveExecute && !env.X_POST_ACCESS_TOKEN) throw new Error('Configure a separate X_POST_ACCESS_TOKEN for the selected account.');
   const oauth1 = ['X_POST_API_KEY', 'X_POST_API_SECRET', 'X_POST_ACCESS_TOKEN_SECRET'].some(key => Boolean(env[key]));
-  if (execute && oauth1 && ['X_POST_API_KEY', 'X_POST_API_SECRET', 'X_POST_ACCESS_TOKEN', 'X_POST_ACCESS_TOKEN_SECRET'].some(key => !env[key]))
+  if (liveExecute && oauth1 && ['X_POST_API_KEY', 'X_POST_API_SECRET', 'X_POST_ACCESS_TOKEN', 'X_POST_ACCESS_TOKEN_SECRET'].some(key => !env[key]))
     throw new Error('Complete X OAuth 1.0a user credentials are required for publication.');
   const accountStatus=env.X_POST_ACCOUNT_STATUS||'suspended';
   if(!['suspended','active'].includes(accountStatus))throw new Error('X_POST_ACCOUNT_STATUS must be suspended or active.');
-  if(execute&&accountStatus!=='active')throw new Error('X publication is paused for account suspension/review. Reinstatement is required before activation.');
+  if(liveExecute&&accountStatus!=='active')throw new Error('X publication is paused for account suspension/review. Reinstatement is required before activation.');
   const minProfitLamports = env.X_POST_MIN_PROFIT_LAMPORTS || '1000000000';
   if(env.X_POST_PAYOUTS_ONLY!==undefined&&!['true','false'].includes(env.X_POST_PAYOUTS_ONLY))throw new Error('X_POST_PAYOUTS_ONLY must be true or false.');
   if (!/^[1-9]\d{0,19}$/.test(minProfitLamports)) throw new Error('X_POST_MIN_PROFIT_LAMPORTS must be positive integer lamports.');
   return {
-    mode: args.includes('--status') ? 'status' : args.includes('--loop') ? 'loop' : 'once', execute, cluster, handle,accountStatus,
+    mode: args.includes('--status') ? 'status' : args.includes('--loop') ? 'loop' : 'once', execute, cluster, handle,accountStatus,deliveryMode,
     origin: origin.origin, enabledAt: new Date(start).toISOString(), minProfitLamports,
     payoutsOnly:env.X_POST_PAYOUTS_ONLY==='true',
     intervalMs: numberSetting(env.X_POST_INTERVAL_MS, X_POSTING_DEFAULTS.pollIntervalMs, 10_000, 3_600_000, 'X_POST_INTERVAL_MS'),
@@ -144,11 +150,11 @@ async function main(args) {
       return;
     }
     if(config.execute&&(await outbox.safetyStatus()).paused)throw new Error('The durable X account pause is active. No provider request was made.');
-    const publisher = config.execute ? createXPublisher({
+    const publisher = !config.execute ? null : config.deliveryMode === 'email' ? createXEmailPublisher({ env }) : createXPublisher({
       ...(env.X_POST_ACCESS_TOKEN_SECRET ? { oauth1: { apiKey: env.X_POST_API_KEY, apiSecret: env.X_POST_API_SECRET,
         accessToken: env.X_POST_ACCESS_TOKEN, accessTokenSecret: env.X_POST_ACCESS_TOKEN_SECRET } }
         : { accessToken: env.X_POST_ACCESS_TOKEN }),
-      expectedHandle: config.handle, expectedAccountId: env.X_POST_ACCOUNT_ID }) : null;
+      expectedHandle: config.handle, expectedAccountId: env.X_POST_ACCOUNT_ID });
     mainStore = createPostgresStore(env.DATABASE_URL);
     const connection = new Connection(env.SOLANA_RPC_URL || 'https://api.devnet.solana.com', { commitment: 'finalized', disableRetryOnRateLimit: true,
       fetch: (url, options) => fetch(url, { ...options, signal: options?.signal

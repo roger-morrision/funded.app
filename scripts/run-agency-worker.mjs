@@ -6,6 +6,7 @@ import {Connection,Keypair,PublicKey} from '@solana/web3.js';
 import {createPostgresStore} from '../server/postgres-store.mjs';
 import {createXPostStore} from '../server/x-post-store.mjs';
 import {createXPublisher} from '../server/x-post-client.mjs';
+import {createXEmailPublisher} from '../server/x-post-email-publisher.mjs';
 import {runXPostWorker} from '../server/x-post-worker.mjs';
 import {xWorkerConfig} from './run-x-post-worker.mjs';
 import {readAgencyDeployment,agencyWorkerHealth,agencyBuybackWorkerHealth} from '../server/agency-deployment.mjs';
@@ -163,9 +164,10 @@ async function main(args){
     minIntervalMs:config.minIntervalMs,maxHourlyPosts:config.maxHourlyPosts,maxDailyPosts:config.maxDailyPosts});
   const connection=new Connection(env.SOLANA_RPC_URL,{commitment:'finalized',disableRetryOnRateLimit:true,
     fetch:(url,options)=>fetch(url,{...options,signal:options?.signal?AbortSignal.any([options.signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000)})});
-  const publisher=config.execute?createXPublisher({expectedHandle:config.handle,expectedAccountId:env.X_POST_ACCOUNT_ID,
+  const publisher=!config.execute?null:config.deliveryMode==='email'?createXEmailPublisher({env})
+    :createXPublisher({expectedHandle:config.handle,expectedAccountId:env.X_POST_ACCOUNT_ID,
     ...(env.X_POST_ACCESS_TOKEN_SECRET?{oauth1:{apiKey:env.X_POST_API_KEY,apiSecret:env.X_POST_API_SECRET,accessToken:env.X_POST_ACCESS_TOKEN,
-      accessTokenSecret:env.X_POST_ACCESS_TOKEN_SECRET}}:{accessToken:env.X_POST_ACCESS_TOKEN})}):null;
+      accessTokenSecret:env.X_POST_ACCESS_TOKEN_SECRET}}:{accessToken:env.X_POST_ACCESS_TOKEN})});
   let stopped=false,wake;const stop=()=>{stopped=true;wake?.();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
   try{
     await outbox.init();
