@@ -97,7 +97,7 @@ fn is_reviewed_sell(quote: Pubkey, pool: Pubkey) -> Result<bool> {
         && pool == Pubkey::from_str("Gf7sXMoP8iRw4iiXmJ1nq4vxcRycbGXy5RL8a8LnTd3v").map_err(|_| ErrorCode::InvalidMintBuybackV3)?)
 }
 
-fn validate_sell_accounts(accounts: &[AccountInfo], base: Pubkey, native: Pubkey, pump: Pubkey) -> Result<()> {
+fn validate_pump_pool_schema(accounts: &[AccountInfo], base: Pubkey, native: Pubkey, pump: Pubkey) -> Result<()> {
     let pool = accounts[0].try_borrow_data()?;
     require!(pool.len() >= 245 && pool[..8] == [241,154,109,4,17,177,109,188]
         && pool[43..75] == base.to_bytes() && pool[75..107] == native.to_bytes()
@@ -174,9 +174,13 @@ pub fn handler<'info>(ctx: Context<'info, ConvertTokenBudgetV3<'info>>, conversi
     }
     require!(remaining[0].owner == &pump && remaining[1].is_writable && remaining[5].is_writable
         && remaining[6].is_writable, ErrorCode::InvalidMintBuybackV3);
-    if sell {
-        validate_sell_accounts(remaining, base, native, pump)?;
-    } else {
+    // The pool/global-config/fee-recipient/event-authority schema is the same
+    // for both trade directions; the pool's own base_mint (index 3) is always
+    // the paired token (`quote`) and its quote_mint (index 4) is always
+    // native SOL, regardless of whether this is a buy or a sell, so the same
+    // validation applies unconditionally.
+    validate_pump_pool_schema(remaining, quote, native, pump)?;
+    if !sell {
         require!(remaining[20].is_writable, ErrorCode::InvalidMintBuybackV3);
     }
 

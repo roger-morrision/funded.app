@@ -71,6 +71,40 @@ fn expected_ata(mint: &Pubkey, owner: &Pubkey, token_program: &Pubkey) -> Pubkey
         owner, mint, token_program)
 }
 
+// Full PumpSwap pool/global-config/fee-recipient/event-authority account
+// schema for the 23-account buy/sell IDL layout, shared with the identical
+// validation already relied on in token_convert_v3.rs's validate_pump_pool_schema
+// for the same program. Pins every index that function pins, closing the gap
+// left by only checking a subset: 2 (global_config), 7/8 (pool's own base and
+// quote token accounts, cross-checked against the pool's stored addresses),
+// 9/10, 18/17 and 21/22 (fee-recipient owner/ATA pairs), 15 (event authority).
+// Index 19 is left unpinned, matching the same pre-existing, already-reviewed
+// gap in validate_pump_pool_schema; its exact role was not determinable here
+// without PumpSwap's IDL available in this environment.
+fn require_pump_pool_schema(accounts: &[AccountInfo], base: Pubkey, native: Pubkey, pump: Pubkey) -> Result<()> {
+    let pool_data = accounts[0].try_borrow_data()?;
+    require!(pool_data.len() >= 245 && pool_data[..8] == [241,154,109,4,17,177,109,188]
+        && pool_data[43..75] == base.to_bytes() && pool_data[75..107] == native.to_bytes()
+        && pool_data[139..171] == accounts[7].key.to_bytes() && pool_data[171..203] == accounts[8].key.to_bytes()
+        && pool_data[211..243] == [0; 32] && pool_data[243..245] == [0, 0], ErrorCode::InvalidMintBuybackV3);
+    drop(pool_data);
+    let spl = anchor_spl::token::ID;
+    for (index, mint, owner) in [(5, base, accounts[1].key()), (7, base, accounts[0].key()), (8, native, accounts[0].key())] {
+        let account = &accounts[index];
+        let data = account.try_borrow_data()?;
+        require!(account.owner == &spl && data.len() == 165 && data[..32] == mint.to_bytes()
+            && data[32..64] == owner.to_bytes(), ErrorCode::InvalidMintBuybackV3);
+    }
+    let pda = |seed: &[u8]| Pubkey::find_program_address(&[seed], &pump).0;
+    require!(accounts[2].key() == pda(b"global_config") && accounts[15].key() == pda(b"__event_authority"),
+        ErrorCode::InvalidMintBuybackV3);
+    for (owner, account) in [(9,10), (18,17), (21,22)] {
+        let ata = anchor_spl::associated_token::get_associated_token_address_with_program_id(accounts[owner].key, &native, &spl);
+        require!(accounts[account].key() == ata && accounts[owner].key() != accounts[1].key(), ErrorCode::InvalidMintBuybackV3);
+    }
+    Ok(())
+}
+
 fn require_pump_accounts(accounts: &[AccountInfo], ctx: &BuybackMintV3) -> Result<()> {
     // PumpSwap's SDK appends two fee accounts and up to two market-specific
     // accounts after the 23 IDL accounts.
@@ -96,6 +130,8 @@ fn require_pump_accounts(accounts: &[AccountInfo], ctx: &BuybackMintV3) -> Resul
     require!(accounts[1].is_writable && accounts[5].is_writable
         && accounts[6].is_writable && accounts[20].is_writable,
         ErrorCode::InvalidMintBuybackV3);
+    require_pump_pool_schema(accounts, ctx.funded_mint.key(),
+        anchor_spl::token::spl_token::native_mint::id(), ctx.pump_swap_program.key())?;
     Ok(())
 }
 
@@ -307,4 +343,107 @@ pub struct MintBuybackV3Event {
     pub buyback_id: [u8; 32],
     pub spent_lamports: u64,
     pub burned_base_units: u64,
+}
+
+#[cfg(test)]
+mod pump_pool_schema_tests {
+    use super::*;
+
+    fn info(key: Pubkey, owner: Pubkey, data: Vec<u8>) -> AccountInfo<'static> {
+        AccountInfo::new(Box::leak(Box::new(key)), false, true,
+            Box::leak(Box::new(10_000_000)), Box::leak(data.into_boxed_slice()),
+            Box::leak(Box::new(owner)), false)
+    }
+
+    // Builds a minimal, otherwise-valid 23-account PumpSwap buy/sell account
+    // list so a single index can be corrupted per test, isolating exactly
+    // which check catches it.
+    fn valid_accounts(base: Pubkey, native: Pubkey, pump: Pubkey) -> Vec<AccountInfo<'static>> {
+        let spl = anchor_spl::token::ID;
+        let pool_key = Pubkey::new_unique();
+        let vault_key = Pubkey::new_unique();
+        let base_token_account = Pubkey::new_unique();
+        let pool_base_account = Pubkey::new_unique();
+        let pool_quote_account = Pubkey::new_unique();
+        let fee_1 = Pubkey::new_unique();
+        let fee_2 = Pubkey::new_unique();
+        let fee_3 = Pubkey::new_unique();
+        let ata = |owner: &Pubkey| anchor_spl::associated_token::get_associated_token_address_with_program_id(owner, &native, &spl);
+        let mut pool_data = vec![0u8; 245];
+        pool_data[..8].copy_from_slice(&[241,154,109,4,17,177,109,188]);
+        pool_data[43..75].copy_from_slice(&base.to_bytes());
+        pool_data[75..107].copy_from_slice(&native.to_bytes());
+        pool_data[139..171].copy_from_slice(&pool_base_account.to_bytes());
+        pool_data[171..203].copy_from_slice(&pool_quote_account.to_bytes());
+        let spl_account = |mint: Pubkey, owner: Pubkey| { let mut data = vec![0u8; 165]; data[..32].copy_from_slice(&mint.to_bytes()); data[32..64].copy_from_slice(&owner.to_bytes()); data };
+        let global_config = Pubkey::find_program_address(&[b"global_config"], &pump).0;
+        let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &pump).0;
+        let mut accounts: Vec<_> = (0..23).map(|_| info(Pubkey::new_unique(), System::id(), vec![])).collect();
+        accounts[0] = info(pool_key, pump, pool_data);
+        accounts[1] = info(vault_key, System::id(), vec![]);
+        accounts[2] = info(global_config, pump, vec![]);
+        accounts[5] = info(base_token_account, spl, spl_account(base, vault_key));
+        accounts[7] = info(pool_base_account, spl, spl_account(base, pool_key));
+        accounts[8] = info(pool_quote_account, spl, spl_account(native, pool_key));
+        accounts[9] = info(fee_1, System::id(), vec![]);
+        accounts[10] = info(ata(&fee_1), spl, vec![]);
+        accounts[15] = info(event_authority, pump, vec![]);
+        accounts[18] = info(fee_2, System::id(), vec![]);
+        accounts[17] = info(ata(&fee_2), spl, vec![]);
+        accounts[21] = info(fee_3, System::id(), vec![]);
+        accounts[22] = info(ata(&fee_3), spl, vec![]);
+        accounts
+    }
+
+    #[test]
+    fn a_correctly_constructed_account_list_passes() {
+        let base = Pubkey::new_unique(); let native = Pubkey::new_unique(); let pump = Pubkey::new_unique();
+        let accounts = valid_accounts(base, native, pump);
+        require_pump_pool_schema(&accounts, base, native, pump).expect("valid schema should pass");
+    }
+
+    #[test]
+    fn a_substituted_global_config_at_index_2_is_rejected() {
+        let base = Pubkey::new_unique(); let native = Pubkey::new_unique(); let pump = Pubkey::new_unique();
+        let mut accounts = valid_accounts(base, native, pump);
+        accounts[2] = info(Pubkey::new_unique(), pump, vec![]);
+        require_pump_pool_schema(&accounts, base, native, pump).expect_err("substituted global_config must be rejected");
+    }
+
+    #[test]
+    fn a_substituted_pool_base_token_account_at_index_7_is_rejected() {
+        let base = Pubkey::new_unique(); let native = Pubkey::new_unique(); let pump = Pubkey::new_unique();
+        let mut accounts = valid_accounts(base, native, pump);
+        accounts[7] = info(Pubkey::new_unique(), anchor_spl::token::ID, vec![0u8; 165]);
+        require_pump_pool_schema(&accounts, base, native, pump).expect_err("substituted pool base token account must be rejected");
+    }
+
+    #[test]
+    fn a_substituted_fee_recipient_ata_at_index_10_is_rejected() {
+        let base = Pubkey::new_unique(); let native = Pubkey::new_unique(); let pump = Pubkey::new_unique();
+        let mut accounts = valid_accounts(base, native, pump);
+        accounts[10] = info(Pubkey::new_unique(), anchor_spl::token::ID, vec![]);
+        require_pump_pool_schema(&accounts, base, native, pump).expect_err("substituted fee-recipient ATA must be rejected");
+    }
+
+    #[test]
+    fn a_substituted_event_authority_at_index_15_is_rejected() {
+        let base = Pubkey::new_unique(); let native = Pubkey::new_unique(); let pump = Pubkey::new_unique();
+        let mut accounts = valid_accounts(base, native, pump);
+        accounts[15] = info(Pubkey::new_unique(), pump, vec![]);
+        require_pump_pool_schema(&accounts, base, native, pump).expect_err("substituted event authority must be rejected");
+    }
+
+    // Documents, rather than hides, the one index this schema check does not
+    // pin (matching the pre-existing gap already accepted in
+    // token_convert_v3.rs's validate_pump_pool_schema): a substitution here
+    // passes this function. Its real role could not be determined with
+    // confidence without PumpSwap's IDL available in this environment.
+    #[test]
+    fn index_19_remains_an_accepted_pre_existing_gap() {
+        let base = Pubkey::new_unique(); let native = Pubkey::new_unique(); let pump = Pubkey::new_unique();
+        let mut accounts = valid_accounts(base, native, pump);
+        accounts[19] = info(Pubkey::new_unique(), System::id(), vec![]);
+        require_pump_pool_schema(&accounts, base, native, pump).expect("index 19 is not pinned by this check");
+    }
 }
