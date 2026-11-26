@@ -14,10 +14,10 @@
   },
   "independentReview": {
     "reviewer": "Hermes Agent (AI second review; not an external professional security audit)",
-    "reference": "docs/reviews/mainnet-independent-review-hermes-2026-11-25.md",
-    "sourceRevision": "68c526f3bbe4cdc8afcf5e0c9c10028e9f87a97b",
-    "binarySha256": "b2e811357cf55dc6624a48b6f630eb6c32ae2c23f3bd6c271d6013c72db70b9c",
-    "conclusion": "Conditional YES, not an unconditional clearance: open items are a documented risk-acceptance for the category-1 automation-operator key, a rounding-drift reconciliation, CPI account-validation hardening before enabling buyback/conversions, and running the Rust test suite against the candidate binary."
+    "reference": "docs/reviews/mainnet-independent-review-hermes-2026-11-26.md",
+    "sourceRevision": "5d80bb596b825877311d2a7679d7abcf002b0e24",
+    "binarySha256": "52ee604bf2f1462baefe150385358d1f7e66b39175fe8808ed8ddd58de7578f6",
+    "conclusion": "Conditional YES, not an unconditional clearance: both the rounding-drift/liveness fix (commit 5d80bb59) and the CPI account-validation hardening (commit 2ea29084) are independently confirmed correct by spot-check -- build hash reproduced byte-for-byte, all 7 accumulation call sites verified (including agency_buyback_v3.rs's advance_agent_ceiling wrapper), and the remainder-carry bound holds by construction. Two corrections to this review's own claims, caught on spot-check, neither a code defect: (1) its MintAgencyPolicyV3::INIT_SPACE table states 627 bytes, but both its own listed field breakdown and the actual compiled constant sum to 615 -- an arithmetic slip, immaterial since the value is used symbolically everywhere; (2) its cited test-suite evidence (.secrets/worktree-archives/20261124/mainnet-readiness/tmp/devnet-isolated-test.log) predates both reviewed commits by two days and is not valid evidence for this candidate -- a genuinely fresh run against this exact binary earlier in the same work session passed cleanly except the pre-existing developer_escrow.rs LEGACY_DEVELOPER_LOCK_TEST_SO environment-fixture gap. Residual risks unchanged from the 2026-11-25 review: category-1 automation-operator key lacks creator consent and a per-mint cap (HIGH, accepted design risk, bounded only by the global daily cap); buyback price observation is not cryptographically bound to on-chain execution (MEDIUM, mitigated by price-signer/authority key separation); Mainnet token-conversion buy path has no configured pools and the sell path supports only one USDC pool (MEDIUM). PumpSwap account-schema index 19 remains intentionally unpinned pending IDL availability."
   },
   "developerLockPeriodsSeconds": [
     21600,
