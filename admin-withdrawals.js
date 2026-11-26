@@ -5,7 +5,7 @@ import {Buffer} from 'buffer';
 import {createPendingWithdrawals} from './admin-withdrawal-pending.js';
 import {createWithdrawalRequests} from './admin-withdrawal-requests.js';
 const SIGNATURE=/^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
-export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,document=globalThis.document,
+export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,expectedGenesis='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG',document=globalThis.document,
  connectionFactory=()=>new Connection(`${location.origin}/api/solana/rpc`,'finalized')}){
  const $=s=>document.querySelector(s),workspace=$('#workspace'),form=$('#withdraw-form'),reconcile=$('#reconcile-form');
  const submit=form.querySelector('[type=submit]'),receiptSubmit=reconcile.querySelector('[type=submit]');
@@ -92,7 +92,7 @@ export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,doc
    if(plan.source!==source||plan.destination!==destination||plan.amountLamports!==amount)throw Error('The withdrawal review changed. Review it again.');
    const summary=`Withdraw ${exactSol(amount)} Devnet SOL · From ${source} · To admin ${destination} · Admin pays ${exactSol(plan.estimatedFeeLamports)} SOL network fee; ${exactSol(plan.reserveLamports)} SOL stays in the source.`;
    review.textContent=summary;
-   const connection=rpc();if(await connection.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('The browser RPC is not Devnet.');
+   const connection=rpc();if(await connection.getGenesisHash()!==expectedGenesis)throw Error('The browser RPC does not match the configured network.');
    if(!current(epoch))return;
    if(wallet()!==provider||!provider.isPhantom||provider.publicKey?.toBase58()!==destination||connected()!==destination)throw Error('Phantom must still be connected to the signed-in admin wallet.');
    const tx=new Transaction({feePayer:new PublicKey(destination),recentBlockhash:plan.blockhash})
@@ -134,7 +134,7 @@ export function initAdminWithdrawals({api,post,show,refresh,wallet,connected,doc
   if(!SIGNATURE.test(signature)){report('Enter a valid Devnet transaction signature.',true);return;}void run(()=>record(signature,epoch));});
  async function checkPending(epoch){
   const row=pending;if(!row)return true;
-  const connection=rpc();if(await connection.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('The browser RPC is not Devnet.');
+  const connection=rpc();if(await connection.getGenesisHash()!==expectedGenesis)throw Error('The browser RPC does not match the configured network.');
   const status=(await connection.getSignatureStatuses([row.signature],{searchTransactionHistory:true})).value[0];
   if(!current(epoch))return;
   if(status?.confirmationStatus==='finalized'&&!status.err){await record(row.signature,epoch);return false;}

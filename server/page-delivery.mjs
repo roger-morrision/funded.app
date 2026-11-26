@@ -20,6 +20,11 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond, 
     const raw = String(process.env.FUNDED_ADMIN_PAGE_PATH || '').replace(/^\/+|\/+$/g, '');
     return raw ? `/${raw}` : '/admin';
   })();
+  // Same reasoning as adminPagePath: never hardcode this in committed source.
+  const feePagePath = (() => {
+    const raw = String(process.env.FUNDED_FEE_PAGE_PATH || '').replace(/^\/+|\/+$/g, '');
+    return raw ? `/${raw}` : '/fee-withdrawals';
+  })();
   const readTemplate = async () => {
     if (!templateCache || Date.now() - templateCache.at > 60_000) templateCache = { at: Date.now(), html: await readFile(resolve(staticRoot, 'index.html'), 'utf8') };
     return templateCache.html;
@@ -120,6 +125,7 @@ export function createPageDelivery({ staticRoot, store, solanaCluster, respond, 
     if (readRequest && /^\/status\/?$/.test(url.pathname)) { res.writeHead(302, { location: `${adminPagePath}#admin-service-status`, 'cache-control': 'no-store' }); return end(res); }
     if (readRequest && /^\/welcome\/?$/.test(url.pathname)) return await serveStatic('/welcome.html', res);
     if (readRequest && (url.pathname === adminPagePath || url.pathname === `${adminPagePath}/`)) return await serveStatic('/admin.html', res);
+    if (readRequest && (url.pathname === feePagePath || url.pathname === `${feePagePath}/`)) return await serveStatic('/fee-withdrawals.html', res);
     if (readRequest && ['/', '/explore', '/explore/'].includes(url.pathname)) {
       // The public home HTML is the same for every visitor: rebuild it at most every 10 s.
       if (!homeHtml || Date.now() - homeHtml.at > 10_000) {

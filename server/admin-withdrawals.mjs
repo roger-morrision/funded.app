@@ -1,7 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import bs58 from 'bs58';
 import {PublicKey,SystemProgram,Transaction} from '@solana/web3.js';
-import {DEVNET_GENESIS_HASH} from './automatic-reward-chain.mjs';
+import {assertRpcNetwork} from '../solana-network.js';
 import {ADMIN_EMAIL_AUTHORIZED} from './admin-email-verification.mjs';
 import {createWithdrawalPolicy} from './admin-withdrawal-policy.mjs';
 import {withdrawalSessionHash,adminWithdrawalTransaction,verifyAdminWithdrawalSignature} from './admin-withdrawal-signing.mjs';
@@ -28,7 +28,7 @@ export async function finalizedAdminTransfer(rpc,signature){
     ||tx.meta.preBalances[sourceIndex]-tx.meta.postBalances[sourceIndex]!==amount+(sourcePays?fee:0))return null;
   return{tx,source,destination,amount,feePayer:adminPays?destination:source};
 }
-export function createAdminWithdrawals({store,env,connection,roles,signerFor,now=Date.now}){
+export function createAdminWithdrawals({store,env,connection,roles,signerFor,solanaCluster='devnet',now=Date.now}){
   const policy=createWithdrawalPolicy({store,env,now});
   function sourceRole(source,admin){
     const row=roles().find(row=>row.address===source&&row.withdrawable);
@@ -42,7 +42,9 @@ export function createAdminWithdrawals({store,env,connection,roles,signerFor,now
     if(!/^\d+$/.test(configured)||!integer(Number(configured)))throw error(503,'Withdrawal reserve configuration is invalid.');
     return Math.max(minimum,Number(configured));
   };
-  async function verifiedRpc(){const rpc=connection();if(await rpc.getGenesisHash()!==DEVNET_GENESIS_HASH)throw error(503,'Withdrawal RPC is not Devnet.');return rpc;}
+  async function verifiedRpc(){const rpc=connection();
+    try{await assertRpcNetwork(rpc,solanaCluster);}catch{throw error(503,'Withdrawal RPC does not match the configured network.');}
+    return rpc;}
   async function quote(rpc,source,admin){
     const role=sourceRole(source,admin),pubkey=new PublicKey(source);
     const [account,adminAccount,blockhash,adminRent]=await Promise.all([rpc.getAccountInfo(pubkey,'finalized'),

@@ -21,6 +21,7 @@ import {handleAdminBoostPricing} from '../admin-boost-pricing.mjs';
 import {createAdminWallets} from '../admin-wallets.mjs';
 import {createAdminWithdrawals} from '../admin-withdrawals.mjs';
 import {createOperationsPayoutPolicy} from '../operations-payout-policy.mjs';
+import {assertRpcNetwork} from '../../solana-network.js';
 import {createAdminJwt} from '../admin-jwt.mjs';
 import { clientAddress } from '../client-address.mjs';
 import { handleAdminAppLimits } from '../app-limits.mjs';
@@ -82,14 +83,21 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
   const connection = () => connectionFactory(solanaRpcUrl);
   const inventory=createAdminWallets({env,keeperKeypair,v3AuthorityKeypair,referralPayoutKeypair});
   const roleAddresses=inventory.roles;
-  const handleWithdrawals=createAdminWithdrawals({store,env,connection,roles:roleAddresses,signerFor:inventory.signerFor});
+  const handleWithdrawals=createAdminWithdrawals({store,env,connection,roles:roleAddresses,signerFor:inventory.signerFor,solanaCluster});
   const operationsPayouts=createOperationsPayoutPolicy({store,env});
   // Everything else in this file stays Devnet-only until individually reviewed
-  // for Mainnet; only admin sign-in and the OTP-gated operations-payout
-  // approval flow (server/operations-payout-policy.mjs) are allowed through.
+  // for Mainnet; only admin sign-in, the OTP-gated operations-payout approval
+  // flow, the plain-wallet withdrawal flow and its balance list are allowed
+  // through. These three live on the separate fee-withdrawal page, not the
+  // main admin dashboard (which stays Devnet-only end to end).
   const MAINNET_ALLOWED_PATHS=new Set(['/api/admin/challenge','/api/admin/session','/api/admin/email-confirmation','/api/admin/logout',
     '/api/admin/operations-payouts/requests','/api/admin/operations-payouts/request',
-    '/api/admin/operations-payouts/approve','/api/admin/operations-payouts/cancel']);
+    '/api/admin/operations-payouts/approve','/api/admin/operations-payouts/cancel',
+    '/api/admin/fee-wallets',
+    '/api/admin/withdrawals/requests','/api/admin/withdrawals/maximum','/api/admin/withdrawals/pending',
+    '/api/admin/withdrawals/request','/api/admin/withdrawals/approve','/api/admin/withdrawals/cancel',
+    '/api/admin/withdrawals/prepare','/api/admin/withdrawals/submit',
+    '/api/admin/withdrawals/verify','/api/admin/withdrawals/reconcile']);
   return async function handleAdminRoutes(req, res, url) {
     if (!url.pathname.startsWith('/api/admin/')) return false;
     if (solanaCluster !== 'devnet' && !MAINNET_ALLOWED_PATHS.has(url.pathname))
@@ -157,6 +165,20 @@ export function createAdminRoutes({ store, body:readBody, respond, solanaCluster
         req[ADMIN_EMAIL_AUTHORIZED]=proof;
       }catch(error){return json(res,error.status||503,{error:error.status?error.message:'Admin verification audit is unavailable. No action was executed.',
         ...(error.status===403?{code:'ADMIN_EMAIL_CONFIRMATION_FAILED'}:{})});}
+    }
+    // Minimal, cluster-aware balance list for the separate fee-withdrawal page.
+    // Deliberately does not reuse /api/admin/overview or /api/admin/vaults:
+    // both are about per-mint V3 program launches, which are Devnet-only
+    // (no Mainnet program is deployed yet); this is just role wallets + a
+    // live RPC balance read, which is already cluster-generic.
+    if(path==='/api/admin/fee-wallets'&&req.method==='GET'){
+      try{
+        const rpc=connection();await assertRpcNetwork(rpc,solanaCluster);
+        const rows=roleAddresses(),unique=[...new Set(rows.map(row=>row.address))];
+        const balances=new Map(await Promise.all(unique.map(async address=>[address,await rpc.getBalance(new PublicKey(address),'finalized')])));
+        return json(res,200,{cluster:solanaCluster,wallets:rows.map(row=>({...row,lamports:String(balances.get(row.address)),balanceStatus:'finalized'})),
+          withdrawalDestination:session.wallet});
+      }catch(error){return json(res,503,{error:String(error.message||'Fee wallet balances are unavailable.')});}
     }
     if(path==='/api/admin/operations-payouts/requests'&&req.method==='GET')
       return json(res,200,{limits:operationsPayouts.limits(),requests:await operationsPayouts.list()});

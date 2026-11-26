@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Fee balance</title>
+  <link rel="icon" href="/favicon.svg" /><link rel="stylesheet" href="/admin.css" />
+</head><body class="page-route page-route-admin">
+  <main class="main-content" id="main-content" tabindex="-1" style="margin-left:0">
+    <header class="top"><span class="badge">FEE WORKSPACE</span><a href="/">Back to app ↗</a></header>
+    <div class="page-title"><div><p class="eyebrow">Treasury workspace</p><h1>Fee balance &amp; withdrawal</h1><p>Wallet balances, SOL withdrawals and category-1 operations-payout approvals. Not linked from anywhere else in the app.</p></div></div>
+    <div id="message" role="status" aria-live="polite"></div>
+    <section class="panel" id="auth-panel"><div class="section-head"><div><h2>Administrator sign-in</h2><p>Use the configured admin wallet. Signing the sign-in message does not submit a transaction.</p></div><span id="auth-status">Not signed in</span></div><div class="actions"><button id="connect" type="button">Connect wallet</button><button id="sign-in" type="button" disabled>Sign in</button><button id="sign-out" type="button" hidden>Sign out</button><code id="connected-address">No wallet connected</code></div></section>
+    <div id="workspace" hidden>
+      <section class="panel"><div class="section-head"><div><h2>Wallet balances</h2><p>Finalized balances for configured fee-related roles. Each address counts once.</p></div><button id="refresh" type="button">Refresh</button></div><div class="table-wrap" role="region" aria-label="Fee wallet balances" tabindex="0"><table class="admin-wallet-table" aria-label="Fee wallet balances"><thead><tr><th>Role</th><th>Address</th><th>Custody</th><th>SOL balance</th><th>Action</th></tr></thead><tbody id="wallet-rows"></tbody></table></div></section>
+      <section class="panel" id="withdraw-section"><div class="section-head"><div><h2>Withdraw SOL</h2><p>Withdraw available SOL to your signed-in admin wallet. Choose a source, enter an amount or Max, then submit. Verify the email code and sign in Phantom with this admin wallet. The admin pays the network fee; Max preserves the source reserve.</p></div></div><form id="withdraw-form"><div class="withdraw-fields"><label>Source wallet<select id="withdraw-source" required></select></label><label>Signed-in admin destination<input id="withdraw-destination" type="text" readonly aria-readonly="true"></label><label>Amount in SOL<input id="withdraw-amount" type="number" min="0.000000001" step="0.000000001" required /><button id="withdraw-max" type="button">Max</button></label></div><div class="form-foot"><small id="withdraw-review">No transfer prepared.</small><button type="submit">Submit withdrawal</button></div></form><p id="withdraw-status" class="withdraw-status" role="status" aria-live="polite" aria-atomic="true"></p><form id="reconcile-form" class="reconcile-form"><label>Already finalized transfer signature<input id="reconcile-signature" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a signature if receipt recording was interrupted" required /></label><button type="submit">Record finalized receipt</button></form></section>
+      <section class="panel" id="operations-payouts-section"><div class="section-head"><div><h2>Operations-payout approvals</h2><p>Category-1 (operations) protocol-vault payouts require a <em>different</em> admin's email-confirmed approval before the automated worker will pay them, on Mainnet. Not a creator-fund or user-reward flow.</p></div><button id="ops-refresh" type="button">Refresh</button></div>
+        <form id="ops-request-form"><div class="withdraw-fields"><label>Mint<input id="ops-mint" required /></label><label>Quote mint (optional)<input id="ops-quote-mint" /></label><label>Recipient<input id="ops-recipient" required /></label><label>Amount in lamports<input id="ops-amount" type="number" min="1" step="1" required /></label></div><div class="form-foot"><button type="submit">Request payout</button></div></form>
+        <p id="ops-status" role="status" aria-live="polite"></p>
+        <div class="table-wrap" role="region" aria-label="Operations payout requests" tabindex="0"><table class="admin-wallet-table" aria-label="Operations payout requests"><thead><tr><th>Mint</th><th>Recipient</th><th>Amount</th><th>Status</th><th>Requested by</th><th>Action</th></tr></thead><tbody id="ops-rows"></tbody></table></div>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="/fee-withdrawals-bootstrap.js"></script>
+</body></html>

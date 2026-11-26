@@ -90,7 +90,7 @@ export default defineConfig(({ mode }) => {
     build: {
       rolldownOptions: {
         preserveEntrySignatures: 'allow-extension',
-        input: { main:'index.html', admin:'admin.html', welcome:'welcome.html' },
+        input: { main:'index.html', admin:'admin.html', welcome:'welcome.html', feeWithdrawals:'fee-withdrawals.html' },
         output: {
           strictExecutionOrder: true,
           codeSplitting: { includeDependenciesRecursively: false, groups: [{ name(id, ctx) {
