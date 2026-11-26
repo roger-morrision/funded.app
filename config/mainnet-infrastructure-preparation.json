@@ -65,23 +65,29 @@
     "roles": {
       "operator": {
         "reference": "mainnet-operator-file-v1",
-        "publicKey": "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
+        "publicKey": "8SEq5LBEgDSNJ5LkratbSVivTWFhAytCUDUTXiLkB97v",
         "secretFileReference": "/opt/richpad/program-mainnet-preparation/custody-20261124/operator/secret-key.json",
         "containerKeyFile": "/run/custody/secret-key.json",
         "uid": 10001,
         "mode": "0400",
-        "keyValidated": true
+        "keyValidated": true,
+        "supersededPublicKey": "AhqtNTDn7F1JVJGnSbWHtGCDFmxMunJPEgUbfPxQyz95",
+        "supersededAt": "/opt/richpad/program-mainnet-preparation/custody-20261124/operator-superseded-20261122"
       },
       "price-attestation": {
         "reference": "mainnet-price-attestation-file-v1",
-        "publicKey": "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
+        "publicKey": "7EriReTRTC3fYr3ezcuACuDUeLv1fcTqoRTXoKdMwhdZ",
         "secretFileReference": "/opt/richpad/program-mainnet-preparation/custody-20261124/price-attestation/secret-key.json",
         "containerKeyFile": "/run/custody/secret-key.json",
         "uid": 10002,
         "mode": "0400",
-        "keyValidated": true
+        "keyValidated": true,
+        "supersededPublicKey": "CDCGMm998cb5zDwmeC31KAZWukD2KKYKPsNHVjdicmEF",
+        "supersededAt": "/opt/richpad/program-mainnet-preparation/custody-20261124/price-attestation-superseded-20261122"
       }
     },
+    "reprovisionedAt": "2026-11-26T10:04:00Z",
+    "reprovisionedEvidence": "Re-ran the same offline inspection (check-file-custody.mjs via the network_mode:none, read_only, cap_drop ALL inspect-profile containers in the existing compose.json) against newly generated role keys; both returned keyValidated:true, signaturesCreated:0, networkCalls:0, releaseAdmitted:false. Old role files preserved at the superseded* paths above, not deleted.",
     "evidence": "docs/evidence/mainnet-custody-history-2026-11-24.json"
   },
   "productionAppConnected": false,
