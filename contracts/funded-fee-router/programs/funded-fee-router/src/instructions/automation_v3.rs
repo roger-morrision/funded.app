@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::{constants::*, error::ErrorCode, state::{MintFeePolicyV3, MintAgencyPolicyV3}};
-use super::rotate::assert_current_router_authority;
+use super::{protected_v3::EXTENSION_BYTES, rotate::assert_current_router_authority};
 
 pub const AUTOMATION_SEED: &[u8] = b"mint-automation-v3";
 
@@ -40,7 +40,7 @@ pub fn initialize(ctx: Context<InitializeMintAutomationV3>, recipients: [Pubkey;
     let agency = Pubkey::find_program_address(&[b"mint-agency-policy-v3", mint.as_ref()], ctx.program_id).0;
     let identity = if info.key() == standard {
         // Only protected policies enforce the creator's three individual budgets.
-        require!(data.len() == 8 + MintFeePolicyV3::INIT_SPACE + 44, ErrorCode::InvalidProtectedMintPolicyV3);
+        require!(data.len() == 8 + MintFeePolicyV3::INIT_SPACE + EXTENSION_BYTES, ErrorCode::InvalidProtectedMintPolicyV3);
         let policy = MintFeePolicyV3::try_deserialize(&mut &data[..])?;
         (policy.mint, policy.creator)
     } else {

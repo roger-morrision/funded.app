@@ -4,17 +4,21 @@ use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
 use crate::{constants::*, error::ErrorCode, state::{
     MintFeePolicyV3, MintWithdrawalApprovalV3, MintWithdrawalV3, RewardVault,
 }};
-use super::{initialize::create_router_account, policy_v3::{category_targets, DisbursementV3Event},
-    rotate::assert_current_router_authority};
+use super::{allocation_remainder::advance_ceiling, initialize::create_router_account,
+    policy_v3::{category_targets, DisbursementV3Event}, rotate::assert_current_router_authority};
 
 const POLICY_BYTES: usize = 8 + MintFeePolicyV3::INIT_SPACE;
-const EXTENSION_BYTES: usize = 8 + 3 * 4 + 3 * 8;
+/// magic(8) + units(3*4) + released(3*8) + ceiling(3*8) + remainder(3*8) + pool_base(8)
+pub(crate) const EXTENSION_BYTES: usize = 8 + 3 * 4 + 3 * 8 + 3 * 8 + 3 * 8 + 8;
 const EXTENSION_MAGIC: &[u8; 8] = b"FNDPROT1";
 const DIRECTED_UNITS: u32 = 8_000_000;
 
 pub(crate) struct ProtectedShares {
     pub(crate) units: [u32; 3],
     pub(crate) released: [u64; 3],
+    pub(crate) ceiling: [u64; 3],
+    pub(crate) remainder: [u64; 3],
+    pub(crate) pool_base: u64,
 }
 
 pub(crate) fn read_shares(policy: &AccountInfo) -> Result<ProtectedShares> {
@@ -23,19 +27,30 @@ pub(crate) fn read_shares(policy: &AccountInfo) -> Result<ProtectedShares> {
     let data = policy.try_borrow_data()?;
     let tail = &data[POLICY_BYTES..];
     require!(&tail[..8] == EXTENSION_MAGIC, ErrorCode::InvalidProtectedMintPolicyV3);
-    let mut units = [0u32; 3];
-    let mut released = [0u64; 3];
-    for (index, value) in units.iter_mut().enumerate() {
-        *value = u32::from_le_bytes(tail[8 + index * 4..12 + index * 4]
-            .try_into().map_err(|_| ErrorCode::InvalidProtectedMintPolicyV3)?);
-    }
-    for (index, value) in released.iter_mut().enumerate() {
-        *value = u64::from_le_bytes(tail[20 + index * 8..28 + index * 8]
-            .try_into().map_err(|_| ErrorCode::InvalidProtectedMintPolicyV3)?);
-    }
+    let read_u32s = |offset: usize| -> Result<[u32; 3]> {
+        let mut out = [0u32; 3];
+        for (index, value) in out.iter_mut().enumerate() {
+            *value = u32::from_le_bytes(tail[offset + index * 4..offset + 4 + index * 4]
+                .try_into().map_err(|_| ErrorCode::InvalidProtectedMintPolicyV3)?);
+        }
+        Ok(out)
+    };
+    let read_u64s = |offset: usize| -> Result<[u64; 3]> {
+        let mut out = [0u64; 3];
+        for (index, value) in out.iter_mut().enumerate() {
+            *value = u64::from_le_bytes(tail[offset + index * 8..offset + 8 + index * 8]
+                .try_into().map_err(|_| ErrorCode::InvalidProtectedMintPolicyV3)?);
+        }
+        Ok(out)
+    };
+    let units = read_u32s(8)?;
+    let released = read_u64s(20)?;
+    let ceiling = read_u64s(44)?;
+    let remainder = read_u64s(68)?;
+    let pool_base = u64::from_le_bytes(tail[92..100].try_into().map_err(|_| ErrorCode::InvalidProtectedMintPolicyV3)?);
     require!(units.iter().map(|value| u64::from(*value)).sum::<u64>() == u64::from(DIRECTED_UNITS),
         ErrorCode::InvalidProtectedMintPolicyV3);
-    Ok(ProtectedShares { units, released })
+    Ok(ProtectedShares { units, released, ceiling, remainder, pool_base })
 }
 
 fn write_shares(policy: &AccountInfo, shares: &ProtectedShares) -> Result<()> {
@@ -48,22 +63,14 @@ fn write_shares(policy: &AccountInfo, shares: &ProtectedShares) -> Result<()> {
     for (index, value) in shares.released.iter().enumerate() {
         tail[20 + index * 8..28 + index * 8].copy_from_slice(&value.to_le_bytes());
     }
-    Ok(())
-}
-
-pub(crate) fn directed_targets(total: u64, units: [u32; 3]) -> Result<[u64; 3]> {
-    let mut targets = [0u64; 3];
-    let mut cumulative = 0u64;
-    let mut previous = 0u64;
-    for (index, share) in units.iter().enumerate() {
-        cumulative = cumulative.checked_add(u64::from(*share)).ok_or(ErrorCode::AmountOverflow)?;
-        let boundary = u64::try_from(u128::from(total) * u128::from(cumulative)
-            / u128::from(DIRECTED_UNITS)).map_err(|_| ErrorCode::AmountOverflow)?;
-        targets[index] = boundary.checked_sub(previous).ok_or(ErrorCode::AmountOverflow)?;
-        previous = boundary;
+    for (index, value) in shares.ceiling.iter().enumerate() {
+        tail[44 + index * 8..52 + index * 8].copy_from_slice(&value.to_le_bytes());
     }
-    require!(cumulative == u64::from(DIRECTED_UNITS), ErrorCode::InvalidProtectedMintPolicyV3);
-    Ok(targets)
+    for (index, value) in shares.remainder.iter().enumerate() {
+        tail[68 + index * 8..76 + index * 8].copy_from_slice(&value.to_le_bytes());
+    }
+    tail[92..100].copy_from_slice(&shares.pool_base.to_le_bytes());
+    Ok(())
 }
 
 #[derive(Accounts)]
@@ -113,6 +120,7 @@ pub fn initialize_protected_mint_v3_handler(ctx: Context<InitializeProtectedMint
     policy.bump = ctx.bumps.policy;
     write_shares(&policy.to_account_info(), &ProtectedShares {
         units: directed_units, released: [0; 3],
+        ceiling: [0; 3], remainder: [0; 3], pool_base: 0,
     })?;
     Ok(())
 }
@@ -226,7 +234,8 @@ pub fn disburse_protected_mint_v3_handler(ctx: Context<DisburseProtectedMintV3>,
     let needs_approval = (1..=4).contains(&category);
     if category == 0 {
         require!(beneficiary < 2, ErrorCode::InvalidProtectedMintPolicyV3);
-        let targets = directed_targets(policy.paid_lamports[0], shares.units)?;
+        advance_ceiling(policy.paid_lamports[0], shares.units, DIRECTED_UNITS,
+            &mut shares.pool_base, &mut shares.remainder, &mut shares.ceiling)?;
         if beneficiary == 0 {
             require!(holder_amount == 0, ErrorCode::InvalidProtectedMintPolicyV3);
             shares.released[0] = shares.released[0].checked_add(amount)
@@ -241,7 +250,7 @@ pub fn disburse_protected_mint_v3_handler(ctx: Context<DisburseProtectedMintV3>,
             shares.released[2] = shares.released[2].checked_add(amount - holder_amount)
                 .ok_or(ErrorCode::AmountOverflow)?;
         }
-        require!(shares.released.iter().zip(targets).all(|(released, target)| *released <= target),
+        require!(shares.released.iter().zip(shares.ceiling).all(|(released, target)| *released <= target),
             ErrorCode::MintWithdrawalBudgetExceededV3);
     } else {
         require!(beneficiary == category + 2, ErrorCode::InvalidProtectedMintPolicyV3);

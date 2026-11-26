@@ -124,7 +124,9 @@ fn community_flow(window: i64, from_reward: bool, donation: bool, full_delivery:
         let saved=funded_fee_router::MintAgencyPolicyV3 {mint:mint.pubkey(),creator:creator.pubkey(),authority:protocol.pubkey(),
           protocol_units:[800_000,60_000,25_000,15_000,400_000,500_000,200_000],settled_lamports:0,paid_lamports:[0;8],withdrawn_lamports:[0;8],
           directed_units:[8_000_000,0,0],directed_released:[0;3],selected_agents:0,agent_spent:[0;3],completed_agents:0,
-          last_promotion_at:0,promotion_sequence:0,promotion_recipient:protocol.pubkey(),config_revision:1,bump};
+          last_promotion_at:0,promotion_sequence:0,promotion_recipient:protocol.pubkey(),config_revision:1,bump,
+          remainder:[0;8],credit_base:[0;8],directed_ceiling:[0;3],directed_remainder:[0;3],directed_pool_base:0,
+          agent_ceiling:[0;3],agent_remainder:[0;3],agent_pool_base:0};
         let mut bytes=vec![0;POLICY_BASE+RULES_LEN];saved.try_serialize(&mut &mut bytes[..]).unwrap();
         write_rules(&mut bytes,POLICY_BASE,AgencyRules{community_window_seconds:window,..AgencyRules::default()}).unwrap();
         svm.set_account(policy,solana_account::Account{lamports:10_000_000,data:bytes,owner:program_id,executable:false,rent_epoch:0}).unwrap();

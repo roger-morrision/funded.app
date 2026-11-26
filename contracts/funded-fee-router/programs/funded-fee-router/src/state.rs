@@ -51,6 +51,10 @@ pub struct MintFeePolicyV3 {
     pub paid_lamports: [u64; 7],
     pub withdrawn_lamports: [u64; 7],
     pub bump: u8,
+    /// Per-category fractional numerator carried from the last settlement's
+    /// largest-remainder allocation (see instructions::allocation_remainder).
+    /// Bounds lifetime rounding loss per category to under one lamport.
+    pub remainder: [u64; 7],
 }
 
 /// Eight categories for new agency launches. Existing seven-category accounts
@@ -74,11 +78,31 @@ pub struct MintAgencyPolicyV3 {
     pub promotion_recipient: Pubkey,
     pub config_revision: u64,
     pub bump: u8,
+    /// Carried remainder for the main 8-category settlement (parallels
+    /// MintFeePolicyV3::remainder; see instructions::allocation_remainder).
+    pub remainder: [u64; 8],
+    /// Per-category token-conversion SOL credit already folded into
+    /// paid_lamports, so only its growth since the last settlement (never
+    /// the lifetime credited total) is added again.
+    pub credit_base: [u64; 8],
+    /// Monotonic ceiling tracking for the category-0 creator-directed split
+    /// (creator wallet / holder / X), replacing a boundary recomputed fresh
+    /// from the growing paid_lamports[0] pool each call, which is not
+    /// individually monotonic per sub-share even though the categories
+    /// together always sum to the pool exactly.
+    pub directed_ceiling: [u64; 3],
+    pub directed_remainder: [u64; 3],
+    pub directed_pool_base: u64,
+    /// Same monotonic ceiling tracking for the category-7 AI-agency split.
+    pub agent_ceiling: [u64; 3],
+    pub agent_remainder: [u64; 3],
+    pub agent_pool_base: u64,
 }
 
 impl MintAgencyPolicyV3 {
     pub const INIT_SPACE: usize = 32 * 4 + 4 * 7 + 8 + 8 * 16 + 4 * 3
-        + 8 * 3 + 1 + 8 * 3 + 1 + 8 + 4 + 8 + 1;
+        + 8 * 3 + 1 + 8 * 3 + 1 + 8 + 4 + 8 + 1
+        + 8 * 8 + 8 * 8 + 8 * 3 + 8 * 3 + 8 + 8 * 3 + 8 * 3 + 8;
 }
 
 #[account]
@@ -142,7 +166,7 @@ impl AgencyBuybackV3 {
 }
 
 impl MintFeePolicyV3 {
-    pub const INIT_SPACE: usize = 32 * 3 + 4 * 6 + 8 + 8 * 7 + 8 * 7 + 1;
+    pub const INIT_SPACE: usize = 32 * 3 + 4 * 6 + 8 + 8 * 7 + 8 * 7 + 1 + 8 * 7;
 }
 
 #[account]
@@ -170,10 +194,18 @@ pub struct MintTokenLedgerV3 {
     pub withdrawn: [u64; 8],
     pub released: [u64; 3],
     pub bump: u8,
+    /// Carried remainder for the main category settlement, and monotonic
+    /// ceiling tracking for the category-0 creator-directed split (see
+    /// instructions::allocation_remainder and MintFeePolicyV3::remainder).
+    pub remainder: [u64; 8],
+    pub directed_ceiling: [u64; 3],
+    pub directed_remainder: [u64; 3],
+    pub directed_pool_base: u64,
 }
 
 impl MintTokenLedgerV3 {
-    pub const INIT_SPACE: usize = 32 + 32 + 8 + 8 * 8 + 8 * 8 + 8 * 3 + 1;
+    pub const INIT_SPACE: usize = 32 + 32 + 8 + 8 * 8 + 8 * 8 + 8 * 3 + 1
+        + 8 * 8 + 8 * 3 + 8 * 3 + 8;
 }
 
 #[account]

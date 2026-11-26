@@ -52,7 +52,9 @@ fn paired_settlement_and_withdrawal_require_spendable_delivery() {
         MintAgencyPolicyV3{mint:source,creator:op,authority:op,protocol_units:[2_000_000,0,0,0,0,0,0],settled_lamports:0,
             paid_lamports:[0;8],withdrawn_lamports:[0;8],directed_units:[8_000_000,0,0],directed_released:[0;3],
             selected_agents:0,agent_spent:[0;3],completed_agents:0,last_promotion_at:0,promotion_sequence:0,
-            promotion_recipient:Pubkey::default(),config_revision:1,bump}.try_serialize(&mut data).unwrap();
+            promotion_recipient:Pubkey::default(),config_revision:1,bump,remainder:[0;8],credit_base:[0;8],
+            directed_ceiling:[0;3],directed_remainder:[0;3],directed_pool_base:0,
+            agent_ceiling:[0;3],agent_remainder:[0;3],agent_pool_base:0}.try_serialize(&mut data).unwrap();
         store(&mut svm,policy,program,data);
         let (ledger,ledger_bump)=pda(&[funded_fee_router::MINT_TOKEN_LEDGER_V3_SEED,source.as_ref(),quote.as_ref()]);
         let router=pda(&[funded_fee_router::MINT_ROUTER_V3_SEED,source.as_ref()]).0;
@@ -76,7 +78,8 @@ fn paired_settlement_and_withdrawal_require_spendable_delivery() {
         // Prior settled custody supports an independent withdrawal even if a new settlement rejects.
         let mut ledger_bytes=vec![];
         let mut paid=[0;8]; paid[0]=4_000; paid[1]=1_000;
-        MintTokenLedgerV3{mint:source,quote_mint:quote,settled:5_000,paid,withdrawn:[0;8],released:[0;3],bump:ledger_bump}
+        MintTokenLedgerV3{mint:source,quote_mint:quote,settled:5_000,paid,withdrawn:[0;8],released:[0;3],bump:ledger_bump,
+            remainder:[0;8],directed_ceiling:[0;3],directed_remainder:[0;3],directed_pool_base:0}
             .try_serialize(&mut ledger_bytes).unwrap();
         store(&mut svm,ledger,program,ledger_bytes);
         let claim_id=[11;32];

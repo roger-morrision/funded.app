@@ -172,7 +172,7 @@ fn queued_orders_reject_stale_revision_even_after_switching_back(){
     let source=Pubkey::new_unique();let creator=Pubkey::new_unique();
     let (policy,bump_actual)=Pubkey::find_program_address(&[funded_fee_router::MINT_POLICY_V3_SEED,source.as_ref()],&id);
     let mut data=Vec::new();funded_fee_router::MintFeePolicyV3 {mint:source,creator,authority:operator.pubkey(),protocol_units:[0;6],
-        settled_lamports:1_000_000,paid_lamports:[1_000_000;7],withdrawn_lamports:[0;7],bump:bump_actual}.try_serialize(&mut data).unwrap();
+        settled_lamports:1_000_000,paid_lamports:[1_000_000;7],withdrawn_lamports:[0;7],bump:bump_actual,remainder:[0;7]}.try_serialize(&mut data).unwrap();
     store(&mut svm,policy,id,data);
     let vault=Pubkey::find_program_address(&[funded_fee_router::MINT_VAULT_V3_SEED,source.as_ref(),&[6]],&id).0;
     let price_config=Pubkey::find_program_address(&[b"buyback-price-signer-v1"],&id).0;

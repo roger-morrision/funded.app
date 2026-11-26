@@ -1,12 +1,17 @@
 use anchor_lang::prelude::*;
-use crate::{constants::*, error::ErrorCode, state::AgencyConfigV3};
+use crate::{constants::*, error::ErrorCode, state::{AgencyConfigV3, MintAgencyPolicyV3}};
 use super::{agency_policy_v3::{agency_category_targets, AGENCY_CONFIG_SEED}, rotate::assert_current_router_authority};
 
 // Append-only extensions preserve all existing account offsets and policies.
+// CONFIG_BASE and POLICY_BASE are derived from the exact account sizes they
+// follow, not hand-counted: a struct growing (as MintAgencyPolicyV3 did when
+// the carried-remainder/ceiling fields were added) must shift where this
+// trailing extension starts, and a stale literal here would silently read
+// and write past the wrong offset instead of failing loudly.
 pub const RULES_LEN: usize = 40;
 const MAGIC: &[u8; 8] = b"FUNDRUL1";
-pub const CONFIG_BASE: usize = 77;
-pub const POLICY_BASE: usize = 383;
+pub const CONFIG_BASE: usize = 8 + AgencyConfigV3::INIT_SPACE;
+pub const POLICY_BASE: usize = 8 + MintAgencyPolicyV3::INIT_SPACE;
 
 // Devnet test builds allow 5-minute promotion billing; Mainnet keeps one day.
 #[cfg(all(feature = "devnet-v3-program", not(feature = "mainnet-v3-program")))]

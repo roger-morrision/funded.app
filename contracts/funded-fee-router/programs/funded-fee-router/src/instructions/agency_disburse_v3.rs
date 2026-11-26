@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
 use crate::{constants::*, error::ErrorCode, state::{MintAgencyPolicyV3, MintWithdrawalApprovalV3, MintWithdrawalV3, RewardVault, AgencyPromotionV3}};
-use super::{agency_policy_v3::{AGENCY_POLICY_SEED,agent_targets}, rotate::assert_current_router_authority};
+use super::{agency_policy_v3::{AGENCY_POLICY_SEED, advance_agent_ceiling},
+    allocation_remainder::advance_ceiling, rotate::assert_current_router_authority};
 
 #[derive(Accounts)]
 #[instruction(withdrawal_id: [u8; 32])]
@@ -52,16 +53,6 @@ pub struct DisburseAgencyMintV3<'info> {
     pub system_program: Program<'info, System>,
 }
 
-fn directed_targets(pool: u64, units: [u32; 3]) -> Result<[u64; 3]> {
-    require!(units.iter().map(|n| u64::from(*n)).sum::<u64>() == 8_000_000, ErrorCode::InvalidAgencyPolicyV3);
-    let mut cumulative = 0u64; let mut prior = 0u64; let mut result = [0u64; 3];
-    for (index, share) in units.iter().enumerate() {
-        cumulative += u64::from(*share);
-        let boundary = u64::try_from(u128::from(pool) * u128::from(cumulative) / 8_000_000).map_err(|_| ErrorCode::AmountOverflow)?;
-        result[index] = boundary - prior; prior = boundary;
-    }
-    Ok(result)
-}
 
 pub fn disburse(ctx: Context<DisburseAgencyMintV3>, withdrawal_id: [u8; 32], category: u8, beneficiary: u8, amount: u64, holder_amount: u64) -> Result<()> {
     super::automation_v3::authorize(ctx.program_id, &ctx.accounts.creator.to_account_info(),
@@ -85,8 +76,15 @@ pub fn disburse(ctx: Context<DisburseAgencyMintV3>, withdrawal_id: [u8; 32], cat
             policy.directed_released[1] = policy.directed_released[1].checked_add(holder_amount).ok_or(ErrorCode::AmountOverflow)?;
             policy.directed_released[2] = policy.directed_released[2].checked_add(amount - holder_amount).ok_or(ErrorCode::AmountOverflow)?;
         }
-        let targets = directed_targets(policy.paid_lamports[0], policy.directed_units)?;
-        require!(policy.directed_released.iter().zip(targets).all(|(released, target)| *released <= target), ErrorCode::MintWithdrawalBudgetExceededV3);
+        let mut pool_base = policy.directed_pool_base;
+        let mut remainder = policy.directed_remainder;
+        let mut ceiling = policy.directed_ceiling;
+        advance_ceiling(policy.paid_lamports[0], policy.directed_units, 8_000_000,
+            &mut pool_base, &mut remainder, &mut ceiling)?;
+        policy.directed_pool_base = pool_base;
+        policy.directed_remainder = remainder;
+        policy.directed_ceiling = ceiling;
+        require!(policy.directed_released.iter().zip(policy.directed_ceiling).all(|(released, target)| *released <= target), ErrorCode::MintWithdrawalBudgetExceededV3);
     } else { require!(beneficiary == category + 2 && holder_amount == 0, ErrorCode::InvalidProtectedMintPolicyV3); }
     if category == 0 && beneficiary == 1 || category == 5 {
         let (expected, bump) = Pubkey::find_program_address(&[REWARD_VAULT_SEED, ctx.accounts.authority.key.as_ref(), mint.as_ref()], ctx.program_id);
@@ -144,7 +142,8 @@ pub fn bill_promotion(ctx: Context<BillAgencyPromotionV3>, post_id: u64, deliver
         && sequence == policy.promotion_sequence && posted_at > 0 && posted_at <= now
         && (policy.last_promotion_at == 0
             || posted_at.saturating_sub(policy.last_promotion_at) >= rules.promotion_interval_seconds), ErrorCode::InvalidAgencyPolicyV3);
-    let target = agent_targets(policy.paid_lamports[7], policy.selected_agents)?[0];
+    advance_agent_ceiling(policy)?;
+    let target = policy.agent_ceiling[0];
     let spent = policy.agent_spent[0].checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
     let withdrawn = policy.withdrawn_lamports[7].checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
     require!(spent <= target && withdrawn <= policy.paid_lamports[7], ErrorCode::MintWithdrawalBudgetExceededV3);

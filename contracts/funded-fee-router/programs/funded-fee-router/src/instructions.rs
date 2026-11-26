@@ -14,6 +14,7 @@ pub mod recover_wrapped_sol;
 pub mod guard;
 #[cfg(feature = "mainnet-v3-program")]
 pub use guard::*;
+pub mod allocation_remainder;
 pub mod policy_v3;
 pub mod protected_v3;
 pub mod automation_v3;

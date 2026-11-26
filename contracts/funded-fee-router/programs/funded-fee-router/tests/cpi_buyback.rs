@@ -104,10 +104,12 @@ fn run(agency:bool,donation:u8){
         let mut paid=[0;8];paid[if milestone{7}else{6}]=1_000_000;
         store(&mut svm,policy,&funded_fee_router::MintAgencyPolicyV3{mint:source,creator,authority:op.pubkey(),protocol_units:[0;7],settled_lamports:1_000_000,
             paid_lamports:paid,withdrawn_lamports:[0;8],directed_units:[0;3],directed_released:[0;3],selected_agents:if milestone{2}else{0},agent_spent:[0;3],
-            completed_agents:0,last_promotion_at:0,promotion_sequence:0,promotion_recipient:Pubkey::default(),config_revision:1,bump});
+            completed_agents:0,last_promotion_at:0,promotion_sequence:0,promotion_recipient:Pubkey::default(),config_revision:1,bump,
+            remainder:[0;8],credit_base:[0;8],directed_ceiling:[0;3],directed_remainder:[0;3],directed_pool_base:0,
+            agent_ceiling:[0;3],agent_remainder:[0;3],agent_pool_base:0});
     }else{
         let mut paid=[0;7];paid[6]=1_000_000;
-        store(&mut svm,policy,&funded_fee_router::MintFeePolicyV3{mint:source,creator,authority:op.pubkey(),protocol_units:[0;6],settled_lamports:1_000_000,paid_lamports:paid,withdrawn_lamports:[0;7],bump});
+        store(&mut svm,policy,&funded_fee_router::MintFeePolicyV3{mint:source,creator,authority:op.pubkey(),protocol_units:[0;6],settled_lamports:1_000_000,paid_lamports:paid,withdrawn_lamports:[0;7],bump,remainder:[0;7]});
     }
     let vault=key("vault");svm.airdrop(&vault,2_000_000).unwrap();
     let price_config=Pubkey::find_program_address(&[b"buyback-price-signer-v1"],&program).0;

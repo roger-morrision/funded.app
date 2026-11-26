@@ -103,11 +103,14 @@ fn run(prefund_wsol:bool){
         mint:source,creator,authority:operator.pubkey(),protocol_units:[0;7],settled_lamports:0,
         paid_lamports:[0;8],withdrawn_lamports:[0;8],directed_units:[0;3],directed_released:[0;3],
         selected_agents:0,agent_spent:[0;3],completed_agents:0,last_promotion_at:0,promotion_sequence:0,
-        promotion_recipient:Pubkey::default(),config_revision:1,bump:policy_bump});
+        promotion_recipient:Pubkey::default(),config_revision:1,bump:policy_bump,
+        remainder:[0;8],credit_base:[0;8],directed_ceiling:[0;3],directed_remainder:[0;3],directed_pool_base:0,
+        agent_ceiling:[0;3],agent_remainder:[0;3],agent_pool_base:0});
     let (ledger,ledger_bump)=Pubkey::find_program_address(&[funded_fee_router::MINT_TOKEN_LEDGER_V3_SEED,source.as_ref(),quote.as_ref()],&program);
     let mut paid=[0;8];paid[index]=1_000_000;
     store(&mut svm,ledger,&funded_fee_router::MintTokenLedgerV3{
-        mint:source,quote_mint:quote,settled:1_000_000,paid,withdrawn:[0;8],released:[0;3],bump:ledger_bump});
+        mint:source,quote_mint:quote,settled:1_000_000,paid,withdrawn:[0;8],released:[0;3],bump:ledger_bump,
+        remainder:[0;8],directed_ceiling:[0;3],directed_remainder:[0;3],directed_pool_base:0});
     let quote_ata=get_associated_token_address_with_program_id(&vault,&quote,&spl_token::ID);
     let wsol_ata=get_associated_token_address_with_program_id(&vault,&spl_token::native_mint::id(),&spl_token::ID);
     let mut token_data=vec![0;spl_token::state::Account::LEN];

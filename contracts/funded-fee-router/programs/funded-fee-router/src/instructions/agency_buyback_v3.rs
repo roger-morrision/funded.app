@@ -9,7 +9,7 @@ use anchor_lang::solana_program::{
 use anchor_spl::{associated_token::AssociatedToken, token::Token};
 
 use crate::{constants::*, error::ErrorCode, state::{AgencyBuybackV3, MintAgencyPolicyV3}};
-use super::{rotate::assert_current_router_authority, agency_policy_v3::{AGENCY_POLICY_SEED, agent_targets}};
+use super::{rotate::assert_current_router_authority, agency_policy_v3::{AGENCY_POLICY_SEED, advance_agent_ceiling}};
 
 // Devnet pilot assets. The production program cannot inherit these addresses.
 #[cfg(not(feature = "configurable-rich-assets"))] const FUNDED_MINT: &str = "C5JFX2W3YtLDmiZeUTcYjfLqXPWmW2GZZC5fbxv7ut64";
@@ -199,6 +199,7 @@ pub fn handler<'info>(ctx: Context<'info, BuybackAgencyMintV3<'info>>,
             == expected_ata(&native_mint, &vault.key(), &quote_program),
         ErrorCode::InvalidMintBuybackV3);
     require_pump_accounts(swap_accounts, &ctx.accounts)?;
+    advance_agent_ceiling(&mut ctx.accounts.policy)?;
     let policy = &ctx.accounts.policy;
     let now = Clock::get()?;
     let remaining = if own_coin {
@@ -212,7 +213,7 @@ pub fn handler<'info>(ctx: Context<'info, BuybackAgencyMintV3<'info>>,
             && observed_at > 0 && observed_at <= now.unix_timestamp
             && now.unix_timestamp.saturating_sub(observed_at) <= 60
             && market_cap_usd_micros >= threshold, ErrorCode::InvalidAgencyPolicyV3);
-        agent_targets(policy.paid_lamports[7], policy.selected_agents)?[usize::from(agent)]
+        policy.agent_ceiling[usize::from(agent)]
             .checked_sub(policy.agent_spent[usize::from(agent)]).ok_or(ErrorCode::AmountOverflow)?
     } else {
         policy.paid_lamports[6].checked_sub(policy.withdrawn_lamports[6]).ok_or(ErrorCode::AmountOverflow)?

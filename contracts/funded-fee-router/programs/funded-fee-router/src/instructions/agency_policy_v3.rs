@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, system_instruction};
 use crate::{constants::*, error::ErrorCode, state::{AgencyConfigV3, MintAgencyPolicyV3, MintAgencyClaimV3}};
-use super::{initialize::create_router_account, rotate::assert_current_router_authority};
+use super::{allocation_remainder::{advance_ceiling, allocate_increment}, initialize::create_router_account, rotate::assert_current_router_authority};
 
 pub const AGENCY_CONFIG_SEED: &[u8] = b"agency-config-v3";
 pub const AGENCY_POLICY_SEED: &[u8] = b"mint-agency-policy-v3";
@@ -26,21 +26,20 @@ pub fn agency_category_targets(total: u64, units: [u32; 7]) -> Result<[u64; 8]> 
     Ok(result)
 }
 
-pub fn agent_targets(total: u64, selected: u8) -> Result<[u64; 3]> {
+/// Advances `policy.agent_ceiling` to reflect growth in `policy.paid_lamports[7]`
+/// since the last call, split monotonically across the selected agents (bit
+/// index = agent id). Unselected agents keep a permanent ceiling of zero.
+pub fn advance_agent_ceiling(policy: &mut MintAgencyPolicyV3) -> Result<()> {
+    let selected = policy.selected_agents;
     require!(selected & !7 == 0, ErrorCode::InvalidAgencyPolicyV3);
-    let count = selected.count_ones();
-    let mut result = [0u64; 3];
-    let mut ordinal = 0u32;
-    let mut prior = 0u64;
-    for (index, amount) in result.iter_mut().enumerate() {
-        if selected & (1 << index) == 0 { continue; }
-        ordinal += 1;
-        let boundary = u64::try_from(u128::from(total) * u128::from(ordinal) / u128::from(count))
-            .map_err(|_| ErrorCode::AmountOverflow)?;
-        *amount = boundary.checked_sub(prior).ok_or(ErrorCode::AmountOverflow)?;
-        prior = boundary;
+    let unit_total = u32::from(selected.count_ones());
+    if unit_total == 0 { return Ok(()); } // No selection retains the full budget in the agency vault.
+    let mut units = [0u32; 3];
+    for (index, unit) in units.iter_mut().enumerate() {
+        if selected & (1 << index) != 0 { *unit = 1; }
     }
-    Ok(result) // No selection retains the full budget in the agency vault.
+    advance_ceiling(policy.paid_lamports[7], units, unit_total,
+        &mut policy.agent_pool_base, &mut policy.agent_remainder, &mut policy.agent_ceiling)
 }
 
 #[derive(Accounts)]
@@ -119,6 +118,9 @@ pub fn initialize_mint(ctx: Context<InitializeAgencyMintV3>, directed_units: [u3
     policy.last_promotion_at = 0; policy.promotion_sequence = 0;
     policy.promotion_recipient = ctx.accounts.config.promotion_recipient;
     policy.config_revision = config_revision; policy.bump = ctx.bumps.policy;
+    policy.remainder = [0; 8]; policy.credit_base = [0; 8];
+    policy.directed_ceiling = [0; 3]; policy.directed_remainder = [0; 3]; policy.directed_pool_base = 0;
+    policy.agent_ceiling = [0; 3]; policy.agent_remainder = [0; 3]; policy.agent_pool_base = 0;
     let rules = read_rules(&ctx.accounts.config.to_account_info().try_borrow_data()?, CONFIG_BASE)?;
     write_rules(&mut policy.to_account_info().try_borrow_mut_data()?, POLICY_BASE, rules)?;
     Ok(())
@@ -191,13 +193,22 @@ fn settle_collection<'info>(program_id: &Pubkey, authority: &Signer<'info>, mint
     let credit = super::token_convert_v3::read_credit(program_id, &mint, vaults.get(8))?;
     let vaults = &vaults[..8];
     let total = policy.settled_lamports.checked_add(expected_lamports).ok_or(ErrorCode::AmountOverflow)?;
-    let mut targets = agency_category_targets(total, policy.protocol_units)?;
-    for (target, extra) in targets.iter_mut().zip(credit) { *target = target.checked_add(extra).ok_or(ErrorCode::AmountOverflow)?; }
+    // Allocate only this settlement's own amount (see policy_v3::settle_collection
+    // for why recomputing a boundary from the lifetime total is not safe), then
+    // separately add only the *growth* in token-conversion SOL credit since the
+    // last settlement -- `credit` itself is a lifetime-cumulative value, so
+    // adding it in full every time would double-count what earlier settlements
+    // already folded in.
+    let mut units = [0u32; 8];
+    units[0] = 8_000_000;
+    units[1..].copy_from_slice(&policy.protocol_units);
+    let increments = allocate_increment(expected_lamports, units, 10_000_000, &mut policy.remainder)?;
     let mut delta = [0u64; 8]; let reserve = Rent::get()?.minimum_balance(0);
     for (index, vault) in vaults.iter().enumerate() {
         let (expected, _) = Pubkey::find_program_address(&[MINT_VAULT_V3_SEED, mint.as_ref(), &[index as u8]], program_id);
         require!(vault.key() == expected && vault.is_writable && vault.owner == &System::id() && vault.data_is_empty(), ErrorCode::InvalidMintFeeVaultV3);
-        delta[index] = targets[index].checked_sub(policy.paid_lamports[index]).ok_or(ErrorCode::AmountOverflow)?;
+        let credit_growth = credit[index].checked_sub(policy.credit_base[index]).ok_or(ErrorCode::AmountOverflow)?;
+        delta[index] = increments[index].checked_add(credit_growth).ok_or(ErrorCode::AmountOverflow)?;
         if delta[index] > 0 {
             if vault.lamports() < reserve { invoke(&system_instruction::transfer(&authority.key(), &vault.key(), reserve - vault.lamports()),
                 &[authority.to_account_info(), vault.clone(), system_program.to_account_info()])?; }
@@ -206,8 +217,10 @@ fn settle_collection<'info>(program_id: &Pubkey, authority: &Signer<'info>, mint
             **router.try_borrow_mut_lamports()? = router_balance;
             **vault.try_borrow_mut_lamports()? = vault_balance;
         }
+        policy.paid_lamports[index] = policy.paid_lamports[index].checked_add(delta[index]).ok_or(ErrorCode::AmountOverflow)?;
     }
-    policy.settled_lamports = total; policy.paid_lamports = targets;
+    policy.credit_base = credit;
+    policy.settled_lamports = total;
     claim.claim_id = claim_id; claim.mint = mint;
     claim.total_lamports = expected_lamports; claim.category_lamports = delta; claim.created_at = Clock::get()?.unix_timestamp;
     Ok(())

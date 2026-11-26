@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::{invoke, invoke_signed}, system_instruction};
 use crate::{constants::*, error::ErrorCode, state::{MintClaimRecordV3, MintFeePolicyV3, MintWithdrawalV3, RewardVault}};
-use super::{initialize::create_router_account, rotate::assert_current_router_authority};
+use super::{allocation_remainder::allocate_increment, initialize::create_router_account, rotate::assert_current_router_authority};
 
 const CREATOR_UNITS: u32 = 8_000_000;
 const TOTAL_UNITS: u32 = 10_000_000;
@@ -71,6 +71,7 @@ pub fn initialize_mint_v3_handler(ctx: Context<InitializeMintV3>, protocol_units
     policy.paid_lamports = [0; VAULT_COUNT];
     policy.withdrawn_lamports = [0; VAULT_COUNT];
     policy.bump = ctx.bumps.policy;
+    policy.remainder = [0; VAULT_COUNT];
     Ok(())
 }
 
@@ -170,11 +171,22 @@ pub(crate) fn settle_collection<'info>(program_id: &Pubkey, authority: &Signer<'
     require!(expected_lamports <= available, ErrorCode::MintClaimAmountMismatchV3);
     let amount = expected_lamports;
     let new_total = policy.settled_lamports.checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
-    let targets = category_targets(new_total, policy.protocol_units)?;
+    // Allocate only this settlement's own amount, carrying each category's
+    // fractional leftover forward in policy.remainder. Recomputing a boundary
+    // difference fresh from the ever-growing lifetime total (the previous
+    // approach) is not individually monotonic per category even though the
+    // categories always sum to the total exactly, which could make a later
+    // settlement's target smaller than what is already stored and make the
+    // subtraction below fail forever after. Accumulating a non-negative
+    // increment every time cannot regress.
+    let mut units = [0u32; VAULT_COUNT];
+    units[0] = CREATOR_UNITS;
+    units[1..].copy_from_slice(&policy.protocol_units);
+    let increments = allocate_increment(amount, units, TOTAL_UNITS, &mut policy.remainder)?;
     let mut paid = [0u64; VAULT_COUNT];
     let vault_reserve = Rent::get()?.minimum_balance(0);
     for (index, vault) in vaults.iter().enumerate() {
-        let allocation = targets[index].checked_sub(policy.paid_lamports[index]).ok_or(ErrorCode::AmountOverflow)?;
+        let allocation = increments[index];
         if allocation > 0 {
             // A new system-owned PDA with a small allocation can fail the
             // transaction-wide rent check. Keep rent separate from fee funds.
@@ -189,7 +201,7 @@ pub(crate) fn settle_collection<'info>(program_id: &Pubkey, authority: &Signer<'
             **router.try_borrow_mut_lamports()? = router_balance;
             **vault.try_borrow_mut_lamports()? = vault_balance;
         }
-        policy.paid_lamports[index] = targets[index];
+        policy.paid_lamports[index] = policy.paid_lamports[index].checked_add(allocation).ok_or(ErrorCode::AmountOverflow)?;
         paid[index] = allocation;
     }
     policy.settled_lamports = new_total;

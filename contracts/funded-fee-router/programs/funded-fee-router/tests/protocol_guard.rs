@@ -363,7 +363,9 @@ fn promotion(f: &mut Fixture, amount: u64) -> Instruction {
         protocol_units:[800_000,100_000,0,0,400_000,500_000,200_000], settled_lamports:100_000,
         paid_lamports:paid, withdrawn_lamports:[0;8], directed_units:[4_000_000,4_000_000,0],
         directed_released:[0;3], selected_agents:1, agent_spent:[0;3], completed_agents:0,
-        last_promotion_at:0, promotion_sequence:0, promotion_recipient:recipient, config_revision:0, bump };
+        last_promotion_at:0, promotion_sequence:0, promotion_recipient:recipient, config_revision:0, bump,
+        remainder:[0;8], credit_base:[0;8], directed_ceiling:[0;3], directed_remainder:[0;3], directed_pool_base:0,
+        agent_ceiling:[0;3], agent_remainder:[0;3], agent_pool_base:0 };
     let mut data = Vec::new(); state.try_serialize(&mut data).unwrap();
     f.svm.set_account(policy, solana_account::Account { lamports:10_000_000, data,
         owner:f.program_id, executable:false, rent_epoch:0 }).unwrap();

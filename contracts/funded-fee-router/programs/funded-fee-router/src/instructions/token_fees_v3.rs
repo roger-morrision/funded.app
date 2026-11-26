@@ -8,12 +8,14 @@ use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, Tran
 
 use crate::{constants::*, error::ErrorCode, state::{MintAgencyPolicyV3, MintFeePolicyV3, MintTokenLedgerV3,
     MintClaimRecordV3, MintWithdrawalApprovalV3, MintWithdrawalV3, RewardVault}};
-use super::{policy_v3::category_targets, protected_v3::{read_shares, directed_targets},
-    agency_policy_v3::{agency_category_targets, AGENCY_POLICY_SEED}, rotate::assert_current_router_authority};
+use super::{allocation_remainder::{advance_ceiling, allocate_increment},
+    protected_v3::read_shares, agency_policy_v3::AGENCY_POLICY_SEED,
+    rotate::assert_current_router_authority};
 
 /// Up to eight category vaults: seven for protected policies, eight (with the
 /// AI-agency budget) for agency policies.
 const VAULTS: usize = 8;
+const DIRECTED_UNITS: u32 = 8_000_000;
 
 /// The coin's fee policy, either protected (seven categories) or agency
 /// (eight), read from the account at its canonical PDA.
@@ -21,14 +23,21 @@ struct PolicyView { creator: Pubkey, agency: bool, protocol: [u32; 7], directed:
 
 impl PolicyView {
     fn vaults(&self) -> usize { if self.agency { 8 } else { 7 } }
-    fn targets(&self, total: u64) -> Result<[u64; VAULTS]> {
-        if self.agency { return agency_category_targets(total, self.protocol); }
-        let mut units = [0u32; 6];
-        units.copy_from_slice(&self.protocol[..6]);
-        let seven = category_targets(total, units)?;
-        let mut out = [0u64; VAULTS];
-        out[..7].copy_from_slice(&seven);
-        Ok(out)
+    /// This settlement's own amount only, split with a carried remainder (see
+    /// instructions::allocation_remainder) -- never a boundary recomputed
+    /// fresh from the lifetime total, which is not individually monotonic per
+    /// category even though the categories always sum to the total exactly.
+    fn increment(&self, amount: u64, remainder: &mut [u64; VAULTS]) -> Result<[u64; VAULTS]> {
+        let mut units = [0u32; VAULTS];
+        units[0] = 8_000_000;
+        units[1..8].copy_from_slice(&self.protocol);
+        if !self.agency {
+            // The legacy seven-category layout has no eighth (agency) unit;
+            // category_targets already validates protocol[..6] sums with the
+            // fixed creator share, so protocol[6] is always zero here.
+            require!(self.protocol[6] == 0, ErrorCode::InvalidProtocolFeeRates);
+        }
+        allocate_increment(amount, units, 10_000_000, remainder)
     }
 }
 
@@ -88,6 +97,10 @@ pub fn initialize_token_ledger_v3_handler(ctx: Context<InitializeTokenLedgerV3>)
     ledger.withdrawn = [0; VAULTS];
     ledger.released = [0; 3];
     ledger.bump = ctx.bumps.ledger;
+    ledger.remainder = [0; VAULTS];
+    ledger.directed_ceiling = [0; 3];
+    ledger.directed_remainder = [0; 3];
+    ledger.directed_pool_base = 0;
     Ok(())
 }
 
@@ -133,13 +146,13 @@ pub fn settle_mint_token_v3_handler<'info>(ctx: Context<'info, SettleMintTokenV3
     let decimals = ctx.accounts.quote_mint.decimals;
     let ledger = &mut ctx.accounts.ledger;
     let new_total = ledger.settled.checked_add(expected_amount).ok_or(ErrorCode::AmountOverflow)?;
-    let targets = view.targets(new_total)?;
+    let increments = view.increment(expected_amount, &mut ledger.remainder)?;
     let router_bump = [ctx.bumps.router];
     let router_seeds: &[&[u8]] = &[MINT_ROUTER_V3_SEED, mint.as_ref(), &router_bump];
     let router_before = ctx.accounts.router_token.amount;
     let mut paid = [0u64; VAULTS];
     for index in 0..view.vaults() {
-        let allocation = targets[index].checked_sub(ledger.paid[index]).ok_or(ErrorCode::AmountOverflow)?;
+        let allocation = increments[index];
         let vault_info = &ctx.remaining_accounts[index];
         // Each vault token account must hold the paired token and belong to
         // this coin's vault PDA for that category.
@@ -160,7 +173,7 @@ pub fn settle_mint_token_v3_handler<'info>(ctx: Context<'info, SettleMintTokenV3
             require!(received == Some(allocation), ErrorCode::MintClaimAmountMismatchV3);
         }
         paid[index] = allocation;
-        ledger.paid[index] = targets[index];
+        ledger.paid[index] = ledger.paid[index].checked_add(allocation).ok_or(ErrorCode::AmountOverflow)?;
     }
     ctx.accounts.router_token.reload()?;
     require!(router_before.checked_sub(ctx.accounts.router_token.amount) == Some(expected_amount),
@@ -281,7 +294,18 @@ pub fn disburse_protected_mint_token_v3_handler(ctx: Context<DisburseProtectedMi
     let owner = &ctx.accounts.recipient_owner;
     if category == 0 {
         require!(beneficiary < 2, ErrorCode::InvalidProtectedMintPolicyV3);
-        let targets = directed_targets(ledger.paid[0], view.directed)?;
+        // A ceiling recomputed fresh from the growing paid[0] pool every call
+        // is not individually monotonic per sub-share (see
+        // instructions::allocation_remainder::advance_ceiling), so advance a
+        // persisted ceiling by only the pool's growth instead.
+        let mut pool_base = ledger.directed_pool_base;
+        let mut remainder = ledger.directed_remainder;
+        let mut ceiling = ledger.directed_ceiling;
+        advance_ceiling(ledger.paid[0], view.directed, DIRECTED_UNITS,
+            &mut pool_base, &mut remainder, &mut ceiling)?;
+        ledger.directed_pool_base = pool_base;
+        ledger.directed_remainder = remainder;
+        ledger.directed_ceiling = ceiling;
         if beneficiary == 0 {
             require!(holder_amount == 0, ErrorCode::InvalidProtectedMintPolicyV3);
             ledger.released[0] = ledger.released[0].checked_add(amount).ok_or(ErrorCode::AmountOverflow)?;
@@ -292,7 +316,7 @@ pub fn disburse_protected_mint_token_v3_handler(ctx: Context<DisburseProtectedMi
             ledger.released[1] = ledger.released[1].checked_add(holder_amount).ok_or(ErrorCode::AmountOverflow)?;
             ledger.released[2] = ledger.released[2].checked_add(amount - holder_amount).ok_or(ErrorCode::AmountOverflow)?;
         }
-        require!(ledger.released.iter().zip(targets).all(|(released, target)| *released <= target),
+        require!(ledger.released.iter().zip(ledger.directed_ceiling).all(|(released, ceiling)| *released <= ceiling),
             ErrorCode::MintWithdrawalBudgetExceededV3);
     } else {
         require!(beneficiary == category + 2 && holder_amount == 0, ErrorCode::InvalidProtectedMintPolicyV3);
