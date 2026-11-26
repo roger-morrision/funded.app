@@ -1,5 +1,5 @@
-// Read a bounded JSON object without destroying the socket before an error response.
-export function readJsonBody(req, { maxBytes = 1_000_000, timeoutMs = 10_000 } = {}) {
+// Read a bounded request body without destroying the socket before an error response.
+export function readRawBody(req, { maxBytes = 1_000_000, timeoutMs = 10_000 } = {}) {
   return new Promise((resolve, reject) => {
     let bytes = 0;
     const chunks = [];
@@ -17,14 +17,7 @@ export function readJsonBody(req, { maxBytes = 1_000_000, timeoutMs = 10_000 } =
       if (bytes > maxBytes) return fail(failure('Request body too large.', 413));
       chunks.push(chunk);
     };
-    const end = () => {
-      cleanup();
-      try {
-        const value = bytes ? JSON.parse(Buffer.concat(chunks, bytes).toString('utf8')) : {};
-        if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error();
-        resolve(value);
-      } catch { reject(failure('Request body must contain a valid JSON object.', 400)); }
-    };
+    const end = () => { cleanup(); resolve(Buffer.concat(chunks, bytes)); };
     const aborted = () => fail(failure('Request was interrupted.', 400));
     const error = () => fail(failure('Request body could not be read.', 400));
     const timer = setTimeout(() => fail(failure('Request body timed out.', 408)), timeoutMs);
@@ -36,4 +29,14 @@ export function readJsonBody(req, { maxBytes = 1_000_000, timeoutMs = 10_000 } =
     if (Number(req.headers?.['content-length']) > maxBytes) fail(failure('Request body too large.', 413));
     else if (req.headers?.['content-encoding'] && req.headers['content-encoding'] !== 'identity') fail(failure('Compressed request bodies are not supported.', 415));
   });
+}
+
+// Read a bounded JSON object, built on readRawBody.
+export async function readJsonBody(req, options) {
+  const buffer = await readRawBody(req, options);
+  try {
+    const value = buffer.length ? JSON.parse(buffer.toString('utf8')) : {};
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error();
+    return value;
+  } catch { throw Object.assign(new Error('Request body must contain a valid JSON object.'), { statusCode: 400 }); }
 }

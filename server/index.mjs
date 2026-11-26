@@ -27,6 +27,7 @@ import {startAppListener} from './listener.mjs';
 import { createMarketProviders, normalizePumpToken } from './market-providers.mjs';
 import { createLaunchTierPricing } from './launch-tier-pricing.mjs';
 import { createXIdentityRoutes } from './routes/x-identity.mjs';
+import { createXWebhookRoutes } from './routes/x-webhook.mjs';
 import { createCreatorFeesRoutes } from './routes/creator-fees.mjs';
 import { createV3Routes } from './routes/v3-routes.mjs';
 import { createAdminRoutes, publicFeePolicy } from './routes/admin.mjs';
@@ -117,6 +118,7 @@ const rpcMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getBalance
 const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/referrals/session/prepare', '/api/referrals/session/verify', '/api/referrals/session/logout', '/api/launches', '/api/listings', '/api/burn-receipts', '/api/devnet-metadata', '/api/token-metadata']);
 publicPostPaths.add('/api/airdrops/reserves/receipt');
 publicPostPaths.add('/api/x/logout'); // Cookie-authenticated, with an exact-origin check.
+publicPostPaths.add('/api/x/webhook'); // X-signed, verified by handleXWebhookRoutes via HMAC.
 publicPostPaths.add('/api/shares/visit');
 publicPostPaths.add('/api/boosts/quote');
 publicPostPaths.add('/api/boosts/confirm');
@@ -355,6 +357,9 @@ const handleLaunchRegistrationRoutes = createLaunchRegistrationRoutes({
 const handleXIdentityRoutes = createXIdentityRoutes({
   xConfig, store, clientKey, xOAuthConfigured, xCallbackUrl, xAuth, html, xSession, resolveXUser, solanaCluster, v3LaunchConfig, respond: json,
 });
+const handleXWebhookRoutes = createXWebhookRoutes({
+  consumerSecret: () => process.env.X_POST_API_SECRET, respond: json,
+});
 const handleCreatorFeesRoutes = createCreatorFeesRoutes({
   store, solanaCluster, route, solanaRpcUrl, databaseUrl, respond: json,
 });
@@ -439,6 +444,7 @@ async function handle(req, res) {
     if (await handleServiceStatus(req, res, url)) return;
     if (await handleLaunchQuoteRoutes(req, res, url)) return;
     if (await handleXIdentityRoutes(req, res, url, requestId)) return;
+    if (await handleXWebhookRoutes(req, res, url)) return;
     if (await handleOperationsStatus(req, res, url)) return;
     if (await handleLaunchPreview(req, res, url)) return;
     if (await handleKeeperStatus(req, res, url)) return;
