@@ -60,7 +60,7 @@ export function xWorkerConfig(env, args = []) {
   if(env.X_POST_PAYOUTS_ONLY!==undefined&&!['true','false'].includes(env.X_POST_PAYOUTS_ONLY))throw new Error('X_POST_PAYOUTS_ONLY must be true or false.');
   if (!/^[1-9]\d{0,19}$/.test(minProfitLamports)) throw new Error('X_POST_MIN_PROFIT_LAMPORTS must be positive integer lamports.');
   return {
-    mode: args.includes('--status') ? 'status' : args.includes('--loop') ? 'loop' : 'once', execute, cluster, handle,accountStatus,deliveryMode,
+    mode: args.includes('--status') ? 'status' : args.includes('--loop') ? 'loop' : 'once', execute, liveExecute, cluster, handle,accountStatus,deliveryMode,
     origin: origin.origin, enabledAt: new Date(start).toISOString(), minProfitLamports,
     payoutsOnly:env.X_POST_PAYOUTS_ONLY==='true',
     intervalMs: numberSetting(env.X_POST_INTERVAL_MS, X_POSTING_DEFAULTS.pollIntervalMs, 10_000, 3_600_000, 'X_POST_INTERVAL_MS'),
@@ -149,7 +149,7 @@ async function main(args) {
       console.log(JSON.stringify({ account: config.handle,safety:await outbox.safetyStatus(), events: rows }, null, 2));
       return;
     }
-    if(config.execute&&(await outbox.safetyStatus()).paused)throw new Error('The durable X account pause is active. No provider request was made.');
+    if(config.liveExecute&&(await outbox.safetyStatus()).paused)throw new Error('The durable X account pause is active. No provider request was made.');
     const publisher = !config.execute ? null : config.deliveryMode === 'email' ? createXEmailPublisher({ env }) : createXPublisher({
       ...(env.X_POST_ACCESS_TOKEN_SECRET ? { oauth1: { apiKey: env.X_POST_API_KEY, apiSecret: env.X_POST_API_SECRET,
         accessToken: env.X_POST_ACCESS_TOKEN, accessTokenSecret: env.X_POST_ACCESS_TOKEN_SECRET } }
