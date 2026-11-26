@@ -71,6 +71,36 @@ fn expected_ata(mint: &Pubkey, owner: &Pubkey, token_program: &Pubkey) -> Pubkey
         owner, mint, token_program)
 }
 
+// Same full PumpSwap pool/global-config/fee-recipient/event-authority schema
+// as buyback_v3.rs::require_pump_pool_schema and the pre-existing
+// token_convert_v3.rs::validate_pump_pool_schema for the identical 23-account
+// buy/sell IDL layout. See buyback_v3.rs for the index-by-index rationale,
+// including the one intentionally unpinned index (19), matching the
+// pre-existing, already-reviewed gap in validate_pump_pool_schema.
+fn require_pump_pool_schema(accounts: &[AccountInfo], base: Pubkey, native: Pubkey, pump: Pubkey) -> Result<()> {
+    let pool_data = accounts[0].try_borrow_data()?;
+    require!(pool_data.len() >= 245 && pool_data[..8] == [241,154,109,4,17,177,109,188]
+        && pool_data[43..75] == base.to_bytes() && pool_data[75..107] == native.to_bytes()
+        && pool_data[139..171] == accounts[7].key.to_bytes() && pool_data[171..203] == accounts[8].key.to_bytes()
+        && pool_data[211..243] == [0; 32] && pool_data[243..245] == [0, 0], ErrorCode::InvalidMintBuybackV3);
+    drop(pool_data);
+    let spl = anchor_spl::token::ID;
+    for (index, mint, owner) in [(5, base, accounts[1].key()), (7, base, accounts[0].key()), (8, native, accounts[0].key())] {
+        let account = &accounts[index];
+        let data = account.try_borrow_data()?;
+        require!(account.owner == &spl && data.len() == 165 && data[..32] == mint.to_bytes()
+            && data[32..64] == owner.to_bytes(), ErrorCode::InvalidMintBuybackV3);
+    }
+    let pda = |seed: &[u8]| Pubkey::find_program_address(&[seed], &pump).0;
+    require!(accounts[2].key() == pda(b"global_config") && accounts[15].key() == pda(b"__event_authority"),
+        ErrorCode::InvalidMintBuybackV3);
+    for (owner, account) in [(9,10), (18,17), (21,22)] {
+        let ata = anchor_spl::associated_token::get_associated_token_address_with_program_id(accounts[owner].key, &native, &spl);
+        require!(accounts[account].key() == ata && accounts[owner].key() != accounts[1].key(), ErrorCode::InvalidMintBuybackV3);
+    }
+    Ok(())
+}
+
 fn require_pump_accounts(accounts: &[AccountInfo], ctx: &BuybackAgencyMintV3) -> Result<()> {
     // PumpSwap's SDK appends two fee accounts and up to two market-specific
     // accounts after the 23 IDL accounts.
@@ -96,6 +126,8 @@ fn require_pump_accounts(accounts: &[AccountInfo], ctx: &BuybackAgencyMintV3) ->
     require!(accounts[1].is_writable && accounts[5].is_writable
         && accounts[6].is_writable && accounts[20].is_writable,
         ErrorCode::InvalidMintBuybackV3);
+    require_pump_pool_schema(accounts, ctx.funded_mint.key(),
+        anchor_spl::token::spl_token::native_mint::id(), ctx.pump_swap_program.key())?;
     Ok(())
 }
 
