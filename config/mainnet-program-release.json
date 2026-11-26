@@ -7,10 +7,10 @@
   "fundedPool": null,
   "upgradeAuthority": "ER7zhtSwfSu7B5Wb7uFwnWSZPLMmezmSXieY5JyLFzXC",
   "programDataSha256": null,
-  "sourceRevision": "68c526f3bbe4cdc8afcf5e0c9c10028e9f87a97b",
+  "sourceRevision": "5d80bb596b825877311d2a7679d7abcf002b0e24",
   "binary": {
-    "bytes": 1110672,
-    "sha256": "b2e811357cf55dc6624a48b6f630eb6c32ae2c23f3bd6c271d6013c72db70b9c"
+    "bytes": 1127856,
+    "sha256": "52ee604bf2f1462baefe150385358d1f7e66b39175fe8808ed8ddd58de7578f6"
   },
   "independentReview": {
     "reviewer": "Hermes Agent (AI second review; not an external professional security audit)",
