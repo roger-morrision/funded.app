@@ -18,6 +18,15 @@ export const MAINNET_NON_PROGRAM_POSTS=Object.freeze(new Set([
   '/api/referrals/registration/prepare','/api/referrals/registration/verify',
   '/api/referrals/attribution/prepare','/api/referrals/attribution/verify',
   '/api/referrals/session/prepare','/api/referrals/session/verify','/api/referrals/session/logout',
+  // Admin auth handshake and the email-OTP confirmation it gates every other
+  // admin write behind (see adminWriteNeedsEmail); no per-mint V3 program state.
+  '/api/admin/challenge','/api/admin/session','/api/admin/logout','/api/admin/email-confirmation',
+  // Non-launch admin config: service-fee pricing, app rate limits, X-post
+  // automation and product-issue triage. Each still requires the email
+  // confirmation above. Launch/agency/V3-vault admin writes stay excluded:
+  // they depend on v3AuthorityKeypair, which Mainnet non-program mode refuses
+  // to configure, so allowlisting them would add attack surface with no function.
+  '/api/admin/service-fees','/api/admin/app-limits','/api/admin/x-posts/review','/api/admin/x-posts/pause',
 ]));
 // Wallet-signed token chat (post, delete own, report) and its session handshake.
 export const MAINNET_NON_PROGRAM_POST_PATTERNS=Object.freeze([
@@ -25,6 +34,8 @@ export const MAINNET_NON_PROGRAM_POST_PATTERNS=Object.freeze([
   /^\/api\/mobile-wallet\/(?:callback|relay|sign|sign-request|trade|trade-request|trade-refresh|next)\/[a-f0-9]{48}$/,
   /^\/api\/tokens\/[1-9A-HJ-NP-Za-km-z]{32,44}\/chat(?:\/(?:delete|report|like))?$/,
   /^\/api\/token-chat\/session\/(?:prepare|verify|revoke)$/,
+  // Product-issue review decision; id is a 32-hex token id, not a mint.
+  /^\/api\/admin\/product-issues\/[a-f0-9]{32}$/,
 ]);
 export const mainnetNonProgramWrites=(env=process.env)=>String(env.FUNDED_MAINNET_NON_PROGRAM_WRITES||'').toLowerCase()==='true';
 const MUTATING=new Set(['POST','PUT','PATCH','DELETE']);
