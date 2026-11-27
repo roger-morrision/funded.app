@@ -94,5 +94,44 @@ export function createOperationsPayoutPolicy({store,env=process.env,now=Date.now
     return claimed?view(claimed):null;
   }
 
-  return{list,request,approve,cancel,claim,limits:()=>operationsPayoutLimits(env)};
+  // The on-chain approval and disbursement are now two separate transactions
+  // (the Mainnet program requires a guardian review delay between them for
+  // the automation-bypass path; see AUTOMATION_WITHDRAWAL_REVIEW_DELAY_SECONDS
+  // in contracts/.../constants.rs). recordOnChainApproval marks a claimed
+  // request as submitted on-chain; the worker retries disbursement on later
+  // ticks via pendingDisbursement until the program accepts it.
+  async function recordOnChainApproval({requestId,withdrawalId,signature,creator}){
+    const saved=await store.update(state=>{
+      const row=state.operationsPayoutRequests?.[String(requestId||'')];
+      if(!row)throw error(404,'Operations-payout request not found.');
+      if(row.status!=='consumed')throw error(409,'Only a consumed request can record an on-chain approval.');
+      Object.assign(row,{status:'onchain_approved',withdrawalId,creator:creator||null,
+        approvalSignature:signature,onChainApprovedAt:new Date(now()).toISOString()});
+      return row;
+    });
+    return view(saved);
+  }
+
+  async function recordOnChainDisbursement({requestId,signature}){
+    const saved=await store.update(state=>{
+      const row=state.operationsPayoutRequests?.[String(requestId||'')];
+      if(!row)throw error(404,'Operations-payout request not found.');
+      if(row.status!=='onchain_approved')throw error(409,'Only an on-chain-approved request can record a disbursement.');
+      Object.assign(row,{status:'onchain_disbursed',disbursementSignature:signature,disbursedAt:new Date(now()).toISOString()});
+      return row;
+    });
+    return view(saved);
+  }
+
+  // Requests whose on-chain approval has landed but whose disbursement has
+  // not yet been attempted successfully (too early for the review delay, or
+  // not yet retried). The worker retries each on its own schedule.
+  async function pendingDisbursement(){
+    const state=await store.read();
+    return Object.values(state.operationsPayoutRequests||{})
+      .filter(row=>row.status==='onchain_approved').map(view);
+  }
+
+  return{list,request,approve,cancel,claim,recordOnChainApproval,recordOnChainDisbursement,
+    pendingDisbursement,limits:()=>operationsPayoutLimits(env)};
 }

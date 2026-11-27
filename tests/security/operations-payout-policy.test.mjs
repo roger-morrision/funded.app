@@ -59,3 +59,27 @@ test('a request above the per-request cap is rejected',async()=>{
  const {store}=fixture(),policy=createOperationsPayoutPolicy({store,env:{FUNDED_OPERATIONS_PAYOUT_MAX_LAMPORTS:'1000'}});
  await assert.rejects(policy.request({admin:'admin-a',mint:'mint-1',quoteMint:null,category:1,recipient:'recipient-1',amount:1001}),/exceeds/);
 });
+
+test('an on-chain approval can only be recorded for a consumed request, and makes it pending disbursement',async()=>{
+ const {store}=fixture(),policy=createOperationsPayoutPolicy({store,env:{}});
+ const requested=await policy.request({admin:'admin-a',mint:'mint-1',quoteMint:null,category:1,recipient:'recipient-1',amount:1000});
+ await assert.rejects(policy.recordOnChainApproval({requestId:requested.id,withdrawalId:'ab',signature:'sig-1',creator:'creator-1'}),/consumed/);
+ await policy.approve({admin:'admin-b',requestId:requested.id});
+ const claimed=await policy.claim({mint:'mint-1',quoteMint:null,category:1,recipient:'recipient-1',amount:'1000'});
+ const approvedOnChain=await policy.recordOnChainApproval({requestId:claimed.id,withdrawalId:'ab',signature:'sig-1',creator:'creator-1'});
+ assert.equal(approvedOnChain.status,'onchain_approved');
+ const pending=await policy.pendingDisbursement();
+ assert.equal(pending.length,1);assert.equal(pending[0].id,claimed.id);assert.equal(pending[0].creator,'creator-1');
+});
+
+test('a disbursement can only be recorded for an on-chain-approved request, and clears it from pending',async()=>{
+ const {store}=fixture(),policy=createOperationsPayoutPolicy({store,env:{}});
+ const requested=await policy.request({admin:'admin-a',mint:'mint-1',quoteMint:null,category:1,recipient:'recipient-1',amount:1000});
+ await assert.rejects(policy.recordOnChainDisbursement({requestId:requested.id,signature:'sig-2'}),/on-chain-approved/);
+ await policy.approve({admin:'admin-b',requestId:requested.id});
+ const claimed=await policy.claim({mint:'mint-1',quoteMint:null,category:1,recipient:'recipient-1',amount:'1000'});
+ await policy.recordOnChainApproval({requestId:claimed.id,withdrawalId:'ab',signature:'sig-1',creator:'creator-1'});
+ const disbursed=await policy.recordOnChainDisbursement({requestId:claimed.id,signature:'sig-2'});
+ assert.equal(disbursed.status,'onchain_disbursed');
+ assert.equal((await policy.pendingDisbursement()).length,0);
+});

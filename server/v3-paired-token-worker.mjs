@@ -2,7 +2,8 @@ import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { PUMP_SDK, bondingCurvePda } from '@pump-fun/pump-sdk';
 import { collectAndSettleTokenFees, convertTokenBudgetToSol, fundTokenHolderRewards, pendingTokenFees,
-  payTokenCreatorWallet, payTokenProtocolBudget, readDirectedTokenBudget } from './v3-token-keeper.mjs';
+  payTokenCreatorWallet, payTokenProtocolBudget, approveTokenProtocolBudget, disburseTokenProtocolBudget,
+  readDirectedTokenBudget } from './v3-token-keeper.mjs';
 import { createOperationsPayoutPolicy } from './operations-payout-policy.mjs';
 import { createRewardScheduler } from './reward-scheduler.mjs';
 import { ensureMintAutomationV3 } from './mint-automation-v3.mjs';
@@ -132,8 +133,19 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
         const amount = budget.ledger.paid[category] - budget.ledger.withdrawn[category];
         if (!recipient || new PublicKey(recipient).equals(PublicKey.default) || amount < minimumProtocol) continue;
         if (category === 1 && solanaCluster === 'mainnet-beta') {
+          // Approval and disbursement are separate transactions here: the
+          // program's guardian review delay for the automation-bypass path
+          // makes submitting them together impossible. This tick only
+          // submits the approval; pendingProtocolDisbursements() below
+          // retries the disbursement on later ticks once the delay has passed.
           const approved = await operationsPayouts.claim({ mint: launch.mint, quoteMint, category, recipient, amount: amount.toString() });
           if (!approved) continue;
+          const onChainApproval = await approveTokenProtocolBudget({ connection: finalizedConnection, programId, keeper, creator,
+            mint: launch.mint, quoteMint, category, recipient, amount });
+          await operationsPayouts.recordOnChainApproval({ requestId: approved.id,
+            withdrawalId: onChainApproval.withdrawalId, signature: onChainApproval.signature, creator });
+          (row.protocolApproved ||= []).push(onChainApproval);
+          continue;
         }
         const paid = await payTokenProtocolBudget({ connection: finalizedConnection, programId, keeper, creator,
           mint: launch.mint, quoteMint, category, recipient, amount });
@@ -171,6 +183,25 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
     return row;
   }
 
+  // Retries the disbursement half of every on-chain-approved category-1
+  // request. Each attempt fails harmlessly (left pending for the next tick)
+  // until the program's guardian review delay has elapsed since its approval.
+  async function retryPendingOperationsDisbursements() {
+    const disbursed = [];
+    for (const pending of await operationsPayouts.pendingDisbursement()) {
+      try {
+        const paid = await disburseTokenProtocolBudget({ connection: finalizedConnection, programId, keeper,
+          creator: pending.creator, mint: pending.mint, quoteMint: pending.quoteMint, category: pending.category,
+          recipient: pending.recipient, amount: pending.amountLamports, withdrawalId: pending.withdrawalId });
+        await operationsPayouts.recordOnChainDisbursement({ requestId: pending.id, signature: paid.signature });
+        disbursed.push(paid);
+      } catch (error) {
+        logger.log(JSON.stringify({ event: 'v3_operations_disbursement_pending', requestId: pending.id,
+          mint: pending.mint, reason: String(error.message || error).slice(0, 200) }));
+      }
+    }
+    return disbursed;
+  }
   let running = false;
   async function tick() {
     if (running) return { status: 'busy' };
@@ -184,9 +215,10 @@ export function startV3PairedTokenWorker({ solanaCluster, solanaRpcUrl, store, a
         try { const row = await processLaunch(launch, state); if (row) rows.push(row); }
         catch (error) { failures.push({ mint: launch.mint, reason: String(error.message || error).slice(0, 200) }); }
       }
-      logger.log(JSON.stringify({ event: 'v3_paired_token_tick', coins: rows.length,
+      const disbursed = solanaCluster === 'mainnet-beta' ? await retryPendingOperationsDisbursements() : [];
+      logger.log(JSON.stringify({ event: 'v3_paired_token_tick', coins: rows.length, disbursed: disbursed.length,
         moved: rows.filter(row => row.collected || row.holderFunded || row.creatorPaid || row.protocolPaid || row.converted), failures }));
-      return { status: failures.length ? 'degraded' : 'ready', rows, failures };
+      return { status: failures.length ? 'degraded' : 'ready', rows, failures, disbursed };
     } finally { running = false; }
   }
   const intervalMs = Math.max(60_000, Number(env.FUNDED_V3_PAIRED_TOKEN_TICK_MS || 300_000));

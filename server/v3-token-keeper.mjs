@@ -224,6 +224,77 @@ export async function payTokenProtocolBudget({ connection, programId, keeper, cr
     withdrawalId: withdrawalId.toString('hex'), balanceDeltaVerified: true };
 }
 
+async function tokenProtocolBudgetContext({ connection, programId, mint, quoteMint, category, recipient, creator, amount }) {
+  if (!Number.isInteger(category) || category < 1 || category > 4) throw new Error('Only operations and referral token budgets use protocol payouts.');
+  const program = new PublicKey(programId), coin = new PublicKey(mint), quote = new PublicKey(quoteMint);
+  const owner = new PublicKey(recipient), creatorKey = new PublicKey(creator), pay = BigInt(amount);
+  if (owner.equals(PublicKey.default) || owner.equals(creatorKey) || pay <= 0n) throw new Error('Invalid token protocol recipient or amount.');
+  const ownerInfo = await connection.getAccountInfo(owner, 'finalized');
+  if (ownerInfo && (!ownerInfo.owner.equals(PublicKey.default) || ownerInfo.data.length))
+    throw new Error('The protocol recipient must be a plain system wallet.');
+  const quoteInfo = await connection.getAccountInfo(quote, 'finalized');
+  if (!quoteInfo) throw new Error('The paired token is unavailable.');
+  const tokenProgram = quoteInfo.owner, accounts = deriveTokenAccountsV3(program, coin, quote, tokenProgram);
+  const ledgerAddress = deriveTokenLedgerV3(program, coin, quote);
+  const destination = getAssociatedTokenAddressSync(quote, owner, false, tokenProgram);
+  return { program, coin, quote, owner, creatorKey, pay, tokenProgram, accounts, ledgerAddress, destination };
+}
+
+const tokenBalance = async (connection, address, missingAllowed = false) => {
+  try { return BigInt((await connection.getTokenAccountBalance(address, 'finalized')).value.amount); }
+  catch (error) { if (missingAllowed && !await connection.getAccountInfo(address, 'finalized')) return 0n; throw error; }
+};
+
+// Mainnet two-phase split of payTokenProtocolBudget: the program requires a
+// guardian review delay between the on-chain approval and the disbursement
+// for the automation-bypass path (category 1, no live creator signature), so
+// they can no longer be submitted in the same transaction there. Devnet has
+// no such delay and keeps using payTokenProtocolBudget above unchanged.
+export async function approveTokenProtocolBudget({ connection, programId, keeper, creator, mint, quoteMint, category, recipient, amount }) {
+  const ctx = await tokenProtocolBudgetContext({ connection, programId, mint, quoteMint, category, recipient, creator, amount });
+  const ledgerInfo = await connection.getAccountInfo(ctx.ledgerAddress, 'finalized');
+  if (!ledgerInfo?.owner.equals(ctx.program)) throw new Error('The paired-token ledger is unavailable.');
+  const ledger = decodeTokenLedgerV3(ledgerInfo.data);
+  if (ctx.pay > ledger.paid[category] - ledger.withdrawn[category]) throw new Error('The token protocol payout exceeds its category budget.');
+  const withdrawalId = randomBytes(32);
+  const signature = await sendAndConfirmTransaction(connection, new Transaction().add(
+    createAssociatedTokenAccountIdempotentInstruction(keeper.publicKey, ctx.destination, ctx.owner, ctx.quote, ctx.tokenProgram),
+    buildTokenApprovalInstruction({ programId: ctx.program, mint: ctx.coin, quoteMint: ctx.quote, authority: keeper.publicKey,
+      creator: ctx.creatorKey, recipient: ctx.owner, withdrawalId, category, beneficiary: category + 2, amount: ctx.pay, automation: true })),
+  [keeper], { commitment: 'finalized' });
+  return { signature, withdrawalId: withdrawalId.toString('hex'), category, recipient: ctx.owner.toBase58(), amount: String(ctx.pay), quoteMint: ctx.quote.toBase58() };
+}
+
+// Retried on each worker tick for a request already recorded as on-chain
+// approved; throws (and should be left pending for the next tick) until the
+// program's guardian review delay has elapsed since the approval.
+export async function disburseTokenProtocolBudget({ connection, programId, keeper, creator, mint, quoteMint, category, recipient, amount, withdrawalId }) {
+  const ctx = await tokenProtocolBudgetContext({ connection, programId, mint, quoteMint, category, recipient, creator, amount });
+  const withdrawal = Buffer.isBuffer(withdrawalId) ? withdrawalId : Buffer.from(withdrawalId, 'hex');
+  if (withdrawal.length !== 32) throw new Error('A 32-byte withdrawal ID is required.');
+  const ledgerInfo = await connection.getAccountInfo(ctx.ledgerAddress, 'finalized');
+  if (!ledgerInfo?.owner.equals(ctx.program)) throw new Error('The paired-token ledger is unavailable.');
+  const beforeLedger = decodeTokenLedgerV3(ledgerInfo.data);
+  const beforeVault = await tokenBalance(connection, ctx.accounts.vaultTokens[category]);
+  const beforeRecipient = await tokenBalance(connection, ctx.destination, true);
+  const signature = await sendAndConfirmTransaction(connection, new Transaction().add(
+    createAssociatedTokenAccountIdempotentInstruction(keeper.publicKey, ctx.destination, ctx.owner, ctx.quote, ctx.tokenProgram),
+    buildTokenDisbursementInstruction({ programId: ctx.program, mint: ctx.coin, quoteMint: ctx.quote, tokenProgram: ctx.tokenProgram,
+      authority: keeper.publicKey, creator: ctx.creatorKey, recipientOwner: ctx.owner, withdrawalId: withdrawal, category,
+      beneficiary: category + 2, amount: ctx.pay, automation: true })),
+  [keeper], { commitment: 'finalized' });
+  const afterInfo = await connection.getAccountInfo(ctx.ledgerAddress, 'finalized');
+  if (!afterInfo?.owner.equals(ctx.program)) throw new Error('The finalized token ledger disappeared.');
+  const afterLedger = decodeTokenLedgerV3(afterInfo.data);
+  const afterVault = await tokenBalance(connection, ctx.accounts.vaultTokens[category]);
+  const afterRecipient = await tokenBalance(connection, ctx.destination);
+  if (afterLedger.withdrawn[category] - beforeLedger.withdrawn[category] !== ctx.pay || beforeVault - afterVault !== ctx.pay
+    || afterRecipient - beforeRecipient !== ctx.pay)
+    throw new Error(`Finalized token protocol payout ${signature} lacks exact ledger, vault and recipient deltas.`);
+  return { signature, category, recipient: ctx.owner.toBase58(), amount: String(ctx.pay), quoteMint: ctx.quote.toBase58(),
+    withdrawalId: withdrawal.toString('hex'), balanceDeltaVerified: true };
+}
+
 // The router's pinned WSOL/<paired token> PumpSwap pools (must match the program).
 export const TOKEN_CONVERSION_POOLS = Object.freeze({
   devnet: Object.freeze({ '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU': 'BT8wc5m9pkTQ1wwVYTzsqrBwSYWxuPEQ4t8ZwHcwd7SR' }),
