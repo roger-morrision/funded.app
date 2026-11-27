@@ -22,6 +22,12 @@ globalThis.Buffer ??= Buffer;
 globalThis.global ??= globalThis;
 
 const $ = selector => document.querySelector(selector);
+// Treasury sweeps need a server-held signer key, which Mainnet non-program
+// mode refuses to start with (server/environment.mjs). Everything else on
+// this page (policy, audit, service status, X posts, ...) is cluster-generic
+// or already degrades gracefully when per-mint V3 launch data (Devnet-only)
+// is unavailable, so only the withdraw panel is hidden on Mainnet.
+const DEVNET_ADMIN = (import.meta.env.VITE_SOLANA_CLUSTER || 'devnet') === 'devnet';
 const message = $('#message');
 const wallet = () => window.phantom?.solana || window.solana || null;
 const show = (value, error = false) => { if(String(value).startsWith(STALE_ADMIN_REQUEST))return; message.textContent = value; message.classList.toggle('error', error); };
@@ -228,7 +234,8 @@ new MutationObserver(()=>{if($('#workspace').hidden)residuals.clear();}).observe
 initAdminAgencyPolicy({api,post,show,refresh});
 initAdminXPosts({api,post,show});
 initAdminProductIssues({api,post,show});
-withdrawals=initAdminWithdrawals({api,post,show,refresh,wallet,connected:()=>connected});
+if (DEVNET_ADMIN) withdrawals=initAdminWithdrawals({api,post,show,refresh,wallet,connected:()=>connected});
+else $('#withdraw-panel')?.setAttribute('hidden','');
 provider?.on?.('accountChanged', updateWallet);
 provider?.on?.('disconnect', updateWallet);
 updateWallet();

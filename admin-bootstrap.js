@@ -32,20 +32,20 @@ document.addEventListener('keydown',event=>{
 });
 mobile.addEventListener('change',()=>setMenu(false));setMenu(false);
 
-// The admin API serves Devnet only. A Mainnet build shows that instead of a
-// sign-in form that cannot succeed.
-if((import.meta.env.VITE_SOLANA_CLUSTER||'devnet')!=='devnet'){
-  document.querySelector('.top .badge').textContent='ADMIN';
-  document.querySelector('#network').textContent='Solana';
-  const panel=document.querySelector('#auth-panel');
-  panel.replaceChildren(Object.assign(document.createElement('h2'),{textContent:'Not available on this network'}),
-    Object.assign(document.createElement('p'),{textContent:'The admin workspace, including service status, runs on the Devnet deployment only. Nothing here can be used on Mainnet.'}));
-  document.querySelector('#workspace').hidden=true;
-}else{
+// Per-mint V3 launch data (balances overview, vaults) is Devnet-only --
+// no Mainnet program is deployed -- and treasury withdrawals need a
+// server-held signer key, which Mainnet non-program mode refuses to start
+// with (server/environment.mjs). Both degrade or hide themselves inside
+// admin-page.js; everything else here (policy, audit, service status,
+// X posts, product issues, ...) works on either network.
+const cluster=import.meta.env.VITE_SOLANA_CLUSTER||'devnet';
+if(cluster!=='devnet'){
+  document.querySelector('.top .badge').textContent='MAINNET ADMIN';
+  document.querySelector('#network').textContent='Solana Mainnet';
+}
 await import('./admin-page.js');
 
 await import('./service-status-ui.js');
 
 // Keep the balance summary above panels added by optional admin features.
 document.querySelector('#workspace')?.prepend(document.querySelector('#summary'));
-}
