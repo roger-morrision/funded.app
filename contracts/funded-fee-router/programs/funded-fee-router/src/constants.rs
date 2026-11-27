@@ -46,14 +46,13 @@ pub const GUARD_WINDOW_DAY: usize = GUARD_DAILY_CAP + 8;
 pub const GUARD_WINDOW_SPENT: usize = GUARD_WINDOW_DAY + 8;
 // A new Mainnet reward cycle cannot pay out sooner than this after creation,
 // leaving the guardian time to cancel a wrong or malicious Merkle root.
-pub const REWARD_CYCLE_MIN_DELAY_SECONDS: i64 = 24 * 60 * 60;
+pub const REWARD_CYCLE_MIN_DELAY_SECONDS: i64 = 60 * 60;
 // A protected-policy category-1 (operations) withdrawal approved through the
 // automation-record bypass (no live creator signature) cannot be disbursed
-// sooner than this after its approval, leaving the guardian the same review
-// window as REWARD_CYCLE_MIN_DELAY_SECONDS to pause the protocol if the
-// automation operator key is compromised. Withdrawals the creator actually
-// signs are unaffected.
-pub const AUTOMATION_WITHDRAWAL_REVIEW_DELAY_SECONDS: i64 = 24 * 60 * 60;
+// sooner than this after its approval, giving the guardian time to pause the
+// protocol if the automation operator key is compromised. Withdrawals the
+// creator actually signs are unaffected.
+pub const AUTOMATION_WITHDRAWAL_REVIEW_DELAY_SECONDS: i64 = 60 * 60;
 pub const REWARD_VAULT_SEED: &[u8] = b"reward-vault-v1";
 pub const REWARD_RESERVE_SEED: &[u8] = b"reward-reserve-v1";
 pub const REWARD_CYCLE_SEED: &[u8] = b"reward-cycle-v1";

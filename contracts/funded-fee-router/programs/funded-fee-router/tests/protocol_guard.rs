@@ -138,8 +138,8 @@ fn reward_cycles_keep_review_delay_and_reserve_solvency_without_daily_cap() {
     let ix = configure(&f, owner.pubkey(), f.guardian.pubkey(), 1_000);
     assert!(send(&mut f.svm, &owner, &[&owner], &[ix]));
 
-    let too_soon = create_cycle(&f, 1, [1; 32], 600, START + DAY - 1, true);
-    assert!(!send(&mut f.svm, &op, &[&op], &[too_soon]), "payout inside the 24h review delay");
+    let too_soon = create_cycle(&f, 1, [1; 32], 600, START + funded_fee_router::REWARD_CYCLE_MIN_DELAY_SECONDS - 1, true);
+    assert!(!send(&mut f.svm, &op, &[&op], &[too_soon]), "payout inside the review delay");
     let first = create_cycle(&f, 1, [1; 32], 60_000_000, START + DAY, false);
     assert!(send(&mut f.svm, &op, &[&op], &[first]));
     let over = create_cycle(&f, 2, [1; 32], 60_000_000, START + DAY, false);
