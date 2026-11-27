@@ -86,4 +86,6 @@ pub enum ErrorCode {
     InvalidAgencyPolicyV3,
     #[msg("Reward cycle cannot be expired before its grace period ends or after it was expired")]
     RewardCycleNotExpirable,
+    #[msg("An automation-approved withdrawal must leave the minimum guardian review delay before disbursement")]
+    AutomationWithdrawalReviewPending,
 }

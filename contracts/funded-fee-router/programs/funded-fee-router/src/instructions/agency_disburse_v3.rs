@@ -32,6 +32,7 @@ pub fn approve(ctx: Context<ApproveAgencyWithdrawalV3>, withdrawal_id: [u8; 32],
     approval.withdrawal_id = withdrawal_id; approval.mint = ctx.accounts.mint.key();
     approval.category = category; approval.beneficiary = beneficiary;
     approval.recipient = recipient.key(); approval.amount = amount; approval.consumed = false; approval.bump = ctx.bumps.approval;
+    approval.created_at = Clock::get()?.unix_timestamp;
     Ok(())
 }
 
@@ -99,6 +100,11 @@ pub fn disburse(ctx: Context<DisburseAgencyMintV3>, withdrawal_id: [u8; 32], cat
         require!(record.withdrawal_id == withdrawal_id && record.mint == mint && record.category == category
             && record.beneficiary == beneficiary && record.recipient == recipient_key && record.amount == amount
             && !record.consumed && record.bump == ctx.bumps.approval, ErrorCode::InvalidMintApprovalV3);
+        if cfg!(feature = "mainnet-v3-program") && !ctx.accounts.creator.to_account_info().is_signer {
+            let earliest = record.created_at.checked_add(AUTOMATION_WITHDRAWAL_REVIEW_DELAY_SECONDS)
+                .ok_or(ErrorCode::AmountOverflow)?;
+            require!(Clock::get()?.unix_timestamp >= earliest, ErrorCode::AutomationWithdrawalReviewPending);
+        }
         record.consumed = true; record.try_serialize(&mut &mut data[..])?;
     }
     let (router, _) = Pubkey::find_program_address(&[MINT_ROUTER_V3_SEED, mint.as_ref()], ctx.program_id);

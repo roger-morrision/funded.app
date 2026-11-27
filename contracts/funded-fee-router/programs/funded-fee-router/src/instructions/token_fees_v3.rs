@@ -234,6 +234,7 @@ pub fn approve_protected_token_withdrawal_v3_handler(ctx: Context<ApproveProtect
     approval.amount = amount;
     approval.consumed = false;
     approval.bump = ctx.bumps.approval;
+    approval.created_at = Clock::get()?.unix_timestamp;
     Ok(())
 }
 
@@ -338,6 +339,11 @@ pub fn disburse_protected_mint_token_v3_handler(ctx: Context<DisburseProtectedMi
         require!(record.withdrawal_id == withdrawal_id && record.mint == mint && record.category == category
             && record.beneficiary == beneficiary && record.recipient == owner_key && record.amount == amount
             && !record.consumed && record.bump == ctx.bumps.approval, ErrorCode::InvalidMintApprovalV3);
+        if cfg!(feature = "mainnet-v3-program") && !ctx.accounts.creator.to_account_info().is_signer {
+            let earliest = record.created_at.checked_add(AUTOMATION_WITHDRAWAL_REVIEW_DELAY_SECONDS)
+                .ok_or(ErrorCode::AmountOverflow)?;
+            require!(Clock::get()?.unix_timestamp >= earliest, ErrorCode::AutomationWithdrawalReviewPending);
+        }
         record.consumed = true;
         record.try_serialize(&mut &mut data[..])?;
     }

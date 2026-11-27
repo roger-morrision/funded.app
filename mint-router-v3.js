@@ -209,7 +209,7 @@ export async function verifyMintWithdrawalApprovalV3Account({ connection, progra
   const account = await connection.getAccountInfo(address, 'finalized');
   if (!account?.owner?.equals(key(programId))) return { address, verified:false };
   const data = Buffer.from(account.data);
-  const valid = data.length === 116
+  const valid = data.length === 124
     && data.subarray(0, 8).equals(accountDiscriminator('MintWithdrawalApprovalV3'))
     && data.subarray(8, 40).equals(Buffer.from(withdrawalId))
     && data.subarray(40, 72).equals(key(mint).toBuffer())

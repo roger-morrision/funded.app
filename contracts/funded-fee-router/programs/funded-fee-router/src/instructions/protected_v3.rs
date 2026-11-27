@@ -167,6 +167,7 @@ pub fn approve_protected_withdrawal_v3_handler(ctx: Context<ApproveProtectedWith
     approval.amount = amount;
     approval.consumed = false;
     approval.bump = ctx.bumps.approval;
+    approval.created_at = Clock::get()?.unix_timestamp;
     emit!(MintWithdrawalApprovalV3Event { mint:approval.mint, withdrawal_id,
         category, beneficiary, recipient:approval.recipient, amount });
     Ok(())
@@ -275,6 +276,15 @@ pub fn disburse_protected_mint_v3_handler(ctx: Context<DisburseProtectedMintV3>,
             && record.recipient == recipient_key && record.amount == amount
             && !record.consumed && record.bump == ctx.bumps.approval,
             ErrorCode::InvalidMintApprovalV3);
+        // The automation-record bypass (no live creator signature) leaves the
+        // guardian a review window between approval and disbursement, the same
+        // way a new reward cycle leaves REWARD_CYCLE_MIN_DELAY_SECONDS before
+        // payout. A creator who actually signs is unaffected.
+        if cfg!(feature = "mainnet-v3-program") && !ctx.accounts.creator.to_account_info().is_signer {
+            let earliest = record.created_at.checked_add(AUTOMATION_WITHDRAWAL_REVIEW_DELAY_SECONDS)
+                .ok_or(ErrorCode::AmountOverflow)?;
+            require!(Clock::get()?.unix_timestamp >= earliest, ErrorCode::AutomationWithdrawalReviewPending);
+        }
         record.consumed = true;
         record.try_serialize(&mut &mut data[..])?;
     }

@@ -232,10 +232,11 @@ pub struct MintWithdrawalApprovalV3 {
     pub amount: u64,
     pub consumed: bool,
     pub bump: u8,
+    pub created_at: i64,
 }
 
 impl MintWithdrawalApprovalV3 {
-    pub const INIT_SPACE: usize = 32 + 32 + 1 + 1 + 32 + 8 + 1 + 1;
+    pub const INIT_SPACE: usize = 32 + 32 + 1 + 1 + 32 + 8 + 1 + 1 + 8;
 }
 
 #[account]

@@ -17,6 +17,8 @@ mod operations;
 mod operator_handoff;
 #[path = "protocol_guard/referral_consent.rs"]
 mod referral_consent;
+#[path = "protocol_guard/operations_review_delay.rs"]
+mod operations_review_delay;
 
 const DAY: i64 = 24 * 60 * 60;
 const START: i64 = 1_800_000_000;
