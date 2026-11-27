@@ -13,7 +13,6 @@ import {initAdminXPosts} from './admin-x-posts.js';
 import {initAdminProductIssues} from './admin-product-issues.js';
 import bs58 from 'bs58';
 import {createAdminSession,STALE_ADMIN_REQUEST} from './admin-session.js';
-import {initAdminWithdrawals} from './admin-withdrawals.js';
 import {createConfirmedAdminPost} from './admin-email-confirmation.js';
 import {initAdminBoostPrices} from './admin-boost-prices.js';
 import { validateProtocolFeeSplit } from './distribution-policy.js';
@@ -22,12 +21,6 @@ globalThis.Buffer ??= Buffer;
 globalThis.global ??= globalThis;
 
 const $ = selector => document.querySelector(selector);
-// Treasury sweeps need a server-held signer key, which Mainnet non-program
-// mode refuses to start with (server/environment.mjs). Everything else on
-// this page (policy, audit, service status, X posts, ...) is cluster-generic
-// or already degrades gracefully when per-mint V3 launch data (Devnet-only)
-// is unavailable, so only the withdraw panel is hidden on Mainnet.
-const DEVNET_ADMIN = (import.meta.env.VITE_SOLANA_CLUSTER || 'devnet') === 'devnet';
 const message = $('#message');
 const wallet = () => window.phantom?.solana || window.solana || null;
 const show = (value, error = false) => { if(String(value).startsWith(STALE_ADMIN_REQUEST))return; message.textContent = value; message.classList.toggle('error', error); };
@@ -45,13 +38,12 @@ const api = async (path, options = {}) => {
 const post = (path, body) => confirmedPost(path,body);
 const sol = lamports => (Number(lamports) / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits:9 });
 let connected = null, overview = null, policy = null, nextVault = 0, vaultLoading = false;
-let authBusy=false,feeSaving=false,refreshGeneration=0,auditGeneration=0,vaultGeneration=0,withdrawals;
+let authBusy=false,feeSaving=false,refreshGeneration=0,auditGeneration=0,vaultGeneration=0;
 const session=createAdminSession({document,onEnd:()=>{
  overview=policy=null;feeSaving=false;refreshGeneration++;auditGeneration++;vaultGeneration++;nextVault=0;vaultLoading=false;
  $('#refresh').disabled=false;
  for(const id of ['summary','wallet-rows','audit','vaults','gates'])document.getElementById(id).replaceChildren();
- $('#withdraw-source').replaceChildren();$('#withdraw-destination').value='';
- $('#financial-health').textContent='Sign in to load monitoring.';show('');withdrawals?.sync();
+ $('#financial-health').textContent='Sign in to load monitoring.';show('');
 }});
 const confirmedPost=createConfirmedAdminPost({api,session});
 const serviceStatus=initAdminServiceStatus({api,session});
@@ -110,23 +102,8 @@ function renderSummary() {
 }
 function renderWallets() {
   const rows = overview?.wallets || [];
-  const selectedSource=$('#withdraw-source').value;
   $('#wallet-rows').innerHTML = rows.length ? rows.map(row => `<tr><td>${escape(row.role)}</td><td><code>${walletAddressMarkup(row.address)}</code></td>
-    <td>${escape(row.custody)}</td><td>${sol(row.lamports)}</td><td>${row.withdrawable && row.address !== overview.withdrawalDestination
-      ? `<button type="button" data-source="${escape(row.address)}">Withdraw</button>`
-      : row.withdrawable ? '<span>Signed-in admin wallet</span>'
-        : '<span title="Operational signer; use its dedicated payout workflow">Operational signer · no sweep</span>'}</td></tr>`).join('') : '<tr><td colspan="5">No app wallet addresses configured.</td></tr>';
-  $('#withdraw-source').innerHTML = rows.filter(row => row.withdrawable && row.address !== overview.withdrawalDestination)
-    .map(row => `<option value="${escape(row.address)}" data-signing-mode="${escape(row.signingMode)}">${escape(row.role)} · ${escape(row.address.slice(0, 7))}…</option>`).join('');
-  if([...$('#withdraw-source').options].some(option=>option.value===selectedSource))$('#withdraw-source').value=selectedSource;
-  $('#withdraw-destination').value = overview.withdrawalDestination || '';
-  withdrawals?.sync();
-  $('#wallet-rows').querySelectorAll('[data-source]').forEach(button => button.addEventListener('click', () => {
-    $('#withdraw-source').value = button.dataset.source;
-    $('#withdraw-source').dispatchEvent(new Event('change'));
-    $('#withdraw-amount').focus();
-    $('#withdraw-form').scrollIntoView({ behavior:'smooth', block:'center' });
-  }));
+    <td>${escape(row.custody)}</td><td>${sol(row.lamports)}</td></tr>`).join('') : '<tr><td colspan="4">No app wallet addresses configured.</td></tr>';
 }
 function renderGates() {
   $('#gates').innerHTML = Object.entries(overview.gates).map(([label, enabled]) =>
@@ -169,7 +146,7 @@ async function refresh() {
   if(feeResult.status==='fulfilled'){policy=feeResult.value;renderPolicy();}
   else{policy=null;$('#policy-revision').textContent='Fee policy unavailable. Refresh to retry.';$('#fee-form').querySelectorAll('input,button').forEach(n=>n.disabled=true);errors.push('Fee policy unavailable');}
   if(walletResult.status==='fulfilled'){overview=walletResult.value;renderSummary();renderWallets();renderGates();}
-  else{overview=null;$('#summary').textContent='Finalized balances unavailable. Refresh to retry.';$('#wallet-rows').replaceChildren();$('#gates').textContent='Operational settings unavailable.';$('#withdraw-source').replaceChildren();withdrawals?.sync();errors.push('Wallet balances unavailable');}
+  else{overview=null;$('#summary').textContent='Finalized balances unavailable. Refresh to retry.';$('#wallet-rows').replaceChildren();$('#gates').textContent='Operational settings unavailable.';errors.push('Wallet balances unavailable');}
   vaultGeneration++;vaultLoading=false;nextVault=0;$('#vaults').replaceChildren();$('#more-vaults').disabled=false;$('#more-vaults').textContent='Load vaults';
   await Promise.allSettled([refreshAudit(),dailyBonusRecovery.refresh(),refreshFinancialHealth({api}),rpcHealth.refresh()]);
   if(errors.length&&session.current(epoch))throw Error(errors.join('. ')+'. Your admin session is still active.');
@@ -234,8 +211,6 @@ new MutationObserver(()=>{if($('#workspace').hidden)residuals.clear();}).observe
 initAdminAgencyPolicy({api,post,show,refresh});
 initAdminXPosts({api,post,show});
 initAdminProductIssues({api,post,show});
-if (DEVNET_ADMIN) withdrawals=initAdminWithdrawals({api,post,show,refresh,wallet,connected:()=>connected});
-else $('#withdraw-panel')?.setAttribute('hidden','');
 provider?.on?.('accountChanged', updateWallet);
 provider?.on?.('disconnect', updateWallet);
 updateWallet();

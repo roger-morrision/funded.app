@@ -33,11 +33,12 @@ document.addEventListener('keydown',event=>{
 mobile.addEventListener('change',()=>setMenu(false));setMenu(false);
 
 // Per-mint V3 launch data (balances overview, vaults) is Devnet-only --
-// no Mainnet program is deployed -- and treasury withdrawals need a
-// server-held signer key, which Mainnet non-program mode refuses to start
-// with (server/environment.mjs). Both degrade or hide themselves inside
+// no Mainnet program is deployed -- and degrades gracefully inside
 // admin-page.js; everything else here (policy, audit, service status,
-// X posts, product issues, ...) works on either network.
+// X posts, product issues, ...) works on either network. Treasury
+// withdrawals were removed from this page entirely (server/environment.mjs
+// refuses to start on Mainnet with any signer key configured); use the
+// separate fee-withdrawals workspace, which has no such signer today either.
 const cluster=import.meta.env.VITE_SOLANA_CLUSTER||'devnet';
 if(cluster!=='devnet'){
   document.querySelector('.top .badge').textContent='MAINNET ADMIN';
