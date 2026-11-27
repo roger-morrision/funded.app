@@ -1,4 +1,5 @@
 import {loadTokenArtwork} from '../shared/token-artwork.js';
+import {escapeHtml, formatCompactUsd} from '../shared/display.js';
 import { MARKETING_AGENCY_POLICY as POLICY } from '../../../config/marketing-agency.js';
 import { renderAgencyHistory } from './agency-history.js';
 import {agencyTokenTable} from './agency-token-table.js';
@@ -32,7 +33,10 @@ export function initMarketingAgency(document = globalThis.document) {
     const title = document.createElement('h2'); title.textContent = agent.name;
     const description = document.createElement('p'); description.textContent = agentDescription(agent);
     const state = document.createElement('span'); state.className = 'data-badge'; state.textContent = 'Not activated';
-    card.append(title, description, state); page.querySelector('[data-agency-cards]').append(card);
+    // Eligible tokens container for each agent
+    const tokensContainer = document.createElement('div'); tokensContainer.className = 'agent-eligible-tokens'; tokensContainer.dataset.agentId = agent.id;
+    tokensContainer.innerHTML = '<p class="agent-tokens-loading">Loading eligible tokens…</p>';
+    card.append(title, description, state, tokensContainer); page.querySelector('[data-agency-cards]').append(card);
   }
   main.insertBefore(page, main.querySelector(':scope > .site-footer'));
   const buybackProgress=document.createElement('section');buybackProgress.dataset.buybackProgress='';page.querySelector('[data-agency-tokens]').parentElement.after(buybackProgress);
@@ -99,6 +103,29 @@ export function initMarketingAgency(document = globalThis.document) {
       buybackProgress.textContent='Checking buyback funding…';
       void view.fetch('/api/marketing-agency/progress',{cache:'no-store',signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(progress=>{if(id===serial&&progress?.scope==='display-only'){data.progress=progress.rows;page.querySelector('[data-agency-tokens]').innerHTML=agencyTokenTable(data);loadLogos();}});
       void view.fetch('/api/buyback/status',{cache:'no-store',signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(buyback=>{if(id===serial){buybackProgress.innerHTML=buybackProgressTable(buyback,data.launches||[]);loadLogos();}});
+      // Fetch eligible tokens per agent
+      void view.fetch('/api/marketing-agency/eligible',{cache:'no-store',signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).catch(()=>null).then(eligibleData=>{
+        if(id!==serial||!eligibleData?.agents) return;
+        for(const [agentId, tokens] of Object.entries(eligibleData.agents)){
+          const container = page.querySelector(`.agent-eligible-tokens[data-agent-id="${agentId}"]`);
+          if(!container) continue;
+          if(tokens.length===0){
+            container.innerHTML = '<p class="agent-tokens-empty">No eligible tokens</p>';
+            continue;
+          }
+          let html = '<table class="agent-tokens-table"><thead><tr><th>Token</th><th>Symbol</th><th class="numeric">Market cap</th><th>Time</th></tr></thead><tbody>';
+          for(const t of tokens.slice(0,10)){
+            const initials = escapeHtml((t.symbol || t.name || 'T').replace(/^\$/, '').slice(0, 2).toUpperCase());
+            const cap = Number.isFinite(t.marketCapUsd) && t.marketCapUsd > 0 ? '≈' + formatCompactUsd(t.marketCapUsd) : '—';
+            const when = agentId === 'x-promotion' && t.createdAt ? t.createdAt
+              : (agentId === 'buyback-100k' || agentId === 'buyback-300k') && t.buybackExecutedAt ? t.buybackExecutedAt : t.updatedAt;
+            html += `<tr><td><a class="agent-token-link" href="/token/${escapeHtml(t.mint)}" data-logo-mint="${escapeHtml(t.mint)}"><span class="agency-token-logo" aria-hidden="true">${initials}</span><span class="agent-token-name">${escapeHtml(t.name)}</span></a></td><td><code>${escapeHtml(t.symbol)}</code></td><td class="numeric agent-token-mc">${cap}</td><td><time datetime="${escapeHtml(when)}">${formatRelativeTime(when)}</time></td></tr>`;
+          }
+          html += '</tbody></table>';
+          container.innerHTML = html;
+          container.querySelectorAll('.agent-token-link[data-logo-mint]').forEach(link=>loadTokenArtwork(link.querySelector('.agency-token-logo'),link.dataset.logoMint));
+        }
+      });
       page.querySelectorAll('.agency-agent').forEach((card,index)=>{
         let reason=card.querySelector('[data-agent-reason]');if(!reason){reason=document.createElement('small');reason.dataset.agentReason='';card.append(reason);}
         const row=data.agents?.find(row=>row.id===POLICY.agents[index].id);reason.textContent=row?.reason||'';
@@ -164,4 +191,16 @@ export function initMarketingAgency(document = globalThis.document) {
   page.querySelector('[data-agency-refresh]').addEventListener('click', () => { void refresh(); });
   view.addEventListener('funded:route-change', route); view.addEventListener('hashchange', route); document.addEventListener('visibilitychange', route); route();
   return () => { ++serial; request?.abort(); view.removeEventListener('funded:route-change', route); view.removeEventListener('hashchange', route);view.removeEventListener('funded:agency-readiness',readiness);view.removeEventListener('funded:launch-promotion',updateLaunchTeam); document.removeEventListener('visibilitychange', route); };
+}
+
+function formatRelativeTime(isoString) {
+  const diffSec = Math.floor((Date.now() - new Date(isoString)) / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return new Date(isoString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }

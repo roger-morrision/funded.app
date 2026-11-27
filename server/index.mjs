@@ -48,6 +48,7 @@ import { createLaunchProtectionRoutes } from './routes/launch-protection.mjs';
 import { createBoostRoutes } from './routes/boost.mjs';
 import { createAirdropsRoutes } from './routes/airdrops.mjs';
 import {createProjectUpdateRoutes} from './routes/project-updates.mjs';
+import { createMarketingAgencyEligibleRoutes } from './routes/marketing-agency-eligible.mjs';
 import { createTokenChatRoutes } from './routes/token-chat.mjs';
 import { createCalloutRoutes, createCalloutFeed } from './routes/callouts.mjs';
 import { createCalloutMarketReader, createHolderShareReader, withIndexedCalloutCaps } from './callout-market.mjs';
@@ -450,6 +451,8 @@ async function handle(req, res) {
     if (await handleKeeperStatus(req, res, url)) return;
     if (await handleDiscoveryRoutes(req, res, url)) return;
     if (await handleCommunityNames(req, res, url)) return;
+    const handleMarketingAgencyEligible = createMarketingAgencyEligibleRoutes({ respond: json, store, readMarketCaps: readCalloutMarketCaps, readSolUsd: readSolUsdQuote });
+    if (await handleMarketingAgencyEligible(req, res, url)) return;
     if(req.method==='GET'&&url.pathname==='/api/marketing-agency/progress'){
       if(solanaCluster!=='devnet')return json(res,200,{rows:[],scope:'display-only'});
       return json(res,200,{rows:await readAgencyProgress(await store.read()),scope:'display-only',cluster:'devnet'});

@@ -255,6 +255,16 @@ html body img[data-deferred-art] { visibility: hidden; }
 html body .home-featured-banner-metrics > div { flex-wrap: wrap; row-gap: 0; }
 html body .home-featured-banner-metrics dd { overflow: visible; text-overflow: clip; }
 .agency-agent [data-agent-reason] { display:block; margin-top:10px; line-height:1.5; overflow-wrap:anywhere; }
+/* Agent eligible-token lists: logo avatar and market cap figure match the Explore table's look. */
+.agency-token-logo { display: inline-grid; position: relative; place-items: center; flex: none; width: 22px; height: 22px; overflow: hidden; border-radius: 6px; background: var(--fv-surface-raised); color: var(--fv-text-muted); font: 700 10px var(--fv-font-ui); vertical-align: middle; }
+.agency-token-logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.agent-tokens-table { width: 100%; border-collapse: collapse; font: 13px/1.5 var(--fv-font-ui); }
+.agent-tokens-table th, .agent-tokens-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--fv-border); vertical-align: middle; }
+.agent-tokens-table th { color: var(--fv-text-muted); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.agent-tokens-table tbody tr:last-child td { border-bottom: 0; }
+.agent-tokens-table .numeric { text-align: right; white-space: nowrap; }
+.agent-tokens-table .agent-token-link { display: inline-flex; align-items: center; gap: 8px; color: inherit; }
+.agent-tokens-table .agent-token-mc { font: 600 13px var(--fv-font-data); color: var(--fv-text); font-variant-numeric: tabular-nums; }
 
 html body #main-content #coin-page .coin-socials.is-compact :is(a,button) { display: inline-flex; align-items: center; justify-content: center; padding: 0; line-height: 1; }
 html body #main-content #coin-page .coin-socials.is-compact :is(a,button) svg { display: block; flex: none; margin: 0; }
