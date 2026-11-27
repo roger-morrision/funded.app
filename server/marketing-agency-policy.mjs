@@ -4,6 +4,7 @@ import { MARKETING_AGENCY_POLICY as POLICY, canonicalAgencySelection } from '../
 export const AGENCY_CONTRACT_BLOCKER = 'The current reviewed V3 agency vault, immutable launch selection, and protected spending must be independently verified.';
 export const AGENCY_EXECUTOR_BLOCKER = 'Agency X publishing and own-coin milestone purchase/burn executors are not activated.';
 export const agencyPolicyHash = createHash('sha256').update(JSON.stringify(POLICY)).digest('hex');
+const intervalText = seconds => seconds % 86400 === 0 ? `${seconds / 86400} day(s)` : seconds % 3600 === 0 ? `${seconds / 3600} hour(s)` : seconds % 60 === 0 ? `${seconds / 60} minute(s)` : `${seconds} second(s)`;
 const unsigned = value => {
   if (typeof value !== 'string' || value.length > 20 || !/^(0|[1-9]\d*)$/.test(value)) throw new Error('An exact unsigned decimal lamport string is required.');
   const n = BigInt(value);
@@ -51,7 +52,7 @@ export function projectAgencyAllocation({ totalGrossLamports, previousGrossLampo
 // enforces an eighth budget. A verified contract/receipt implementation must
 // replace this readiness result before execution can be wired into workers.
 export function marketingAgencyCapabilities({split,rules}={}) {
-  const policy={...POLICY,agents:POLICY.agents.map((agent,i)=>i===0?{...agent,...(rules?{description:`Promote the project no more often than once every ${rules.promotionIntervalSeconds/86400} day(s); bill its protected budget only after verified X delivery.`}:{})}:({...agent,
+  const policy={...POLICY,agents:POLICY.agents.map((agent,i)=>i===0?{...agent,...(rules?{description:`Promote the project no more often than once every ${intervalText(rules.promotionIntervalSeconds)}; bill its protected budget only after verified X delivery.`}:{})}:({...agent,
     marketCapUsd:rules?.marketCapUsd[i-1]??agent.marketCapUsd,
     name:`Agent ${i+1} · $${(rules?.marketCapUsd[i-1]??agent.marketCapUsd).toLocaleString("en-US")} buyback`,
     description:`Buy this launched coin and burn it once after its verified market cap reaches $${(rules?.marketCapUsd[i-1]??agent.marketCapUsd).toLocaleString("en-US")}.`})),...(rules?{rules}:{} )};

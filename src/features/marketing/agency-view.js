@@ -111,19 +111,26 @@ export function initMarketingAgency(document = globalThis.document) {
           if(!container) continue;
           if(tokens.length===0){
             container.innerHTML = '<p class="agent-tokens-empty">No eligible tokens</p>';
-            continue;
+          }else{
+            let html = '<table class="agent-tokens-table"><thead><tr><th>Token</th><th>Symbol</th><th class="numeric">Market cap</th><th>Time</th></tr></thead><tbody>';
+            for(const t of tokens.slice(0,10)){
+              const initials = escapeHtml((t.symbol || t.name || 'T').replace(/^\$/, '').slice(0, 2).toUpperCase());
+              const cap = Number.isFinite(t.marketCapUsd) && t.marketCapUsd > 0 ? '≈' + formatCompactUsd(t.marketCapUsd) : '—';
+              let timeHtml = '';
+              if(agentId === 'x-promotion' && t.createdAt){
+                timeHtml = `<time datetime="${escapeHtml(t.createdAt)}">${formatRelativeTime(t.createdAt)}</time>`;
+              }else if((agentId === 'buyback-100k' || agentId === 'buyback-300k') && t.buybackExecutedAt){
+                timeHtml = `<time datetime="${escapeHtml(t.buybackExecutedAt)}">${formatRelativeTime(t.buybackExecutedAt)}</time>`;
+              }else{
+                timeHtml = `<time datetime="${escapeHtml(t.updatedAt)}">${formatRelativeTime(t.updatedAt)}</time>`;
+              }
+              html += `<tr><td><a class="agent-token-link" href="/token/${escapeHtml(t.mint)}" data-logo-mint="${escapeHtml(t.mint)}"><span class="agency-token-logo" aria-hidden="true">${initials}</span><span class="agent-token-name">${escapeHtml(t.name)}</span></a></td><td><code>${escapeHtml(t.symbol)}</code></td><td class="numeric agent-token-mc">${cap}</td><td>${timeHtml}</td></tr>`;
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            // Load real logos after inserting (initials show until artwork resolves).
+            container.querySelectorAll('.agent-token-link[data-logo-mint]').forEach(link=>loadTokenArtwork(link.querySelector('.agency-token-logo'),link.dataset.logoMint));
           }
-          let html = '<table class="agent-tokens-table"><thead><tr><th>Token</th><th>Symbol</th><th class="numeric">Market cap</th><th>Time</th></tr></thead><tbody>';
-          for(const t of tokens.slice(0,10)){
-            const initials = escapeHtml((t.symbol || t.name || 'T').replace(/^\$/, '').slice(0, 2).toUpperCase());
-            const cap = Number.isFinite(t.marketCapUsd) && t.marketCapUsd > 0 ? '≈' + formatCompactUsd(t.marketCapUsd) : '—';
-            const when = agentId === 'x-promotion' && t.createdAt ? t.createdAt
-              : (agentId === 'buyback-100k' || agentId === 'buyback-300k') && t.buybackExecutedAt ? t.buybackExecutedAt : t.updatedAt;
-            html += `<tr><td><a class="agent-token-link" href="/token/${escapeHtml(t.mint)}" data-logo-mint="${escapeHtml(t.mint)}"><span class="agency-token-logo" aria-hidden="true">${initials}</span><span class="agent-token-name">${escapeHtml(t.name)}</span></a></td><td><code>${escapeHtml(t.symbol)}</code></td><td class="numeric agent-token-mc">${cap}</td><td><time datetime="${escapeHtml(when)}">${formatRelativeTime(when)}</time></td></tr>`;
-          }
-          html += '</tbody></table>';
-          container.innerHTML = html;
-          container.querySelectorAll('.agent-token-link[data-logo-mint]').forEach(link=>loadTokenArtwork(link.querySelector('.agency-token-logo'),link.dataset.logoMint));
         }
       });
       page.querySelectorAll('.agency-agent').forEach((card,index)=>{
@@ -194,13 +201,17 @@ export function initMarketingAgency(document = globalThis.document) {
 }
 
 function formatRelativeTime(isoString) {
-  const diffSec = Math.floor((Date.now() - new Date(isoString)) / 1000);
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
   const diffMin = Math.floor(diffSec / 60);
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
+  
   if (diffSec < 60) return 'just now';
   if (diffMin < 60) return `${diffMin}m ago`;
   if (diffHour < 24) return `${diffHour}h ago`;
   if (diffDay < 7) return `${diffDay}d ago`;
-  return new Date(isoString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
