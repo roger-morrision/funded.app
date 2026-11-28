@@ -110,10 +110,10 @@ const store = createStore(storePath, databaseUrl);
 const maxBodyBytes = 1_000_000;
 const devnetMetadataOrigin = normalizeDevnetMetadataOrigin(process.env.DEVNET_METADATA_ORIGIN || DEVNET_METADATA_ORIGIN);
 const birdeyeApiKey = String(process.env.BIRDEYE_API_KEY || '').trim();
-const birdeyeBaseUrl = String(process.env.BIRDEYE_API_URL || 'https://public-api.birdeye.so').replace(/\/$/, '');
+const birdeyeBaseUrl = String(process.env.BIRDEYE_API_URL || 'https://public-api.birdeye.so').replace(/\/+$/, '');
 const birdeyeChain = String(process.env.BIRDEYE_CHAIN || 'solana').trim();
 const birdeyeTimeoutMs = 10_000;
-const pumpApiUrl = String(process.env.PUMP_API_URL || 'https://frontend-api-v3.pump.fun').replace(/\/$/, '');
+const pumpApiUrl = String(process.env.PUMP_API_URL || 'https://frontend-api-v3.pump.fun').replace(/\/+$/, '');
 const {solanaRpcUrl,fundedTokenMint,fundedSwapPool,getPrimaryRich}=primaryRichRuntime(process.env,solanaCluster);
 const rpcMethods = new Set(['getAccountInfo', 'getMultipleAccounts', 'getBalance', 'getSlot', 'getGenesisHash', 'getTokenSupply', 'getTokenLargestAccounts', 'getTokenAccountsByOwner', 'getTokenAccountBalance', 'getSignaturesForAddress', 'getTransaction', 'getLatestBlockhash', 'getBlockHeight', 'isBlockhashValid', 'getSignatureStatuses', 'getFeeForMessage', 'getMinimumBalanceForRentExemption', 'getRecentPrioritizationFees', 'simulateTransaction', 'sendTransaction']);
 const publicPostPaths = new Set(['/api/rewards/preview', '/api/anti-sniper/analyze', '/api/referrals/registration/prepare', '/api/referrals/registration/verify', '/api/referrals/attribution/prepare', '/api/referrals/attribution/verify', '/api/referrals/session/prepare', '/api/referrals/session/verify', '/api/referrals/session/logout', '/api/launches', '/api/listings', '/api/burn-receipts', '/api/devnet-metadata', '/api/token-metadata']);
@@ -454,9 +454,9 @@ async function handle(req, res) {
     const handleMarketingAgencyEligible = createMarketingAgencyEligibleRoutes({ respond: json, store, readMarketCaps: readCalloutMarketCaps, readSolUsd: readSolUsdQuote });
     if (await handleMarketingAgencyEligible(req, res, url)) return;
     if(req.method==='GET'&&url.pathname==='/api/marketing-agency/progress'){
-      if(solanaCluster!=='devnet')return json(res,200,{rows:[],scope:'display-only'});
-      return json(res,200,{rows:await readAgencyProgress(await store.read()),scope:'display-only',cluster:'devnet'});
-    }
+          if(solanaCluster!=='devnet')return json(res,200,{rows:[],scope:'display-only'});
+          return json(res,200,{rows:await readAgencyProgress(await store.read()),scope:'display-only',cluster:'devnet'});
+        }
     if (await handleProjectUpdates(req, res, url)) return;
     if (await handleTokenChatRoutes(req, res, url, requestId)) return;
     if (await handleCalloutRoutes(req, res, url)) return;
