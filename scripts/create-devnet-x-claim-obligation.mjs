@@ -7,9 +7,10 @@ import { deriveFeeRouter } from '../fee-router.js';
 import { buildTradeTransaction } from '../pump-trading.js';
 import { buildFeeDistributionPolicy } from '../distribution-policy.js';
 import { launchPolicyStatement } from '../launch-policy-auth.js';
-import { devnetMetadataUri, metadataStatement } from '../devnet-metadata.js';
+import { metadataStatement } from '../devnet-metadata.js';
 import { quoteAtomicReserveBuy } from '../launch-community-reserve.js';
 import { submitPumpDevnetLaunch } from '../launch-flow.js';
+import { newLaunchAgencySelection } from '../config/marketing-agency.js';
 
 // Creates real Devnet transactions and a live claim obligation. Set X_TEST_HANDLE
 // to the consenting X account that will receive the test claim.
@@ -18,7 +19,7 @@ assert.match(handle, /^@[A-Za-z0-9_]{1,15}$/, 'Set X_TEST_HANDLE to a valid reci
 const existingMint = process.argv.find(arg => arg.startsWith('--settle-existing-mint='))?.slice(23);
 const existingSignature = process.argv.find(arg => arg.startsWith('--settle-existing-signature='))?.slice(28);
 assert.equal(Boolean(existingMint), Boolean(existingSignature), 'Pass both existing mint and collection signature to resume allocation.');
-const appUrl = 'https://richpad.fun';
+const appUrl = process.env.X_TEST_APP_URL || 'https://richpad.fun';
 const localApiUrl = 'http://127.0.0.1:8788';
 const cluster = process.env.VITE_SOLANA_CLUSTER || process.env.SOLANA_CLUSTER;
 assert.equal(cluster, 'devnet', 'This script only creates Devnet transactions.');
@@ -36,8 +37,8 @@ let qaFunder = null;
 const evidence = { cluster: 'devnet', payer: payer.publicKey.toBase58(), mint: null, handle, signatures: {} };
 let stage = 'preflight';
 
-async function jsonRequest(base, path, options = {}) {
-  const response = await fetch(`${base}${path}`, { ...options, signal: AbortSignal.timeout(20_000) });
+async function jsonRequest(base, path, { timeoutMs = 20_000, ...options } = {}) {
+  const response = await fetch(`${base}${path}`, { ...options, signal: AbortSignal.timeout(timeoutMs) });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(`${path} returned ${response.status}: ${data.error || data.detail || 'unknown error'}`);
   return data;
@@ -158,8 +159,21 @@ try {
   assert(fundedBalance >= 200_000_000, 'Ephemeral payer has insufficient finalized Devnet SOL.');
   evidence.faucetBalanceLamports = fundedBalance;
 
+  stage = 'launch-quote';
+  const liveV3Body = await jsonRequest(appUrl, '/api/v3-launch-config');
+  const liveV3 = liveV3Body.data ?? liveV3Body;
+  assert.equal(liveV3.ready, true, 'Live V3 launch config is not ready.');
+  const v3FeeRouter = { programId: liveV3.programId, initialAuthority: liveV3.initialAuthority, split: liveV3.protocolSplit,
+    ...(liveV3.agency ? { agency: { ...liveV3.agency, selectedAgents: newLaunchAgencySelection({ promotion: false }) } } : {}) };
+  const serviceFees = await jsonRequest(appUrl, '/api/service-fees');
+  const quoteBody = await jsonRequest(appUrl, '/api/launch-service-quote', { method: 'POST',
+    headers: { 'content-type': 'application/json', origin: appUrl }, body: JSON.stringify({ payer: payer.publicKey.toBase58(), expectedHash: serviceFees.hash }) });
+  const launchServiceQuote = quoteBody.data ?? quoteBody;
+  assert(launchServiceQuote?.id, 'Launch service fee quote is unavailable.');
+
   stage = 'create-pump-coin';
-  const name = `Funded X Claim QA ${Date.now().toString(36).slice(-6)}`;
+  const name =`Funded X Claim QA ${Date.now().toString(36).slice(-6)}`;
+  const symbol = `FX${Date.now().toString(36).slice(-4).toUpperCase()}`;
   const launch = await submitPumpDevnetLaunch({
     connection, payer:payer.publicKey,
     provider:{ signTransaction:async transaction => {
@@ -167,20 +181,21 @@ try {
       else transaction.partialSign(payer);
       return transaction;
     } },
-    input:{ name, symbol:'FXQA', supply:1_000_000_000, decimals:6, initialBuyPercent:0,
-      reserveTokens:30_000_000, maxInitialBuyLamports:reserveQuote.maxSolAmountLamports },
+    input:{ name, symbol, supply:1_000_000_000, decimals:6, initialBuyPercent:0,
+      reserveTokens:30_000_000, maxInitialBuyLamports:reserveQuote.maxSolAmountLamports,
+      developerLockSeconds:43200, feeShares:{ creatorWalletPercent:0, holderAirdropPercent:0, solClaimPercent:80, xRecipient:handle } },
     feeRouterAddress:deriveFeeRouter(programId).address.toBase58(), feeRouterProgramId:programId,
-    useMintRouter:true, reserveConfig,
+    useMintRouter:true, v3FeeRouter, launchServiceQuote, reserveConfig,
     prepareMetadata:async ({ mint:mintAddress }) => {
       evidence.mint = mintAddress;
-      const record = { mint:mintAddress, creatorWallet:payer.publicKey.toBase58(), name, symbol:'FXQA',
+      const record = { mint:mintAddress, creatorWallet:payer.publicKey.toBase58(), name, symbol,
         description:'Devnet X claim test token. No monetary value.', tagline:'X claim QA',
         roadmap:'', website:'', x:'', telegram:'', discord:'', imageSha256:'' };
       const signature = bs58.encode(nacl.sign.detached(new TextEncoder().encode(metadataStatement(record)), payer.secretKey));
-      const saved = await jsonRequest(localApiUrl, '/api/devnet-metadata', { method:'POST',
+      const saved = await jsonRequest(localApiUrl, '/api/devnet-metadata', { method:'POST', timeoutMs:90_000,
         headers:{ 'content-type':'application/json', origin:appUrl },
         body:JSON.stringify({ ...record, imageBase64:'', imageType:'', signature }) });
-      assert.equal(saved.uri, devnetMetadataUri(mintAddress));
+      assert.match(saved.uri, /^https:\/\//, 'Signed token metadata URI is unavailable.');
       const published = await fetch(saved.uri, { signal:AbortSignal.timeout(15_000) });
       assert.equal(published.status, 200, 'Signed token metadata is not publicly readable.');
       return saved.uri;
@@ -205,20 +220,26 @@ try {
   const feeDistribution = buildFeeDistributionPolicy({
     creatorWalletPercent: 0, holderAirdropPercent: 0, solClaimPercent: 80,
     xRecipient: handle, feeRouterAddress: router.toBase58(),
-  });
+  }, { fundedSplit: liveV3.protocolSplit });
   const policy = {
-    mint: mint.toBase58(), chain: 'solana', cluster: 'devnet',
+    mint: mint.toBase58(), chain: 'solana', cluster: 'devnet', launchpad: 'pump',
     signature: evidence.signatures.launch, creatorWallet: payer.publicKey.toBase58(),
     communityAllocation: 3, xUserId: String(xUser.id), feeDistribution,
-    pumpFeeRoute: { router: router.toBase58(), scope: 'per-mint-v2', transaction: evidence.signatures.launch },
+    pumpFeeRoute: { router: router.toBase58(), scope: 'per-mint-v3', programId: liveV3.programId,
+      initialAuthority: liveV3.initialAuthority, protocolSplit: liveV3.protocolSplit, transaction: evidence.signatures.launch },
+    ...(liveV3.agency ? { marketingAgency: { version: liveV3.agency.version, configRevision: String(liveV3.agency.configRevision),
+      selectedAgents: newLaunchAgencySelection({ promotion: false }) } } : {}),
+    launchServiceFee: { quoteId: launchServiceQuote.id, policyHash: launchServiceQuote.policyHash,
+      amountLamports: launchServiceQuote.amountLamports, recipient: launchServiceQuote.recipient },
+    creatorLaunchBurn: null,
   };
   policy.policySignature = bs58.encode(nacl.sign.detached(new TextEncoder().encode(launchPolicyStatement(policy)), payer.secretKey));
   const registered = await jsonRequest(localApiUrl, '/api/launches', {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(policy),
+    method: 'POST', timeoutMs: 180_000, headers: { 'content-type': 'application/json' }, body: JSON.stringify(policy),
   });
   assert.equal(registered.onchainVerified, true);
   assert.equal(registered.xUserId, String(xUser.id));
-  assert.equal(registered.pumpFeeRoute.scope, 'per-mint-v2');
+  assert.equal(registered.pumpFeeRoute.scope, 'per-mint-v3');
   assert.equal(registered.communityReserve?.verified, true);
   assert.equal(registered.communityReserve?.fundedTokens, '30000000');
   evidence.registered = true;
